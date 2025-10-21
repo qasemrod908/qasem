@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">دروس: {{ course.title }}</h2>
+    {% for lesson in lessons %}
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5>{{ lesson.title }}</h5>
+            <p>{{ lesson.description }}</p>
+            {% if lesson.file_path %}
+            <a href="{{ url_for('static', filename=lesson.file_path) }}" class="btn btn-success" download>
+                <i class="fas fa-download ms-2"></i> تحميل الملف
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <p>لا توجد دروس منشورة بعد</p>
+    {% endfor %}
+</div>
+{% endblock %}

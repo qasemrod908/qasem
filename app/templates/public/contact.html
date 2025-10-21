@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}اتصل بنا - معهد القاسم{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">اتصل بنا</h2>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5>أرسل لنا رسالة</h5>
+                    <form method="POST">
+                        <div class="mb-3">
+                            <input type="text" class="form-control" name="name" placeholder="الاسم" required>
+                        </div>
+                        <div class="mb-3">
+                            <input type="email" class="form-control" name="email" placeholder="البريد الإلكتروني" required>
+                        </div>
+                        <div class="mb-3">
+                            <input type="text" class="form-control" name="phone" placeholder="الهاتف">
+                        </div>
+                        <div class="mb-3">
+                            <input type="text" class="form-control" name="subject" placeholder="الموضوع">
+                        </div>
+                        <div class="mb-3">
+                            <textarea class="form-control" name="message" rows="4" placeholder="الرسالة" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">إرسال</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5>معلومات التواصل</h5>
+                    {% if settings %}
+                        {% if settings.phone1 %}<p><i class="fas fa-phone ms-2"></i> {{ settings.phone1 }}</p>{% endif %}
+                        {% if settings.email %}<p><i class="fas fa-envelope ms-2"></i> {{ settings.email }}</p>{% endif %}
+                        {% if settings.address %}<p><i class="fas fa-map-marker-alt ms-2"></i> {{ settings.address }}</p>{% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}النسخ الاحتياطي - معهد القاسم{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">
+        <i class="fas fa-database ms-2"></i>
+        النسخ الاحتياطي والاستعادة
+    </h2>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">إنشاء نسخة احتياطية</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin.backup') }}">
+                        <div class="mb-3">
+                            <label class="form-label">نوع النسخة الاحتياطية</label>
+                            <select class="form-select" name="backup_type" required>
+                                <option value="full">نسخة احتياطية كاملة (قاعدة البيانات + الملفات)</option>
+                                <option value="structure">نسخة احتياطية للبنية (التصميم والقوالب)</option>
+                                <option value="data">نسخة احتياطية للبيانات فقط</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="send_telegram" name="send_telegram">
+                            <label class="form-check-label" for="send_telegram">
+                                إرسال النسخة إلى Telegram
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-download ms-2"></i>
+                            إنشاء نسخة احتياطية
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mt-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">إعدادات Telegram</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <strong>لتفعيل إرسال النسخ الاحتياطية إلى Telegram:</strong><br>
+                        1. قم بإنشاء بوت جديد عبر <a href="https://t.me/BotFather" target="_blank">@BotFather</a><br>
+                        2. احصل على Token الخاص بالبوت<br>
+                        3. احصل على Chat ID الخاص بك<br>
+                        4. أضف المتغيرات في إعدادات البيئة (Secrets)
+                    </div>
+                    <p><strong>المتغيرات المطلوبة:</strong></p>
+                    <ul>
+                        <li><code>TELEGRAM_BOT_TOKEN</code></li>
+                        <li><code>TELEGRAM_CHAT_ID</code></li>
+                        <li><code>TELEGRAM_BACKUP_ENABLED=true</code></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0">ملاحظات هامة</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success ms-2"></i>
+                            النسخ الكاملة تشمل كل شيء
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success ms-2"></i>
+                            النسخ البنية للتصميم فقط
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success ms-2"></i>
+                            النسخ البيانات لقاعدة البيانات
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-exclamation-triangle text-warning ms-2"></i>
+                            احفظ النسخ في مكان آمن
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}لوحة المدرس - معهد القاسم{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">
+        <i class="fas fa-chalkboard-teacher ms-2"></i>
+        لوحة المدرس
+    </h2>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-center bg-primary text-white">
+                <div class="card-body">
+                    <i class="fas fa-book fa-3x mb-3"></i>
+                    <h3>{{ stats.courses }}</h3>
+                    <p>الدورات</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center bg-success text-white">
+                <div class="card-body">
+                    <i class="fas fa-user-graduate fa-3x mb-3"></i>
+                    <h3>{{ stats.students }}</h3>
+                    <p>الطلاب</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center bg-info text-white">
+                <div class="card-body">
+                    <i class="fas fa-file-pdf fa-3x mb-3"></i>
+                    <h3>{{ stats.lessons }}</h3>
+                    <p>الدروس</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">الإجراءات</h5>
+                </div>
+                <div class="list-group list-group-flush">
+                    <a href="{{ url_for('teacher.lessons') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-book-open ms-2"></i> دروسي
+                    </a>
+                    <a href="{{ url_for('teacher.add_lesson') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-plus ms-2"></i> رفع درس جديد
+                    </a>
+                    <a href="{{ url_for('teacher.students') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-users ms-2"></i> طلابي
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

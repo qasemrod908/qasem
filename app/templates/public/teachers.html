@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}المدرسون - معهد القاسم{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">مدرسونا</h2>
+    <div class="row">
+        {% for teacher in teachers %}
+        <div class="col-md-3 mb-4">
+            <div class="card text-center shadow-sm">
+                <div class="card-body">
+                    <i class="fas fa-user-circle fa-4x text-primary mb-3"></i>
+                    <h5>{{ teacher.user.full_name }}</h5>
+                    {% if teacher.specialization %}<p>{{ teacher.specialization }}</p>{% endif %}
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <p>لا يوجد مدرسون حالياً</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

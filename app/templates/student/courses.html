@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">دوراتي</h2>
+    {% for enrollment in enrollments %}
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5>{{ enrollment.course.title }}</h5>
+            <a href="{{ url_for('student.lessons', course_id=enrollment.course_id) }}" class="btn btn-primary">عرض الدروس</a>
+        </div>
+    </div>
+    {% else %}
+    <p>لم تسجل في أي دورة بعد</p>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">علاماتي</h2>
+    <table class="table">
+        <thead><tr><th>الاختبار</th><th>الدورة</th><th>الدرجة</th><th>ملاحظات</th></tr></thead>
+        <tbody>
+            {% for grade in grades %}
+            <tr>
+                <td>{{ grade.exam_name }}</td>
+                <td>{{ grade.course.title }}</td>
+                <td>{{ grade.grade }}/{{ grade.max_grade }}</td>
+                <td>{{ grade.notes or '-' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4">لا توجد علامات</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

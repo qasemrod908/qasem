@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">إضافة درجة للطالب: {{ student.user.full_name }}</h2>
+    <form method="POST">
+        <div class="mb-3">
+            <label class="form-label">الدورة</label>
+            <select class="form-select" name="course_id" required>
+                {% for course in courses %}
+                <option value="{{ course.id }}">{{ course.title }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">اسم الاختبار</label>
+            <input type="text" class="form-control" name="exam_name" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">الدرجة</label>
+            <input type="number" step="0.01" class="form-control" name="grade" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">الدرجة الكاملة</label>
+            <input type="number" step="0.01" class="form-control" name="max_grade" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">ملاحظات</label>
+            <textarea class="form-control" name="notes" rows="3"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">إضافة</button>
+        <a href="{{ url_for('teacher.students') }}" class="btn btn-secondary">إلغاء</a>
+    </form>
+</div>
+{% endblock %}

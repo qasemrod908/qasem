@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">إضافة دورة جديدة</h2>
+    <form method="POST">
+        <div class="mb-3">
+            <label class="form-label">العنوان</label>
+            <input type="text" class="form-control" name="title" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">وصف مختصر</label>
+            <input type="text" class="form-control" name="short_description" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">الوصف الكامل</label>
+            <textarea class="form-control" name="description" rows="4"></textarea>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">المدة</label>
+            <input type="text" class="form-control" name="duration" placeholder="مثال: 3 أشهر">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">المستوى</label>
+            <select class="form-select" name="level">
+                <option value="مبتدئ">مبتدئ</option>
+                <option value="متوسط">متوسط</option>
+                <option value="متقدم">متقدم</option>
+            </select>
+        </div>
+        <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input" name="is_featured">
+            <label class="form-check-label">دورة مميزة</label>
+        </div>
+        <button type="submit" class="btn btn-primary">إضافة</button>
+        <a href="{{ url_for('admin.courses') }}" class="btn btn-secondary">إلغاء</a>
+    </form>
+</div>
+{% endblock %}

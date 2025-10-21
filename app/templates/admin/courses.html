@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">إدارة الدورات</h2>
+    <a href="{{ url_for('admin.add_course') }}" class="btn btn-primary mb-3">
+        <i class="fas fa-plus ms-2"></i> إضافة دورة
+    </a>
+    <div class="row">
+        {% for course in courses %}
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5>{{ course.title }}</h5>
+                    <p>{{ course.short_description }}</p>
+                    <span class="badge bg-{{ 'success' if course.is_featured else 'secondary' }}">
+                        {{ 'مميزة' if course.is_featured else 'عادية' }}
+                    </span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}الأخبار - معهد القاسم{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">آخر الأخبار</h2>
+    {% for item in news %}
+    <div class="card mb-3 shadow-sm">
+        <div class="card-body">
+            <h5>{{ item.title }}</h5>
+            <p>{{ item.content }}</p>
+            <small class="text-muted">{{ item.created_at.strftime('%Y-%m-%d') }}</small>
+        </div>
+    </div>
+    {% else %}
+    <p>لا توجد أخبار حالياً</p>
+    {% endfor %}
+</div>
+{% endblock %}

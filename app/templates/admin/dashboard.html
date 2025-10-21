@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}لوحة التحكم - معهد القاسم{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">
+        <i class="fas fa-tachometer-alt ms-2"></i>
+        لوحة التحكم
+    </h2>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center bg-primary text-white">
+                <div class="card-body">
+                    <i class="fas fa-user-graduate fa-3x mb-3"></i>
+                    <h3>{{ stats.students }}</h3>
+                    <p>الطلاب</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-success text-white">
+                <div class="card-body">
+                    <i class="fas fa-chalkboard-teacher fa-3x mb-3"></i>
+                    <h3>{{ stats.teachers }}</h3>
+                    <p>المدرسون</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-info text-white">
+                <div class="card-body">
+                    <i class="fas fa-book fa-3x mb-3"></i>
+                    <h3>{{ stats.courses }}</h3>
+                    <p>الدورات</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-warning text-white">
+                <div class="card-body">
+                    <i class="fas fa-clipboard-list fa-3x mb-3"></i>
+                    <h3>{{ stats.enrollments }}</h3>
+                    <p>التسجيلات</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">القوائم الرئيسية</h5>
+                </div>
+                <div class="list-group list-group-flush">
+                    <a href="{{ url_for('admin.users') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-users ms-2"></i> إدارة المستخدمين
+                    </a>
+                    <a href="{{ url_for('admin.courses') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-book ms-2"></i> إدارة الدورات
+                    </a>
+                    <a href="{{ url_for('admin.news') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-newspaper ms-2"></i> إدارة الأخبار
+                    </a>
+                    <a href="{{ url_for('admin.settings') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-cog ms-2"></i> إعدادات الموقع
+                    </a>
+                    <a href="{{ url_for('admin.backup') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-database ms-2"></i> النسخ الاحتياطي
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">الرسائل الحديثة</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_contacts %}
+                        <ul class="list-group">
+                            {% for contact in recent_contacts %}
+                            <li class="list-group-item">
+                                <strong>{{ contact.name }}</strong>
+                                <p class="mb-1">{{ contact.subject }}</p>
+                                <small class="text-muted">{{ contact.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted">لا توجد رسائل جديدة</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">تعديل مستخدم</h2>
+    <form method="POST">
+        <div class="mb-3">
+            <label class="form-label">الاسم الكامل</label>
+            <input type="text" class="form-control" name="full_name" value="{{ user.full_name }}" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">البريد الإلكتروني</label>
+            <input type="email" class="form-control" name="email" value="{{ user.email }}" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">كلمة المرور الجديدة (اتركها فارغة إن لم ترد التغيير)</label>
+            <input type="password" class="form-control" name="password">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">الدور</label>
+            <select class="form-select" name="role" required>
+                <option value="student" {% if user.role == 'student' %}selected{% endif %}>طالب</option>
+                <option value="teacher" {% if user.role == 'teacher' %}selected{% endif %}>مدرس</option>
+                <option value="assistant" {% if user.role == 'assistant' %}selected{% endif %}>معاون مدير</option>
+                <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>مدير</option>
+            </select>
+        </div>
+        <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input" name="is_active" {% if user.is_active %}checked{% endif %}>
+            <label class="form-check-label">نشط</label>
+        </div>
+        <button type="submit" class="btn btn-primary">حفظ</button>
+        <a href="{{ url_for('admin.users') }}" class="btn btn-secondary">إلغاء</a>
+    </form>
+</div>
+{% endblock %}

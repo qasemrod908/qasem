@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">إدارة الأخبار</h2>
+    <a href="{{ url_for('admin.add_news') }}" class="btn btn-primary mb-3">
+        <i class="fas fa-plus ms-2"></i> إضافة خبر
+    </a>
+    {% for item in news %}
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5>{{ item.title }}</h5>
+            <p>{{ item.content[:200] }}...</p>
+            <span class="badge bg-{{ 'success' if item.is_published else 'secondary' }}">
+                {{ 'منشور' if item.is_published else 'مسودة' }}
+            </span>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
