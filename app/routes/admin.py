@@ -68,6 +68,26 @@ def add_user():
         )
         user.set_password(request.form.get('password'))
         db.session.add(user)
+        db.session.flush()
+        
+        if user.role == 'teacher':
+            teacher = Teacher(
+                user_id=user.id,
+                specialization='غير محدد',
+                bio='',
+                experience_years=0
+            )
+            db.session.add(teacher)
+        elif user.role == 'student':
+            student = Student(
+                user_id=user.id,
+                full_name=user.full_name,
+                birth_date=None,
+                phone='',
+                address=''
+            )
+            db.session.add(student)
+        
         db.session.commit()
         flash('تم إضافة المستخدم بنجاح', 'success')
         return redirect(url_for('admin.users'))
@@ -78,15 +98,43 @@ def add_user():
 @role_required('admin')
 def edit_user(user_id):
     user = User.query.get_or_404(user_id)
+    old_role = user.role
     
     if request.method == 'POST':
         user.email = request.form.get('email')
         user.full_name = request.form.get('full_name')
-        user.role = request.form.get('role')
+        new_role = request.form.get('role')
         user.is_active = request.form.get('is_active') == 'on'
         
         if request.form.get('password'):
             user.set_password(request.form.get('password'))
+        
+        if old_role != new_role:
+            if old_role == 'teacher':
+                Teacher.query.filter_by(user_id=user.id).delete()
+            elif old_role == 'student':
+                Student.query.filter_by(user_id=user.id).delete()
+            
+            user.role = new_role
+            db.session.flush()
+            
+            if new_role == 'teacher':
+                teacher = Teacher(
+                    user_id=user.id,
+                    specialization='غير محدد',
+                    bio='',
+                    experience_years=0
+                )
+                db.session.add(teacher)
+            elif new_role == 'student':
+                student = Student(
+                    user_id=user.id,
+                    full_name=user.full_name,
+                    birth_date=None,
+                    phone='',
+                    address=''
+                )
+                db.session.add(student)
         
         db.session.commit()
         flash('تم تحديث المستخدم بنجاح', 'success')
