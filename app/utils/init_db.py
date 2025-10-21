@@ -31,4 +31,4 @@ def initialize_database():
         db.session.commit()
         print('✅ تم إنشاء المستخدم الإداري الافتراضي')
         print('   البريد الإلكتروني: admin@alqasim.edu')
-        print('   كلمة المرور: admin123')
+        print('   ⚠️  يرجى تغيير كلمة المرور الافتراضية فوراً من لوحة التحكم')

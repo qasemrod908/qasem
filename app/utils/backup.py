@@ -30,10 +30,13 @@ class BackupManager:
         backup_dir = f'backups/structure_{timestamp}'
         os.makedirs(backup_dir, exist_ok=True)
         
-        subprocess.run([
-            'sqlite3', 'alqasim_institute.db',
-            '.schema > ' + f'{backup_dir}/schema.sql'
-        ], shell=True)
+        schema_file = f'{backup_dir}/schema.sql'
+        with open(schema_file, 'w') as f:
+            subprocess.run(
+                ['sqlite3', 'alqasim_institute.db', '.schema'],
+                stdout=f,
+                stderr=subprocess.PIPE
+            )
         
         if os.path.exists('app/templates'):
             shutil.copytree('app/templates', f'{backup_dir}/templates')
