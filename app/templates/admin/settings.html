@@ -56,9 +56,129 @@
             </label>
         </div>
         
-        <button type="submit" class="btn btn-primary">
+        <hr class="my-4">
+        <h4 class="mb-3">
+            <i class="fas fa-sliders-h ms-2"></i>
+            إعدادات السلايدرات (الصفحة الرئيسية)
+        </h4>
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle ms-2"></i>
+            تحكم في طريقة عرض السلايدرات في الصفحة الرئيسية للموقع
+        </div>
+        
+        <div class="card mb-3">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-book ms-2"></i> سلايدر الدورات</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">
+                            <i class="fas fa-list-ol ms-2"></i>
+                            عدد الدورات في كل شريحة
+                        </label>
+                        <select class="form-select" name="courses_slider_items">
+                            <option value="1" {{ 'selected' if settings.courses_slider_items == 1 else '' }}>دورة واحدة</option>
+                            <option value="2" {{ 'selected' if settings.courses_slider_items == 2 else '' }}>دورتان</option>
+                            <option value="3" {{ 'selected' if settings.courses_slider_items == 3 else '' }}>3 دورات</option>
+                            <option value="4" {{ 'selected' if settings.courses_slider_items == 4 else '' }}>4 دورات</option>
+                        </select>
+                        <small class="text-muted">عدد الدورات المعروضة في كل شريحة من السلايدر</small>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">
+                            <i class="fas fa-clock ms-2"></i>
+                            سرعة الانتقال (بالميلي ثانية)
+                        </label>
+                        <input type="number" class="form-control" name="courses_slider_interval" value="{{ settings.courses_slider_interval or 5000 }}" min="1000" max="30000" step="500">
+                        <small class="text-muted">الوقت بين كل انتقال (5000 = 5 ثوانٍ)</small>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">
+                            <i class="fas fa-exchange-alt ms-2"></i>
+                            نوع المؤثر
+                        </label>
+                        <select class="form-select" name="courses_slider_transition">
+                            <option value="slide" {{ 'selected' if settings.courses_slider_transition == 'slide' else '' }}>انزلاق (Slide)</option>
+                            <option value="fade" {{ 'selected' if settings.courses_slider_transition == 'fade' else '' }}>تلاشي (Fade)</option>
+                        </select>
+                        <small class="text-muted">طريقة الانتقال بين الشرائح</small>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <div class="form-check mt-4">
+                            <input type="checkbox" class="form-check-input" id="courses_slider_auto_play" name="courses_slider_auto_play" {{ 'checked' if settings.courses_slider_auto_play else '' }}>
+                            <label class="form-check-label" for="courses_slider_auto_play">
+                                <i class="fas fa-play-circle ms-2"></i>
+                                التشغيل التلقائي
+                            </label>
+                        </div>
+                        <small class="text-muted d-block mt-1">الانتقال التلقائي بين الشرائح</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mb-3">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-chalkboard-teacher ms-2"></i> سلايدر المدرسين</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">
+                            <i class="fas fa-list-ol ms-2"></i>
+                            عدد المدرسين في كل شريحة
+                        </label>
+                        <select class="form-select" name="teachers_slider_items">
+                            <option value="2" {{ 'selected' if settings.teachers_slider_items == 2 else '' }}>مدرسان</option>
+                            <option value="3" {{ 'selected' if settings.teachers_slider_items == 3 else '' }}>3 مدرسين</option>
+                            <option value="4" {{ 'selected' if settings.teachers_slider_items == 4 else '' }}>4 مدرسين</option>
+                            <option value="5" {{ 'selected' if settings.teachers_slider_items == 5 else '' }}>5 مدرسين</option>
+                        </select>
+                        <small class="text-muted">عدد المدرسين المعروضين في كل شريحة</small>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">
+                            <i class="fas fa-clock ms-2"></i>
+                            سرعة الانتقال (بالميلي ثانية)
+                        </label>
+                        <input type="number" class="form-control" name="teachers_slider_interval" value="{{ settings.teachers_slider_interval or 5000 }}" min="1000" max="30000" step="500">
+                        <small class="text-muted">الوقت بين كل انتقال (5000 = 5 ثوانٍ)</small>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">
+                            <i class="fas fa-exchange-alt ms-2"></i>
+                            نوع المؤثر
+                        </label>
+                        <select class="form-select" name="teachers_slider_transition">
+                            <option value="slide" {{ 'selected' if settings.teachers_slider_transition == 'slide' else '' }}>انزلاق (Slide)</option>
+                            <option value="fade" {{ 'selected' if settings.teachers_slider_transition == 'fade' else '' }}>تلاشي (Fade)</option>
+                        </select>
+                        <small class="text-muted">طريقة الانتقال بين الشرائح</small>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <div class="form-check mt-4">
+                            <input type="checkbox" class="form-check-input" id="teachers_slider_auto_play" name="teachers_slider_auto_play" {{ 'checked' if settings.teachers_slider_auto_play else '' }}>
+                            <label class="form-check-label" for="teachers_slider_auto_play">
+                                <i class="fas fa-play-circle ms-2"></i>
+                                التشغيل التلقائي
+                            </label>
+                        </div>
+                        <small class="text-muted d-block mt-1">الانتقال التلقائي بين الشرائح</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <button type="submit" class="btn btn-primary btn-lg">
             <i class="fas fa-save ms-2"></i>
-            حفظ التغييرات
+            حفظ جميع التغييرات
         </button>
     </form>
 </div>

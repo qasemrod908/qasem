@@ -123,6 +123,60 @@ def restore_backup():
     
     return redirect(url_for('admin.backup'))
 
+@bp.route('/backup/delete/<path:filename>', methods=['POST'])
+@role_required('admin')
+def delete_backup(filename):
+    try:
+        safe_filename = os.path.basename(filename)
+        BackupManager.delete_backup(safe_filename)
+        flash(f'تم حذف النسخة الاحتياطية "{safe_filename}" بنجاح', 'success')
+    except Exception as e:
+        flash(f'حدث خطأ أثناء حذف النسخة الاحتياطية: {str(e)}', 'danger')
+    
+    return redirect(url_for('admin.backup'))
+
+@bp.route('/backup/restore-existing', methods=['POST'])
+@role_required('admin')
+def restore_existing_backup():
+    filename = request.form.get('filename')
+    
+    if not filename:
+        flash('لم يتم تحديد ملف النسخة الاحتياطية', 'danger')
+        return redirect(url_for('admin.backup'))
+    
+    try:
+        from werkzeug.security import safe_join
+        
+        safe_filename = os.path.basename(filename)
+        backups_dir = os.path.abspath('backups')
+        file_path = safe_join(backups_dir, safe_filename)
+        
+        if file_path is None or not file_path.startswith(backups_dir):
+            flash('محاولة وصول غير مصرح بها', 'danger')
+            return redirect(url_for('admin.backup'))
+        
+        if not os.path.exists(file_path):
+            flash('الملف غير موجود', 'danger')
+            return redirect(url_for('admin.backup'))
+        
+        if safe_filename.startswith('full_') and safe_filename.endswith('.zip'):
+            BackupManager.restore_full_backup(file_path)
+            flash('تم استعادة النسخة الاحتياطية الكاملة بنجاح. سيتم إعادة تشغيل التطبيق.', 'success')
+        elif safe_filename.startswith('structure_') and safe_filename.endswith('.zip'):
+            BackupManager.restore_structure_backup(file_path)
+            flash('تم استعادة البنية بنجاح. سيتم إعادة تشغيل التطبيق.', 'success')
+        elif safe_filename.startswith('data_') and safe_filename.endswith('.db'):
+            BackupManager.restore_data_backup(file_path)
+            flash('تم استعادة البيانات بنجاح. سيتم إعادة تشغيل التطبيق.', 'success')
+        else:
+            flash('نوع النسخة الاحتياطية غير معروف أو غير مدعوم', 'danger')
+            return redirect(url_for('admin.backup'))
+        
+    except Exception as e:
+        flash(f'حدث خطأ أثناء استعادة النسخة الاحتياطية: {str(e)}', 'danger')
+    
+    return redirect(url_for('admin.backup'))
+
 @bp.route('/users')
 @role_required('admin')
 def users():
@@ -339,6 +393,17 @@ def settings():
         site_settings.telegram_bot_token = request.form.get('telegram_bot_token')
         site_settings.telegram_chat_id = request.form.get('telegram_chat_id')
         site_settings.telegram_backup_enabled = request.form.get('telegram_backup_enabled') == 'on'
+        
+        site_settings.courses_slider_items = int(request.form.get('courses_slider_items', 3))
+        site_settings.courses_slider_interval = int(request.form.get('courses_slider_interval', 5000))
+        site_settings.courses_slider_auto_play = request.form.get('courses_slider_auto_play') == 'on'
+        site_settings.courses_slider_transition = request.form.get('courses_slider_transition', 'slide')
+        
+        site_settings.teachers_slider_items = int(request.form.get('teachers_slider_items', 4))
+        site_settings.teachers_slider_interval = int(request.form.get('teachers_slider_interval', 5000))
+        site_settings.teachers_slider_auto_play = request.form.get('teachers_slider_auto_play') == 'on'
+        site_settings.teachers_slider_transition = request.form.get('teachers_slider_transition', 'slide')
+        
         db.session.commit()
         flash('تم تحديث الإعدادات بنجاح', 'success')
         return redirect(url_for('admin.settings'))
@@ -565,39 +630,47 @@ def delete_student(student_id):
     flash('تم حذف الطالب بنجاح', 'success')
     return redirect(url_for('admin.students'))
 
-@bp.route('/students/enroll/<int:student_id>', methods=['POST'])
+@bp.route('/students/enroll/<int:student_id>', methods=['GET', 'POST'])
 @role_required('admin', 'assistant')
 def enroll_student(student_id):
     student = Student.query.get_or_404(student_id)
-    course_id = request.form.get('course_id')
-    teacher_id = request.form.get('teacher_id')
     
-    if not course_id:
-        flash('يجب اختيار دورة', 'danger')
-        return redirect(url_for('admin.students'))
-    
-    course = Course.query.get_or_404(course_id)
-    
-    existing = Enrollment.query.filter_by(student_id=student_id, course_id=course_id).first()
-    if existing:
-        flash('الطالب مسجل بالفعل في هذه الدورة', 'warning')
-        return redirect(url_for('admin.students'))
-    
-    if course.max_students:
-        available = course.available_seats()
-        if available is not None and available <= 0:
-            flash(f'عذراً، الدورة "{course.title}" مكتملة ولا يوجد مقاعد متاحة', 'danger')
+    if request.method == 'POST':
+        course_id = request.form.get('course_id')
+        teacher_id = request.form.get('teacher_id')
+        
+        if not course_id:
+            flash('يجب اختيار دورة', 'danger')
+            teachers = Teacher.query.all()
+            courses = Course.query.all()
+            return render_template('admin/enroll_student.html', student=student, teachers=teachers, courses=courses)
+        
+        course = Course.query.get_or_404(course_id)
+        
+        existing = Enrollment.query.filter_by(student_id=student_id, course_id=course_id).first()
+        if existing:
+            flash('الطالب مسجل بالفعل في هذه الدورة', 'warning')
             return redirect(url_for('admin.students'))
+        
+        if course.max_students:
+            available = course.available_seats()
+            if available is not None and available <= 0:
+                flash(f'عذراً، الدورة "{course.title}" مكتملة ولا يوجد مقاعد متاحة', 'danger')
+                return redirect(url_for('admin.students'))
+        
+        enrollment = Enrollment(
+            student_id=student_id,
+            course_id=course_id,
+            teacher_id=teacher_id if teacher_id else None
+        )
+        db.session.add(enrollment)
+        db.session.commit()
+        flash(f'تم تسجيل الطالب في دورة "{course.title}" بنجاح', 'success')
+        return redirect(url_for('admin.students'))
     
-    enrollment = Enrollment(
-        student_id=student_id,
-        course_id=course_id,
-        teacher_id=teacher_id if teacher_id else None
-    )
-    db.session.add(enrollment)
-    db.session.commit()
-    flash(f'تم تسجيل الطالب في دورة "{course.title}" بنجاح', 'success')
-    return redirect(url_for('admin.students'))
+    teachers = Teacher.query.all()
+    courses = Course.query.all()
+    return render_template('admin/enroll_student.html', student=student, teachers=teachers, courses=courses)
 
 @bp.route('/students/unenroll/<int:enrollment_id>', methods=['POST'])
 @role_required('admin', 'assistant')
@@ -678,32 +751,35 @@ def delete_grade(grade_id):
     flash('تم حذف الصف بنجاح', 'success')
     return redirect(url_for('admin.grades'))
 
-@bp.route('/grades/<int:grade_id>/sections/add', methods=['POST'])
+@bp.route('/grades/<int:grade_id>/sections/add', methods=['GET', 'POST'])
 @role_required('admin', 'assistant')
 def add_section(grade_id):
     grade = ClassGrade.query.get_or_404(grade_id)
     
-    name = request.form.get('name')
-    description = request.form.get('description')
-    max_students = request.form.get('max_students')
-    display_order = request.form.get('display_order', 0)
-    
-    existing = Section.query.filter_by(name=name, class_grade_id=grade_id).first()
-    if existing:
-        flash('الشعبة موجودة بالفعل في هذا الصف', 'warning')
+    if request.method == 'POST':
+        name = request.form.get('name')
+        description = request.form.get('description')
+        max_students = request.form.get('max_students')
+        display_order = request.form.get('display_order', 0)
+        
+        existing = Section.query.filter_by(name=name, class_grade_id=grade_id).first()
+        if existing:
+            flash('الشعبة موجودة بالفعل في هذا الصف', 'warning')
+            return render_template('admin/add_section.html', grade=grade)
+        
+        section = Section(
+            name=name,
+            class_grade_id=grade_id,
+            description=description,
+            max_students=int(max_students) if max_students else None,
+            display_order=int(display_order) if display_order else 0
+        )
+        db.session.add(section)
+        db.session.commit()
+        flash('تم إضافة الشعبة بنجاح', 'success')
         return redirect(url_for('admin.grades'))
     
-    section = Section(
-        name=name,
-        class_grade_id=grade_id,
-        description=description,
-        max_students=int(max_students) if max_students else None,
-        display_order=int(display_order) if display_order else 0
-    )
-    db.session.add(section)
-    db.session.commit()
-    flash('تم إضافة الشعبة بنجاح', 'success')
-    return redirect(url_for('admin.grades'))
+    return render_template('admin/add_section.html', grade=grade)
 
 @bp.route('/sections/edit/<int:section_id>', methods=['GET', 'POST'])
 @role_required('admin', 'assistant')

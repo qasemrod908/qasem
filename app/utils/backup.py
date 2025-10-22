@@ -169,3 +169,19 @@ class BackupManager:
             return 'بيانات'
         else:
             return 'غير معروف'
+    
+    @staticmethod
+    def delete_backup(filename):
+        try:
+            file_path = os.path.join('backups', filename)
+            
+            if not file_path.startswith(os.path.abspath('backups')):
+                raise ValueError('محاولة وصول غير مصرح بها')
+            
+            if os.path.exists(file_path) and os.path.isfile(file_path):
+                os.remove(file_path)
+                return True
+            else:
+                raise FileNotFoundError('الملف غير موجود')
+        except Exception as e:
+            raise Exception(f'خطأ في حذف النسخة الاحتياطية: {str(e)}')

@@ -40,9 +40,9 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#enrollModal{{ student.id }}">
+                                <a href="{{ url_for('admin.enroll_student', student_id=student.id) }}" class="btn btn-sm btn-info">
                                     <i class="fas fa-plus"></i> تسجيل في دورة
-                                </button>
+                                </a>
                                 <a href="{{ url_for('admin.edit_student', student_id=student.id) }}" class="btn btn-sm btn-primary">
                                     <i class="fas fa-edit"></i> تعديل
                                 </a>
@@ -51,43 +51,6 @@
                                         <i class="fas fa-trash"></i> حذف
                                     </button>
                                 </form>
-                                
-                                <div class="modal fade" id="enrollModal{{ student.id }}" tabindex="-1">
-                                    <div class="modal-dialog">
-                                        <div class="modal-content">
-                                            <div class="modal-header">
-                                                <h5 class="modal-title">تسجيل الطالب في دورة</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                            </div>
-                                            <form method="POST" action="{{ url_for('admin.enroll_student', student_id=student.id) }}">
-                                                <div class="modal-body">
-                                                    <div class="mb-3">
-                                                        <label class="form-label">الدورة</label>
-                                                        <select name="course_id" class="form-select" required>
-                                                            <option value="">اختر الدورة</option>
-                                                            {% for course in courses %}
-                                                            <option value="{{ course.id }}">{{ course.title }}</option>
-                                                            {% endfor %}
-                                                        </select>
-                                                    </div>
-                                                    <div class="mb-3">
-                                                        <label class="form-label">الأستاذ (اختياري)</label>
-                                                        <select name="teacher_id" class="form-select">
-                                                            <option value="">اختر الأستاذ</option>
-                                                            {% for teacher in teachers %}
-                                                            <option value="{{ teacher.id }}">{{ teacher.user.full_name }}</option>
-                                                            {% endfor %}
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                                <div class="modal-footer">
-                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                                                    <button type="submit" class="btn btn-primary">تسجيل</button>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
                             </td>
                         </tr>
                         {% if student.enrollments.count() > 0 %}

@@ -43,7 +43,7 @@
 
             <div class="card shadow-sm">
                 <div class="card-header bg-success text-white">
-                    <h5 class="mb-0"><i class="fas fa-upload ms-2"></i> استعادة نسخة احتياطية</h5>
+                    <h5 class="mb-0"><i class="fas fa-file-upload ms-2"></i> استعادة من ملف خارجي</h5>
                 </div>
                 <div class="card-body">
                     <div class="alert alert-warning">
@@ -63,6 +63,7 @@
                         <div class="mb-3">
                             <label class="form-label">اختر ملف النسخة الاحتياطية</label>
                             <input type="file" class="form-control" name="backup_file" required accept=".zip,.db">
+                            <small class="form-text text-muted">يمكنك رفع ملف نسخة احتياطية من جهازك</small>
                         </div>
 
                         <button type="submit" class="btn btn-success" onclick="return confirm('هل أنت متأكد من استعادة النسخة الاحتياطية؟ سيتم استبدال البيانات الحالية!')">
@@ -77,42 +78,130 @@
         <div class="col-md-6">
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-info text-white">
-                    <h5 class="mb-0"><i class="fas fa-list ms-2"></i> النسخ الاحتياطية المتوفرة</h5>
+                    <h5 class="mb-0"><i class="fas fa-list ms-2"></i> النسخ الاحتياطية المتوفرة ({{ backups|length }})</h5>
                 </div>
                 <div class="card-body">
                     {% if backups %}
                     <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
                                 <tr>
-                                    <th>اسم الملف</th>
-                                    <th>النوع</th>
-                                    <th>الحجم</th>
-                                    <th>التاريخ</th>
-                                    <th>تحميل</th>
+                                    <th style="width: 30%;">اسم الملف</th>
+                                    <th style="width: 12%;">النوع</th>
+                                    <th style="width: 12%;">الحجم</th>
+                                    <th style="width: 18%;">التاريخ</th>
+                                    <th style="width: 28%;" class="text-center">الإجراءات</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for backup in backups %}
                                 <tr>
-                                    <td>{{ backup.name }}</td>
-                                    <td><span class="badge bg-secondary">{{ backup.type }}</span></td>
-                                    <td>{{ "%.2f"|format(backup.size / 1024 / 1024) }} MB</td>
-                                    <td>{{ backup.created.strftime('%Y-%m-%d %H:%M') }}</td>
                                     <td>
-                                        <a href="{{ url_for('admin.download_backup', filename=backup.name) }}" class="btn btn-sm btn-primary">
-                                            <i class="fas fa-download"></i>
-                                        </a>
+                                        <small class="text-muted font-monospace">{{ backup.name }}</small>
+                                    </td>
+                                    <td>
+                                        {% if backup.type == 'شامل' %}
+                                            <span class="badge bg-primary">{{ backup.type }}</span>
+                                        {% elif backup.type == 'بنية' %}
+                                            <span class="badge bg-info">{{ backup.type }}</span>
+                                        {% elif backup.type == 'بيانات' %}
+                                            <span class="badge bg-success">{{ backup.type }}</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ backup.type }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small>{{ "%.2f"|format(backup.size / 1024 / 1024) }} MB</small>
+                                    </td>
+                                    <td>
+                                        <small>{{ backup.created.strftime('%Y-%m-%d %H:%M') }}</small>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="{{ url_for('admin.download_backup', filename=backup.name) }}" 
+                                               class="btn btn-outline-primary" 
+                                               title="تحميل">
+                                                <i class="fas fa-download"></i>
+                                            </a>
+                                            <button type="button" 
+                                                    class="btn btn-outline-success" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#restoreModal{{ loop.index }}"
+                                                    title="استعادة">
+                                                <i class="fas fa-undo"></i>
+                                            </button>
+                                            <form method="POST" 
+                                                  action="{{ url_for('admin.delete_backup', filename=backup.name) }}" 
+                                                  style="display:inline;">
+                                                <button type="submit" 
+                                                        class="btn btn-outline-danger" 
+                                                        onclick="return confirm('هل أنت متأكد من حذف هذه النسخة الاحتياطية؟\n{{ backup.name }}')"
+                                                        title="حذف">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
                                     </td>
                                 </tr>
+                                
+                                <div class="modal fade" id="restoreModal{{ loop.index }}" tabindex="-1">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header bg-warning">
+                                                <h5 class="modal-title">
+                                                    <i class="fas fa-exclamation-triangle ms-2"></i>
+                                                    تأكيد استعادة النسخة الاحتياطية
+                                                </h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <form method="POST" action="{{ url_for('admin.restore_existing_backup') }}">
+                                                <div class="modal-body">
+                                                    <div class="alert alert-danger">
+                                                        <i class="fas fa-exclamation-circle ms-2"></i>
+                                                        <strong>تحذير مهم:</strong> استعادة النسخة الاحتياطية ستستبدل البيانات الحالية بشكل نهائي!
+                                                    </div>
+                                                    
+                                                    <input type="hidden" name="filename" value="{{ backup.name }}">
+                                                    
+                                                    <div class="mb-3">
+                                                        <label class="form-label fw-bold">معلومات النسخة:</label>
+                                                        <ul class="list-unstyled ms-3">
+                                                            <li><strong>الملف:</strong> <span class="text-muted">{{ backup.name }}</span></li>
+                                                            <li><strong>النوع:</strong> <span class="badge bg-secondary">{{ backup.type }}</span></li>
+                                                            <li><strong>الحجم:</strong> {{ "%.2f"|format(backup.size / 1024 / 1024) }} MB</li>
+                                                            <li><strong>التاريخ:</strong> {{ backup.created.strftime('%Y-%m-%d %H:%M:%S') }}</li>
+                                                        </ul>
+                                                    </div>
+                                                    
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="confirmRestore{{ loop.index }}" required>
+                                                        <label class="form-check-label" for="confirmRestore{{ loop.index }}">
+                                                            أنا متأكد من استعادة هذه النسخة وأدرك أنها ستحل محل البيانات الحالية
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                        <i class="fas fa-times ms-2"></i>
+                                                        إلغاء
+                                                    </button>
+                                                    <button type="submit" class="btn btn-warning">
+                                                        <i class="fas fa-undo ms-2"></i>
+                                                        استعادة النسخة
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
                                 {% endfor %}
                             </tbody>
                         </table>
                     </div>
                     {% else %}
-                    <div class="alert alert-info">
+                    <div class="alert alert-info mb-0">
                         <i class="fas fa-info-circle ms-2"></i>
-                        لا توجد نسخ احتياطية متوفرة
+                        لا توجد نسخ احتياطية متوفرة. قم بإنشاء نسخة احتياطية أولاً.
                     </div>
                     {% endif %}
                 </div>

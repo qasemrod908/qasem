@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}إضافة شعبة جديدة - معهد القاسم{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="fas fa-plus-circle ms-2"></i>
+            إضافة شعبة جديدة
+        </h2>
+        <a href="{{ url_for('admin.grades') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-right ms-2"></i>
+            العودة للصفوف والشعب
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle ms-2"></i>
+                        معلومات الصف
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <p><strong>اسم الصف:</strong> {{ grade.name }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>عدد الشعب الحالية:</strong> {{ grade.sections.count() }}</p>
+                        </div>
+                        {% if grade.description %}
+                        <div class="col-md-12">
+                            <p><strong>الوصف:</strong> {{ grade.description }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    {% if grade.sections.count() > 0 %}
+                    <div class="alert alert-info">
+                        <strong><i class="fas fa-list ms-2"></i>الشعب الموجودة:</strong>
+                        <ul class="mb-0 mt-2">
+                            {% for section in grade.sections.order_by('display_order', 'name') %}
+                            <li>{{ section.name }} {% if section.max_students %}(الحد الأقصى: {{ section.max_students }}){% endif %}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card shadow-sm mt-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-edit ms-2"></i>
+                        بيانات الشعبة الجديدة
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin.add_section', grade_id=grade.id) }}">
+                        <div class="mb-4">
+                            <label class="form-label">
+                                <i class="fas fa-tag ms-2"></i>
+                                اسم الشعبة <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" 
+                                   name="name" 
+                                   class="form-control form-control-lg" 
+                                   placeholder="مثال: شعبة أ، الشعبة الأولى، ..."
+                                   required>
+                            <small class="form-text text-muted">أدخل اسم الشعبة بشكل واضح ومميز</small>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">
+                                <i class="fas fa-align-right ms-2"></i>
+                                الوصف
+                            </label>
+                            <textarea name="description" 
+                                      class="form-control" 
+                                      rows="3"
+                                      placeholder="وصف مختصر عن الشعبة (اختياري)"></textarea>
+                            <small class="form-text text-muted">يمكنك إضافة معلومات إضافية عن الشعبة</small>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-4">
+                                <label class="form-label">
+                                    <i class="fas fa-users ms-2"></i>
+                                    الحد الأقصى للطلاب
+                                </label>
+                                <input type="number" 
+                                       name="max_students" 
+                                       class="form-control" 
+                                       min="1"
+                                       placeholder="اتركه فارغاً إذا كان غير محدود">
+                                <small class="form-text text-muted">اتركه فارغاً إذا كانت الشعبة غير محدودة العدد</small>
+                            </div>
+
+                            <div class="col-md-6 mb-4">
+                                <label class="form-label">
+                                    <i class="fas fa-sort-numeric-down ms-2"></i>
+                                    ترتيب العرض
+                                </label>
+                                <input type="number" 
+                                       name="display_order" 
+                                       class="form-control" 
+                                       value="0" 
+                                       min="0">
+                                <small class="form-text text-muted">يستخدم لترتيب الشعب عند العرض (الأقل أولاً)</small>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-warning">
+                            <i class="fas fa-info-circle ms-2"></i>
+                            <strong>ملاحظة:</strong> تأكد من أن اسم الشعبة غير موجود مسبقاً في هذا الصف
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <a href="{{ url_for('admin.grades') }}" class="btn btn-secondary btn-lg">
+                                <i class="fas fa-times ms-2"></i>
+                                إلغاء
+                            </a>
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-save ms-2"></i>
+                                حفظ الشعبة
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

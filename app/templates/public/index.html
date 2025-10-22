@@ -32,13 +32,14 @@
 <section class="py-5 bg-light">
     <div class="container">
         <h2 class="text-center mb-5">الدورات المميزة</h2>
-        <div id="coursesCarousel" class="carousel slide" data-bs-ride="carousel">
+        <div id="coursesCarousel" class="carousel {{ 'carousel-fade' if settings.courses_slider_transition == 'fade' else 'slide' }}" data-bs-ride="{{ 'carousel' if settings.courses_slider_auto_play else 'false' }}" data-bs-interval="{{ settings.courses_slider_interval or 5000 }}">
             <div class="carousel-inner">
-                {% for i in range(0, featured_courses|length, 3) %}
+                {% set items_per_slide = settings.courses_slider_items or 3 %}
+                {% for i in range(0, featured_courses|length, items_per_slide) %}
                 <div class="carousel-item {% if i == 0 %}active{% endif %}">
                     <div class="row">
-                        {% for course in featured_courses[i:i+3] %}
-                        <div class="col-md-4 mb-4">
+                        {% for course in featured_courses[i:i+items_per_slide] %}
+                        <div class="col-md-{{ 12 // items_per_slide }} mb-4">
                             <div class="card h-100 shadow-sm">
                                 {% if course.image %}
                                 <img src="{{ url_for('static', filename='uploads/' + course.image) }}" class="card-img-top" alt="{{ course.title }}" style="height: 200px; object-fit: cover;">
@@ -96,13 +97,14 @@
 <section class="py-5">
     <div class="container">
         <h2 class="text-center mb-5">مدرسونا</h2>
-        <div id="teachersCarousel" class="carousel slide" data-bs-ride="carousel">
+        <div id="teachersCarousel" class="carousel {{ 'carousel-fade' if settings.teachers_slider_transition == 'fade' else 'slide' }}" data-bs-ride="{{ 'carousel' if settings.teachers_slider_auto_play else 'false' }}" data-bs-interval="{{ settings.teachers_slider_interval or 5000 }}">
             <div class="carousel-inner">
-                {% for i in range(0, teachers|length, 4) %}
+                {% set teacher_items_per_slide = settings.teachers_slider_items or 4 %}
+                {% for i in range(0, teachers|length, teacher_items_per_slide) %}
                 <div class="carousel-item {% if i == 0 %}active{% endif %}">
                     <div class="row">
-                        {% for teacher in teachers[i:i+4] %}
-                        <div class="col-md-3 mb-4">
+                        {% for teacher in teachers[i:i+teacher_items_per_slide] %}
+                        <div class="col-md-{{ 12 // teacher_items_per_slide }} mb-4">
                             <div class="card text-center shadow-sm h-100">
                                 {% if teacher.photo %}
                                 <img src="{{ url_for('static', filename='uploads/' + teacher.photo) }}" class="card-img-top" alt="{{ teacher.user.full_name }}" style="height: 200px; object-fit: cover;">

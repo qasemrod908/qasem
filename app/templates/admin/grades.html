@@ -44,9 +44,9 @@
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h6>الشعب ({{ grade.sections.count() }})</h6>
-                            <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#addSectionModal{{ grade.id }}">
+                            <a href="{{ url_for('admin.add_section', grade_id=grade.id) }}" class="btn btn-sm btn-success">
                                 <i class="fas fa-plus"></i> إضافة شعبة
-                            </button>
+                            </a>
                         </div>
                         
                         {% if grade.sections.count() > 0 %}
@@ -99,45 +99,6 @@
                         {% else %}
                         <p class="text-muted text-center">لا توجد شعب لهذا الصف</p>
                         {% endif %}
-                    </div>
-                </div>
-
-                <div class="modal fade" id="addSectionModal{{ grade.id }}" tabindex="-1">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">إضافة شعبة جديدة - {{ grade.name }}</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                            </div>
-                            <form method="POST" action="{{ url_for('admin.add_section', grade_id=grade.id) }}">
-                                <div class="modal-body">
-                                    <div class="mb-3">
-                                        <label class="form-label">اسم الشعبة <span class="text-danger">*</span></label>
-                                        <input type="text" name="name" class="form-control" required>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">الوصف</label>
-                                        <textarea name="description" class="form-control" rows="2"></textarea>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">الحد الأقصى للطلاب</label>
-                                        <input type="number" name="max_students" class="form-control" min="1">
-                                        <small class="text-muted">اتركه فارغاً إذا كان غير محدود</small>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">ترتيب العرض</label>
-                                        <input type="number" name="display_order" class="form-control" value="0" min="0">
-                                    </div>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-save ms-2"></i>
-                                        حفظ
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
                     </div>
                 </div>
                 {% endfor %}

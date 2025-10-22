@@ -20,6 +20,17 @@ class SiteSettings(db.Model):
     telegram_bot_token = db.Column(db.String(255))
     telegram_chat_id = db.Column(db.String(100))
     telegram_backup_enabled = db.Column(db.Boolean, default=False)
+    
+    courses_slider_items = db.Column(db.Integer, default=3)
+    courses_slider_interval = db.Column(db.Integer, default=5000)
+    courses_slider_auto_play = db.Column(db.Boolean, default=True)
+    courses_slider_transition = db.Column(db.String(20), default='slide')
+    
+    teachers_slider_items = db.Column(db.Integer, default=4)
+    teachers_slider_interval = db.Column(db.Integer, default=5000)
+    teachers_slider_auto_play = db.Column(db.Boolean, default=True)
+    teachers_slider_transition = db.Column(db.String(20), default='slide')
+    
     updated_at = db.Column(db.DateTime, default=damascus_now, onupdate=damascus_now)
     
     def __repr__(self):
