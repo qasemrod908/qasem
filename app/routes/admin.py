@@ -443,6 +443,48 @@ def settings():
     
     return render_template('admin/settings.html', settings=site_settings)
 
+@bp.route('/bot', methods=['GET', 'POST'])
+@role_required('admin')
+def bot_management():
+    site_settings = SiteSettings.query.first()
+    if not site_settings:
+        site_settings = SiteSettings()
+        db.session.add(site_settings)
+        db.session.commit()
+    
+    if request.method == 'POST':
+        action = request.form.get('action')
+        
+        if action == 'update_settings':
+            site_settings.telegram_bot_enabled = request.form.get('telegram_bot_enabled') == 'on'
+            site_settings.telegram_bot_notifications_enabled = request.form.get('telegram_bot_notifications_enabled') == 'on'
+            site_settings.telegram_bot_webhook_enabled = request.form.get('telegram_bot_webhook_enabled') == 'on'
+            site_settings.telegram_bot_webhook_url = request.form.get('telegram_bot_webhook_url')
+            
+            db.session.commit()
+            flash('تم تحديث إعدادات البوت بنجاح', 'success')
+        
+        return redirect(url_for('admin.bot_management'))
+    
+    bot_stats = BotStatistics.query.order_by(BotStatistics.date.desc()).first()
+    total_bot_users = BotSession.query.count()
+    authenticated_users = BotSession.query.filter_by(is_authenticated=True).count()
+    
+    recent_sessions = BotSession.query.order_by(BotSession.last_activity.desc()).limit(10).all()
+    
+    stats = {
+        'total_users': total_bot_users,
+        'authenticated_users': authenticated_users,
+        'active_users_today': bot_stats.active_users_today if bot_stats else 0,
+        'messages_sent': bot_stats.messages_sent if bot_stats else 0,
+        'messages_received': bot_stats.messages_received if bot_stats else 0
+    }
+    
+    return render_template('admin/bot.html', 
+                         settings=site_settings, 
+                         stats=stats,
+                         recent_sessions=recent_sessions)
+
 @bp.route('/news')
 @role_required('admin', 'assistant')
 def news():

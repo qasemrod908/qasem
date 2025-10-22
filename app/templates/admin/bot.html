@@ -1,0 +1,341 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">
+        <i class="fab fa-telegram-plane ms-2"></i>
+        إدارة بوت التيليجرام
+    </h2>
+    
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-white bg-primary">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">إجمالي المستخدمين</h6>
+                            <h2 class="mb-0">{{ stats.total_users }}</h2>
+                        </div>
+                        <i class="fas fa-users fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card text-white bg-success">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">مسجلو الدخول</h6>
+                            <h2 class="mb-0">{{ stats.authenticated_users }}</h2>
+                        </div>
+                        <i class="fas fa-user-check fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card text-white bg-info">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">نشط اليوم</h6>
+                            <h2 class="mb-0">{{ stats.active_users_today }}</h2>
+                        </div>
+                        <i class="fas fa-chart-line fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card text-white bg-warning">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">الرسائل اليوم</h6>
+                            <h2 class="mb-0">{{ stats.messages_received }}</h2>
+                        </div>
+                        <i class="fas fa-envelope fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-cog ms-2"></i>
+                إعدادات البوت
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                <input type="hidden" name="action" value="update_settings">
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle ms-2"></i>
+                    <strong>ملاحظة:</strong> يجب إعداد Bot Token في صفحة الإعدادات العامة أولاً. 
+                    بعد تفعيل البوت، قم بتشغيل سكريبت البوت من Terminal باستخدام: <code>python bot.py</code>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <i class="fas fa-power-off ms-2"></i>
+                                حالة البوت
+                            </div>
+                            <div class="card-body">
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="telegram_bot_enabled" 
+                                           name="telegram_bot_enabled" {{ 'checked' if settings.telegram_bot_enabled else '' }}>
+                                    <label class="form-check-label" for="telegram_bot_enabled">
+                                        <strong>تفعيل البوت</strong>
+                                    </label>
+                                    <div class="text-muted small mt-1">
+                                        تشغيل أو إيقاف البوت بالكامل
+                                    </div>
+                                </div>
+                                
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="telegram_bot_notifications_enabled" 
+                                           name="telegram_bot_notifications_enabled" {{ 'checked' if settings.telegram_bot_notifications_enabled else '' }}>
+                                    <label class="form-check-label" for="telegram_bot_notifications_enabled">
+                                        <strong>تفعيل الإشعارات</strong>
+                                    </label>
+                                    <div class="text-muted small mt-1">
+                                        إرسال إشعارات تلقائية للطلاب (دروس جديدة، درجات، إلخ)
+                                    </div>
+                                </div>
+                                
+                                <div class="alert {{ 'alert-success' if settings.telegram_bot_enabled else 'alert-secondary' }} mb-0">
+                                    <strong>الحالة:</strong> 
+                                    {% if settings.telegram_bot_enabled %}
+                                        <span class="badge bg-success">مفعّل</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">معطّل</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <i class="fas fa-globe ms-2"></i>
+                                إعدادات Webhook (متقدم)
+                            </div>
+                            <div class="card-body">
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="telegram_bot_webhook_enabled" 
+                                           name="telegram_bot_webhook_enabled" {{ 'checked' if settings.telegram_bot_webhook_enabled else '' }}>
+                                    <label class="form-check-label" for="telegram_bot_webhook_enabled">
+                                        <strong>استخدام Webhook</strong>
+                                    </label>
+                                    <div class="text-muted small mt-1">
+                                        بدلاً من Polling (يتطلب HTTPS)
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Webhook URL</label>
+                                    <input type="url" class="form-control" name="telegram_bot_webhook_url" 
+                                           value="{{ settings.telegram_bot_webhook_url or '' }}"
+                                           placeholder="https://yourdomain.com/webhook">
+                                    <small class="text-muted">
+                                        عنوان URL لاستقبال التحديثات من Telegram
+                                    </small>
+                                </div>
+                                
+                                <div class="alert alert-warning mb-0">
+                                    <i class="fas fa-exclamation-triangle ms-2"></i>
+                                    <small>
+                                        Webhook يتطلب شهادة SSL صالحة ونطاق عام
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-save ms-2"></i>
+                        حفظ التغييرات
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-info-circle ms-2"></i>
+                معلومات البوت
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>معلومات الاتصال</h6>
+                    <table class="table table-sm">
+                        <tr>
+                            <td><strong>Bot Token:</strong></td>
+                            <td>
+                                {% if settings.telegram_bot_token %}
+                                    <span class="badge bg-success">محدد ✓</span>
+                                {% else %}
+                                    <span class="badge bg-danger">غير محدد ✗</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Chat ID:</strong></td>
+                            <td>{{ settings.telegram_chat_id or 'غير محدد' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>وضع التشغيل:</strong></td>
+                            <td>
+                                {% if settings.telegram_bot_webhook_enabled %}
+                                    Webhook Mode
+                                {% else %}
+                                    Polling Mode
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <div class="col-md-6">
+                    <h6>إحصائيات الاستخدام</h6>
+                    <table class="table table-sm">
+                        <tr>
+                            <td><strong>إجمالي المستخدمين:</strong></td>
+                            <td>{{ stats.total_users }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>المسجلين:</strong></td>
+                            <td>{{ stats.authenticated_users }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>الرسائل المرسلة اليوم:</strong></td>
+                            <td>{{ stats.messages_sent }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>الرسائل المستقبلة اليوم:</strong></td>
+                            <td>{{ stats.messages_received }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-history ms-2"></i>
+                آخر النشاطات (آخر 10 مستخدمين)
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Telegram ID</th>
+                            <th>الاسم</th>
+                            <th>اسم المستخدم</th>
+                            <th>الحالة</th>
+                            <th>آخر نشاط</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if recent_sessions %}
+                            {% for session in recent_sessions %}
+                            <tr>
+                                <td><code>{{ session.telegram_id }}</code></td>
+                                <td>
+                                    {{ session.first_name }} {{ session.last_name or '' }}
+                                    {% if session.user %}
+                                        <br><small class="text-muted">{{ session.user.name }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if session.username %}
+                                        @{{ session.username }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if session.is_authenticated %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check ms-1"></i> مسجل
+                                        </span>
+                                        {% if session.user %}
+                                            <span class="badge bg-info">{{ session.user.role }}</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge bg-secondary">
+                                            <i class="fas fa-times ms-1"></i> ضيف
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small>{{ session.last_activity.strftime('%Y-%m-%d %H:%M') }}</small>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">
+                                    لا توجد جلسات مسجلة بعد
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card mt-4">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-terminal ms-2"></i>
+                دليل التشغيل
+            </h5>
+        </div>
+        <div class="card-body">
+            <h6>لتشغيل البوت:</h6>
+            <ol>
+                <li>تأكد من إضافة Bot Token في <a href="{{ url_for('admin.settings') }}">صفحة الإعدادات</a></li>
+                <li>فعّل البوت من خلال تفعيل الخيار أعلاه</li>
+                <li>في Terminal، قم بتشغيل البوت:
+                    <pre class="bg-dark text-light p-3 rounded"><code>python bot.py</code></pre>
+                </li>
+                <li>ابحث عن البوت الخاص بك في Telegram وابدأ المحادثة بإرسال <code>/start</code></li>
+            </ol>
+            
+            <div class="alert alert-info">
+                <h6><i class="fas fa-robot ms-2"></i> الميزات المتاحة في البوت:</h6>
+                <ul class="mb-0">
+                    <li>تسجيل الدخول للطلاب والمعلمين</li>
+                    <li>عرض الدورات والدروس</li>
+                    <li>الاطلاع على الدرجات</li>
+                    <li>قراءة الأخبار</li>
+                    <li>التعرف على المعلمين</li>
+                    <li>لوحة تحكم مخصصة لكل دور</li>
+                    <li>قوائم تفاعلية سهلة الاستخدام</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

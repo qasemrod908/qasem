@@ -11,7 +11,7 @@ class BotSession(db.Model):
     first_name = db.Column(db.String(100))
     last_name = db.Column(db.String(100))
     
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     user = db.relationship('User', backref=db.backref('bot_sessions', lazy='dynamic'))
     
     is_authenticated = db.Column(db.Boolean, default=False)
