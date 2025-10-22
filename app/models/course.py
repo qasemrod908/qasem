@@ -1,5 +1,6 @@
 from app import db
 from datetime import datetime
+from app.utils.helpers import damascus_now
 
 class Course(db.Model):
     __tablename__ = 'courses'
@@ -12,8 +13,8 @@ class Course(db.Model):
     level = db.Column(db.String(50))
     is_featured = db.Column(db.Boolean, default=False)
     image = db.Column(db.String(255))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=damascus_now)
+    updated_at = db.Column(db.DateTime, default=damascus_now, onupdate=damascus_now)
     
     enrollments = db.relationship('Enrollment', backref='course', lazy='dynamic', cascade='all, delete-orphan')
     lessons = db.relationship('Lesson', backref='course', lazy='dynamic', cascade='all, delete-orphan')

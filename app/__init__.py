@@ -2,9 +2,25 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from config import Config
+from sqlalchemy import event
+import threading
 
 db = SQLAlchemy()
 login_manager = LoginManager()
+
+def setup_auto_backup():
+    @event.listens_for(db.session, 'after_commit')
+    def receive_after_commit(session):
+        def auto_backup():
+            try:
+                from app.utils.backup import BackupManager
+                BackupManager.create_auto_backup()
+            except Exception as e:
+                print(f'خطأ في النسخ الاحتياطي التلقائي: {str(e)}')
+        
+        thread = threading.Thread(target=auto_backup)
+        thread.daemon = True
+        thread.start()
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -33,5 +49,6 @@ def create_app(config_class=Config):
         db.create_all()
         from app.utils import init_db
         init_db.initialize_database()
+        setup_auto_backup()
     
     return app

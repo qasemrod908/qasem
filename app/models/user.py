@@ -2,6 +2,7 @@ from app import db
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
+from app.utils.helpers import damascus_now
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
@@ -12,7 +13,7 @@ class User(UserMixin, db.Model):
     full_name = db.Column(db.String(100), nullable=False)
     role = db.Column(db.String(20), nullable=False)
     is_active = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=damascus_now)
     
     permissions = db.Column(db.JSON, default={})
     

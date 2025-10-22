@@ -5,12 +5,23 @@ from datetime import datetime
 from flask import current_app
 import asyncio
 from telegram import Bot
+from app.utils.helpers import damascus_now
+import threading
 
 class BackupManager:
     
     @staticmethod
+    def create_auto_backup():
+        try:
+            BackupManager.create_full_backup()
+            return True
+        except Exception as e:
+            print(f'خطأ في النسخ الاحتياطي التلقائي: {str(e)}')
+            return False
+    
+    @staticmethod
     def create_full_backup():
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        timestamp = damascus_now().strftime('%Y%m%d_%H%M%S')
         backup_dir = f'backups/full_{timestamp}'
         os.makedirs(backup_dir, exist_ok=True)
         
@@ -26,7 +37,7 @@ class BackupManager:
     
     @staticmethod
     def create_structure_backup():
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        timestamp = damascus_now().strftime('%Y%m%d_%H%M%S')
         backup_dir = f'backups/structure_{timestamp}'
         os.makedirs(backup_dir, exist_ok=True)
         
@@ -52,7 +63,7 @@ class BackupManager:
     
     @staticmethod
     def create_data_backup():
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        timestamp = damascus_now().strftime('%Y%m%d_%H%M%S')
         backup_file = f'backups/data_{timestamp}.db'
         os.makedirs('backups', exist_ok=True)
         
@@ -72,7 +83,7 @@ class BackupManager:
                 await bot.send_document(
                     chat_id=chat_id,
                     document=file,
-                    caption=f'📦 نسخة احتياطية - {os.path.basename(file_path)}\n{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
+                    caption=f'📦 نسخة احتياطية - {os.path.basename(file_path)}\n{damascus_now().strftime("%Y-%m-%d %H:%M:%S")}'
                 )
             
             return True

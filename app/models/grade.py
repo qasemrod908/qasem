@@ -1,5 +1,6 @@
 from app import db
 from datetime import datetime
+from app.utils.helpers import damascus_now
 
 class Grade(db.Model):
     __tablename__ = 'grades'
@@ -13,7 +14,7 @@ class Grade(db.Model):
     max_grade = db.Column(db.Float, nullable=False)
     notes = db.Column(db.Text)
     exam_date = db.Column(db.Date)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=damascus_now)
     
     course = db.relationship('Course', backref='grades')
     teacher = db.relationship('Teacher', backref='grades')

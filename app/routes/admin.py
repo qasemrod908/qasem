@@ -611,3 +611,63 @@ def delete_lesson(lesson_id):
     db.session.commit()
     flash('تم حذف الدرس بنجاح', 'success')
     return redirect(url_for('admin.lessons'))
+
+@bp.route('/contacts')
+@role_required('admin', 'assistant')
+def contacts():
+    all_contacts = Contact.query.order_by(Contact.created_at.desc()).all()
+    return render_template('admin/contacts.html', contacts=all_contacts)
+
+@bp.route('/contacts/view/<int:contact_id>')
+@role_required('admin', 'assistant')
+def view_contact(contact_id):
+    contact = Contact.query.get_or_404(contact_id)
+    if not contact.is_read:
+        contact.is_read = True
+        db.session.commit()
+    return render_template('admin/view_contact.html', contact=contact)
+
+@bp.route('/contacts/toggle/<int:contact_id>', methods=['POST'])
+@role_required('admin', 'assistant')
+def toggle_contact_status(contact_id):
+    contact = Contact.query.get_or_404(contact_id)
+    contact.is_read = not contact.is_read
+    db.session.commit()
+    status = 'مقروءة' if contact.is_read else 'غير مقروءة'
+    flash(f'تم تغيير حالة الرسالة إلى {status}', 'success')
+    return redirect(url_for('admin.contacts'))
+
+@bp.route('/contacts/delete/<int:contact_id>', methods=['POST'])
+@role_required('admin')
+def delete_contact(contact_id):
+    contact = Contact.query.get_or_404(contact_id)
+    db.session.delete(contact)
+    db.session.commit()
+    flash('تم حذف الرسالة بنجاح', 'success')
+    return redirect(url_for('admin.contacts'))
+
+@bp.route('/lessons/view/<int:course_id>')
+@role_required('admin', 'assistant')
+def view_course_lessons(course_id):
+    course = Course.query.get_or_404(course_id)
+    lessons = Lesson.query.filter_by(course_id=course_id).all()
+    return render_template('admin/view_lessons.html', course=course, lessons=lessons)
+
+@bp.route('/lesson/download/<int:lesson_id>')
+@role_required('admin', 'assistant')
+def download_lesson(lesson_id):
+    from flask import send_file
+    import os
+    
+    lesson = Lesson.query.get_or_404(lesson_id)
+    
+    if lesson.file_path:
+        file_full_path = os.path.join(current_app.root_path, 'static', lesson.file_path)
+        if os.path.exists(file_full_path):
+            return send_file(file_full_path, as_attachment=True, download_name=os.path.basename(lesson.file_path))
+        else:
+            flash('الملف غير موجود', 'danger')
+    else:
+        flash('لا يوجد ملف مرفق لهذا الدرس', 'warning')
+    
+    return redirect(url_for('admin.lessons'))

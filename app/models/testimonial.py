@@ -1,5 +1,6 @@
 from app import db
 from datetime import datetime
+from app.utils.helpers import damascus_now
 
 class Testimonial(db.Model):
     __tablename__ = 'testimonials'
@@ -11,7 +12,7 @@ class Testimonial(db.Model):
     video_url = db.Column(db.String(255))
     rating = db.Column(db.Integer)
     is_published = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=damascus_now)
     
     def __repr__(self):
         return f'<Testimonial {self.student_name}>'

@@ -1,5 +1,6 @@
 from app import db
 from datetime import datetime
+from app.utils.helpers import damascus_now
 
 class SiteSettings(db.Model):
     __tablename__ = 'site_settings'
@@ -19,7 +20,7 @@ class SiteSettings(db.Model):
     telegram_bot_token = db.Column(db.String(255))
     telegram_chat_id = db.Column(db.String(100))
     telegram_backup_enabled = db.Column(db.Boolean, default=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=damascus_now, onupdate=damascus_now)
     
     def __repr__(self):
         return f'<SiteSettings {self.institute_name}>'

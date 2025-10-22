@@ -1,5 +1,6 @@
 from app import db
 from datetime import datetime
+from app.utils.helpers import damascus_now
 
 class Lesson(db.Model):
     __tablename__ = 'lessons'
@@ -11,7 +12,7 @@ class Lesson(db.Model):
     description = db.Column(db.Text)
     file_path = db.Column(db.String(255))
     file_type = db.Column(db.String(10))
-    upload_date = db.Column(db.DateTime, default=datetime.utcnow)
+    upload_date = db.Column(db.DateTime, default=damascus_now)
     is_published = db.Column(db.Boolean, default=True)
     
     teacher = db.relationship('Teacher', backref='lessons')

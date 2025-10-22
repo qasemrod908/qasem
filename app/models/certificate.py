@@ -1,5 +1,6 @@
 from app import db
 from datetime import datetime
+from app.utils.helpers import damascus_now
 
 class Certificate(db.Model):
     __tablename__ = 'certificates'
@@ -11,7 +12,7 @@ class Certificate(db.Model):
     issued_date = db.Column(db.Date)
     is_published = db.Column(db.Boolean, default=True)
     display_order = db.Column(db.Integer, default=0)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=damascus_now)
     
     def __repr__(self):
         return f'<Certificate {self.title}>'

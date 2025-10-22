@@ -78,6 +78,95 @@ def students():
     my_students = Student.query.join(Enrollment).filter(Enrollment.teacher_id == teacher.id).all()
     return render_template('teacher/students.html', students=my_students)
 
+@bp.route('/lessons/edit/<int:lesson_id>', methods=['GET', 'POST'])
+@role_required('teacher')
+def edit_lesson(lesson_id):
+    teacher = Teacher.query.filter_by(user_id=current_user.id).first()
+    lesson = Lesson.query.get_or_404(lesson_id)
+    
+    if lesson.teacher_id != teacher.id:
+        flash('ليس لديك صلاحية لتعديل هذا الدرس', 'danger')
+        return redirect(url_for('teacher.lessons'))
+    
+    if request.method == 'POST':
+        lesson.course_id = request.form.get('course_id')
+        lesson.title = request.form.get('title')
+        lesson.description = request.form.get('description')
+        lesson.is_published = request.form.get('is_published') == 'on'
+        
+        if 'file' in request.files:
+            file = request.files['file']
+            if file and file.filename:
+                filename = secure_filename(file.filename)
+                file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'documents', filename)
+                os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                file.save(file_path)
+                lesson.file_path = f'uploads/documents/{filename}'
+                lesson.file_type = filename.rsplit('.', 1)[1].lower()
+        
+        db.session.commit()
+        flash('تم تحديث الدرس بنجاح', 'success')
+        return redirect(url_for('teacher.lessons'))
+    
+    courses = Course.query.all()
+    return render_template('teacher/edit_lesson.html', lesson=lesson, courses=courses)
+
+@bp.route('/lessons/delete/<int:lesson_id>', methods=['POST'])
+@role_required('teacher')
+def delete_lesson(lesson_id):
+    teacher = Teacher.query.filter_by(user_id=current_user.id).first()
+    lesson = Lesson.query.get_or_404(lesson_id)
+    
+    if lesson.teacher_id != teacher.id:
+        flash('ليس لديك صلاحية لحذف هذا الدرس', 'danger')
+        return redirect(url_for('teacher.lessons'))
+    
+    db.session.delete(lesson)
+    db.session.commit()
+    flash('تم حذف الدرس بنجاح', 'success')
+    return redirect(url_for('teacher.lessons'))
+
+@bp.route('/lessons/view/<int:course_id>')
+@role_required('teacher')
+def view_course_lessons(course_id):
+    teacher = Teacher.query.filter_by(user_id=current_user.id).first()
+    course = Course.query.get_or_404(course_id)
+    
+    teacher_enrollment = Enrollment.query.filter_by(teacher_id=teacher.id, course_id=course_id).first()
+    has_lessons_in_course = Lesson.query.filter_by(teacher_id=teacher.id, course_id=course_id).first()
+    
+    if not teacher_enrollment and not has_lessons_in_course:
+        flash('ليس لديك صلاحية للوصول لدروس هذه الدورة', 'danger')
+        return redirect(url_for('teacher.dashboard'))
+    
+    lessons = Lesson.query.filter_by(course_id=course_id).all()
+    return render_template('teacher/view_lessons.html', course=course, lessons=lessons)
+
+@bp.route('/lesson/download/<int:lesson_id>')
+@role_required('teacher')
+def download_lesson(lesson_id):
+    from flask import send_file
+    
+    teacher = Teacher.query.filter_by(user_id=current_user.id).first()
+    lesson = Lesson.query.get_or_404(lesson_id)
+    
+    if lesson.teacher_id != teacher.id:
+        teacher_enrollment = Enrollment.query.filter_by(teacher_id=teacher.id, course_id=lesson.course_id).first()
+        if not teacher_enrollment:
+            flash('ليس لديك صلاحية لتحميل هذا الدرس', 'danger')
+            return redirect(url_for('teacher.lessons'))
+    
+    if lesson.file_path:
+        file_full_path = os.path.join(current_app.root_path, 'static', lesson.file_path)
+        if os.path.exists(file_full_path):
+            return send_file(file_full_path, as_attachment=True, download_name=os.path.basename(lesson.file_path))
+        else:
+            flash('الملف غير موجود', 'danger')
+    else:
+        flash('لا يوجد ملف مرفق لهذا الدرس', 'warning')
+    
+    return redirect(url_for('teacher.lessons'))
+
 @bp.route('/grades/add/<int:student_id>', methods=['GET', 'POST'])
 @role_required('teacher')
 def add_grade(student_id):

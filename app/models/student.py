@@ -1,5 +1,6 @@
 from app import db
 from datetime import datetime
+from app.utils.helpers import damascus_now
 
 class Student(db.Model):
     __tablename__ = 'students'
@@ -13,7 +14,7 @@ class Student(db.Model):
     photo = db.Column(db.String(255))
     guardian_name = db.Column(db.String(100))
     guardian_phone = db.Column(db.String(20))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=damascus_now)
     
     user = db.relationship('User', backref='student_profile', foreign_keys=[user_id])
     enrollments = db.relationship('Enrollment', backref='student', lazy='dynamic', cascade='all, delete-orphan')

@@ -32,28 +32,44 @@
 <section class="py-5 bg-light">
     <div class="container">
         <h2 class="text-center mb-5">الدورات المميزة</h2>
-        <div class="row">
-            {% for course in featured_courses %}
-            <div class="col-md-4 mb-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title">
-                            <a href="{{ url_for('public.course_detail', course_id=course.id) }}" class="text-decoration-none text-dark">
-                                {{ course.title }}
-                            </a>
-                        </h5>
-                        <p class="card-text">{{ course.short_description }}</p>
-                        {% if course.duration %}
-                        <p class="text-muted"><i class="fas fa-clock ms-2"></i>{{ course.duration }}</p>
-                        {% endif %}
-                        <a href="{{ url_for('public.course_detail', course_id=course.id) }}" class="btn btn-primary btn-sm">
-                            <i class="fas fa-info-circle ms-2"></i>
-                            التفاصيل
-                        </a>
+        <div id="coursesCarousel" class="carousel slide" data-bs-ride="carousel">
+            <div class="carousel-inner">
+                {% for i in range(0, featured_courses|length, 3) %}
+                <div class="carousel-item {% if i == 0 %}active{% endif %}">
+                    <div class="row">
+                        {% for course in featured_courses[i:i+3] %}
+                        <div class="col-md-4 mb-4">
+                            <div class="card h-100 shadow-sm">
+                                <div class="card-body">
+                                    <h5 class="card-title">
+                                        <a href="{{ url_for('public.course_detail', course_id=course.id) }}" class="text-decoration-none text-dark">
+                                            {{ course.title }}
+                                        </a>
+                                    </h5>
+                                    <p class="card-text">{{ course.short_description }}</p>
+                                    {% if course.duration %}
+                                    <p class="text-muted"><i class="fas fa-clock ms-2"></i>{{ course.duration }}</p>
+                                    {% endif %}
+                                    <a href="{{ url_for('public.course_detail', course_id=course.id) }}" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-info-circle ms-2"></i>
+                                        التفاصيل
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
                     </div>
                 </div>
+                {% endfor %}
             </div>
-            {% endfor %}
+            <button class="carousel-control-prev" type="button" data-bs-target="#coursesCarousel" data-bs-slide="prev" style="width: 5%;">
+                <span class="carousel-control-prev-icon bg-dark rounded-circle p-3" aria-hidden="true"></span>
+                <span class="visually-hidden">السابق</span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#coursesCarousel" data-bs-slide="next" style="width: 5%;">
+                <span class="carousel-control-next-icon bg-dark rounded-circle p-3" aria-hidden="true"></span>
+                <span class="visually-hidden">التالي</span>
+            </button>
         </div>
     </div>
 </section>
@@ -63,30 +79,46 @@
 <section class="py-5">
     <div class="container">
         <h2 class="text-center mb-5">مدرسونا</h2>
-        <div class="row">
-            {% for teacher in teachers %}
-            <div class="col-md-3 mb-4">
-                <div class="card text-center shadow-sm">
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <i class="fas fa-user-circle fa-4x text-primary"></i>
+        <div id="teachersCarousel" class="carousel slide" data-bs-ride="carousel">
+            <div class="carousel-inner">
+                {% for i in range(0, teachers|length, 4) %}
+                <div class="carousel-item {% if i == 0 %}active{% endif %}">
+                    <div class="row">
+                        {% for teacher in teachers[i:i+4] %}
+                        <div class="col-md-3 mb-4">
+                            <div class="card text-center shadow-sm">
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <i class="fas fa-user-circle fa-4x text-primary"></i>
+                                    </div>
+                                    <h5 class="card-title">
+                                        <a href="{{ url_for('public.teacher_detail', teacher_id=teacher.id) }}" class="text-decoration-none text-dark">
+                                            {{ teacher.user.full_name }}
+                                        </a>
+                                    </h5>
+                                    {% if teacher.specialization %}
+                                    <p class="text-muted">{{ teacher.specialization }}</p>
+                                    {% endif %}
+                                    <a href="{{ url_for('public.teacher_detail', teacher_id=teacher.id) }}" class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-eye ms-2"></i>
+                                        عرض الملف
+                                    </a>
+                                </div>
+                            </div>
                         </div>
-                        <h5 class="card-title">
-                            <a href="{{ url_for('public.teacher_detail', teacher_id=teacher.id) }}" class="text-decoration-none text-dark">
-                                {{ teacher.user.full_name }}
-                            </a>
-                        </h5>
-                        {% if teacher.specialization %}
-                        <p class="text-muted">{{ teacher.specialization }}</p>
-                        {% endif %}
-                        <a href="{{ url_for('public.teacher_detail', teacher_id=teacher.id) }}" class="btn btn-outline-primary btn-sm">
-                            <i class="fas fa-eye ms-2"></i>
-                            عرض الملف
-                        </a>
+                        {% endfor %}
                     </div>
                 </div>
+                {% endfor %}
             </div>
-            {% endfor %}
+            <button class="carousel-control-prev" type="button" data-bs-target="#teachersCarousel" data-bs-slide="prev" style="width: 5%;">
+                <span class="carousel-control-prev-icon bg-dark rounded-circle p-3" aria-hidden="true"></span>
+                <span class="visually-hidden">السابق</span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#teachersCarousel" data-bs-slide="next" style="width: 5%;">
+                <span class="carousel-control-next-icon bg-dark rounded-circle p-3" aria-hidden="true"></span>
+                <span class="visually-hidden">التالي</span>
+            </button>
         </div>
     </div>
 </section>
