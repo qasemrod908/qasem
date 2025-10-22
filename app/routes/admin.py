@@ -225,13 +225,22 @@ def courses():
 @role_required('admin', 'assistant')
 def add_course():
     if request.method == 'POST':
+        from datetime import datetime as dt
+        
+        start_date = request.form.get('start_date')
+        end_date = request.form.get('end_date')
+        max_students = request.form.get('max_students')
+        
         course = Course(
             title=request.form.get('title'),
             description=request.form.get('description'),
             short_description=request.form.get('short_description'),
             duration=request.form.get('duration'),
             level=request.form.get('level'),
-            is_featured=request.form.get('is_featured') == 'on'
+            is_featured=request.form.get('is_featured') == 'on',
+            start_date=dt.strptime(start_date, '%Y-%m-%d').date() if start_date else None,
+            end_date=dt.strptime(end_date, '%Y-%m-%d').date() if end_date else None,
+            max_students=int(max_students) if max_students else None
         )
         
         if 'image' in request.files:
@@ -256,12 +265,32 @@ def edit_course(course_id):
     course = Course.query.get_or_404(course_id)
     
     if request.method == 'POST':
+        from datetime import datetime as dt
+        
         course.title = request.form.get('title')
         course.description = request.form.get('description')
         course.short_description = request.form.get('short_description')
         course.duration = request.form.get('duration')
         course.level = request.form.get('level')
         course.is_featured = request.form.get('is_featured') == 'on'
+        
+        start_date = request.form.get('start_date')
+        end_date = request.form.get('end_date')
+        max_students = request.form.get('max_students')
+        
+        course.start_date = dt.strptime(start_date, '%Y-%m-%d').date() if start_date else None
+        course.end_date = dt.strptime(end_date, '%Y-%m-%d').date() if end_date else None
+        course.max_students = int(max_students) if max_students else None
+        
+        if request.form.get('delete_image') == 'on':
+            if course.image:
+                try:
+                    image_path = os.path.join(current_app.config['UPLOAD_FOLDER'], course.image)
+                    if os.path.exists(image_path):
+                        os.remove(image_path)
+                except:
+                    pass
+                course.image = None
         
         if 'image' in request.files:
             file = request.files['image']
@@ -401,6 +430,16 @@ def edit_teacher(teacher_id):
         teacher.qualifications = request.form.get('qualifications')
         teacher.phone = request.form.get('phone')
         
+        if request.form.get('delete_photo') == 'on':
+            if teacher.photo:
+                try:
+                    photo_path = os.path.join(current_app.config['UPLOAD_FOLDER'], teacher.photo)
+                    if os.path.exists(photo_path):
+                        os.remove(photo_path)
+                except:
+                    pass
+                teacher.photo = None
+        
         if 'photo' in request.files:
             file = request.files['photo']
             if file and file.filename:
@@ -466,10 +505,34 @@ def edit_student(student_id):
         student.guardian_name = request.form.get('guardian_name')
         student.guardian_phone = request.form.get('guardian_phone')
         
+        class_grade_id = request.form.get('class_grade_id')
+        section_id = request.form.get('section_id')
+        
+        if section_id and class_grade_id:
+            section = Section.query.get(int(section_id))
+            if section and section.class_grade_id != int(class_grade_id):
+                flash('الشعبة المختارة لا تنتمي للصف المحدد', 'danger')
+                grades = ClassGrade.query.order_by(ClassGrade.display_order, ClassGrade.name).all()
+                sections = Section.query.order_by(Section.display_order, Section.name).all()
+                return render_template('admin/edit_student.html', student=student, grades=grades, sections=sections)
+        
+        student.class_grade_id = int(class_grade_id) if class_grade_id else None
+        student.section_id = int(section_id) if section_id else None
+        
         dob = request.form.get('date_of_birth')
         if dob:
             from datetime import datetime
             student.date_of_birth = datetime.strptime(dob, '%Y-%m-%d').date()
+        
+        if request.form.get('delete_photo') == 'on':
+            if student.photo:
+                try:
+                    photo_path = os.path.join(current_app.config['UPLOAD_FOLDER'], student.photo)
+                    if os.path.exists(photo_path):
+                        os.remove(photo_path)
+                except:
+                    pass
+                student.photo = None
         
         if 'photo' in request.files:
             file = request.files['photo']
@@ -484,7 +547,9 @@ def edit_student(student_id):
         flash('تم تحديث بيانات الطالب بنجاح', 'success')
         return redirect(url_for('admin.students'))
     
-    return render_template('admin/edit_student.html', student=student)
+    grades = ClassGrade.query.order_by(ClassGrade.display_order, ClassGrade.name).all()
+    sections = Section.query.order_by(Section.display_order, Section.name).all()
+    return render_template('admin/edit_student.html', student=student, grades=grades, sections=sections)
 
 @bp.route('/students/delete/<int:student_id>', methods=['POST'])
 @role_required('admin')
@@ -507,10 +572,22 @@ def enroll_student(student_id):
     course_id = request.form.get('course_id')
     teacher_id = request.form.get('teacher_id')
     
+    if not course_id:
+        flash('يجب اختيار دورة', 'danger')
+        return redirect(url_for('admin.students'))
+    
+    course = Course.query.get_or_404(course_id)
+    
     existing = Enrollment.query.filter_by(student_id=student_id, course_id=course_id).first()
     if existing:
         flash('الطالب مسجل بالفعل في هذه الدورة', 'warning')
         return redirect(url_for('admin.students'))
+    
+    if course.max_students:
+        available = course.available_seats()
+        if available is not None and available <= 0:
+            flash(f'عذراً، الدورة "{course.title}" مكتملة ولا يوجد مقاعد متاحة', 'danger')
+            return redirect(url_for('admin.students'))
     
     enrollment = Enrollment(
         student_id=student_id,
@@ -519,7 +596,7 @@ def enroll_student(student_id):
     )
     db.session.add(enrollment)
     db.session.commit()
-    flash('تم تسجيل الطالب في الدورة بنجاح', 'success')
+    flash(f'تم تسجيل الطالب في دورة "{course.title}" بنجاح', 'success')
     return redirect(url_for('admin.students'))
 
 @bp.route('/students/unenroll/<int:enrollment_id>', methods=['POST'])
@@ -530,6 +607,148 @@ def unenroll_student(enrollment_id):
     db.session.commit()
     flash('تم إلغاء تسجيل الطالب من الدورة بنجاح', 'success')
     return redirect(url_for('admin.students'))
+
+@bp.route('/grades')
+@role_required('admin', 'assistant')
+def grades():
+    all_grades = ClassGrade.query.order_by(ClassGrade.display_order, ClassGrade.name).all()
+    return render_template('admin/grades.html', grades=all_grades)
+
+@bp.route('/grades/add', methods=['GET', 'POST'])
+@role_required('admin', 'assistant')
+def add_grade():
+    if request.method == 'POST':
+        name = request.form.get('name')
+        description = request.form.get('description')
+        display_order = request.form.get('display_order', 0)
+        
+        existing = ClassGrade.query.filter_by(name=name).first()
+        if existing:
+            flash('الصف موجود بالفعل', 'warning')
+            return redirect(url_for('admin.grades'))
+        
+        grade = ClassGrade(
+            name=name,
+            description=description,
+            display_order=int(display_order) if display_order else 0
+        )
+        db.session.add(grade)
+        db.session.commit()
+        flash('تم إضافة الصف بنجاح', 'success')
+        return redirect(url_for('admin.grades'))
+    
+    return render_template('admin/add_grade.html')
+
+@bp.route('/grades/edit/<int:grade_id>', methods=['GET', 'POST'])
+@role_required('admin', 'assistant')
+def edit_grade(grade_id):
+    grade = ClassGrade.query.get_or_404(grade_id)
+    
+    if request.method == 'POST':
+        name = request.form.get('name')
+        description = request.form.get('description')
+        display_order = request.form.get('display_order', 0)
+        
+        existing = ClassGrade.query.filter(ClassGrade.name == name, ClassGrade.id != grade_id).first()
+        if existing:
+            flash('اسم الصف موجود بالفعل', 'warning')
+            return redirect(url_for('admin.edit_grade', grade_id=grade_id))
+        
+        grade.name = name
+        grade.description = description
+        grade.display_order = int(display_order) if display_order else 0
+        
+        db.session.commit()
+        flash('تم تحديث الصف بنجاح', 'success')
+        return redirect(url_for('admin.grades'))
+    
+    return render_template('admin/edit_grade.html', grade=grade)
+
+@bp.route('/grades/delete/<int:grade_id>', methods=['POST'])
+@role_required('admin')
+def delete_grade(grade_id):
+    grade = ClassGrade.query.get_or_404(grade_id)
+    
+    if grade.students.count() > 0:
+        flash('لا يمكن حذف الصف لأنه يحتوي على طلاب', 'danger')
+        return redirect(url_for('admin.grades'))
+    
+    db.session.delete(grade)
+    db.session.commit()
+    flash('تم حذف الصف بنجاح', 'success')
+    return redirect(url_for('admin.grades'))
+
+@bp.route('/grades/<int:grade_id>/sections/add', methods=['POST'])
+@role_required('admin', 'assistant')
+def add_section(grade_id):
+    grade = ClassGrade.query.get_or_404(grade_id)
+    
+    name = request.form.get('name')
+    description = request.form.get('description')
+    max_students = request.form.get('max_students')
+    display_order = request.form.get('display_order', 0)
+    
+    existing = Section.query.filter_by(name=name, class_grade_id=grade_id).first()
+    if existing:
+        flash('الشعبة موجودة بالفعل في هذا الصف', 'warning')
+        return redirect(url_for('admin.grades'))
+    
+    section = Section(
+        name=name,
+        class_grade_id=grade_id,
+        description=description,
+        max_students=int(max_students) if max_students else None,
+        display_order=int(display_order) if display_order else 0
+    )
+    db.session.add(section)
+    db.session.commit()
+    flash('تم إضافة الشعبة بنجاح', 'success')
+    return redirect(url_for('admin.grades'))
+
+@bp.route('/sections/edit/<int:section_id>', methods=['GET', 'POST'])
+@role_required('admin', 'assistant')
+def edit_section(section_id):
+    section = Section.query.get_or_404(section_id)
+    
+    if request.method == 'POST':
+        name = request.form.get('name')
+        description = request.form.get('description')
+        max_students = request.form.get('max_students')
+        display_order = request.form.get('display_order', 0)
+        
+        existing = Section.query.filter(
+            Section.name == name,
+            Section.class_grade_id == section.class_grade_id,
+            Section.id != section_id
+        ).first()
+        if existing:
+            flash('اسم الشعبة موجود بالفعل في هذا الصف', 'warning')
+            return redirect(url_for('admin.edit_section', section_id=section_id))
+        
+        section.name = name
+        section.description = description
+        section.max_students = int(max_students) if max_students else None
+        section.display_order = int(display_order) if display_order else 0
+        
+        db.session.commit()
+        flash('تم تحديث الشعبة بنجاح', 'success')
+        return redirect(url_for('admin.grades'))
+    
+    return render_template('admin/edit_section.html', section=section)
+
+@bp.route('/sections/delete/<int:section_id>', methods=['POST'])
+@role_required('admin')
+def delete_section(section_id):
+    section = Section.query.get_or_404(section_id)
+    
+    if section.students.count() > 0:
+        flash('لا يمكن حذف الشعبة لأنها تحتوي على طلاب', 'danger')
+        return redirect(url_for('admin.grades'))
+    
+    db.session.delete(section)
+    db.session.commit()
+    flash('تم حذف الشعبة بنجاح', 'success')
+    return redirect(url_for('admin.grades'))
 
 @bp.route('/lessons')
 @role_required('admin', 'assistant')

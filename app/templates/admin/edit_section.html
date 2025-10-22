@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}تعديل الشعبة - معهد القاسم{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="fas fa-edit ms-2"></i>
+            تعديل الشعبة - {{ section.class_grade.name }}
+        </h2>
+        <a href="{{ url_for('admin.grades') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-right ms-2"></i>
+            العودة
+        </a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form method="POST">
+                <div class="mb-3">
+                    <label class="form-label">اسم الشعبة <span class="text-danger">*</span></label>
+                    <input type="text" name="name" class="form-control" value="{{ section.name }}" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">الوصف</label>
+                    <textarea name="description" class="form-control" rows="2">{{ section.description or '' }}</textarea>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">الحد الأقصى للطلاب</label>
+                    <input type="number" name="max_students" class="form-control" value="{{ section.max_students or '' }}" min="1">
+                    <small class="text-muted">اتركه فارغاً إذا كان غير محدود</small>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">ترتيب العرض</label>
+                    <input type="number" name="display_order" class="form-control" value="{{ section.display_order }}" min="0">
+                </div>
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle ms-2"></i>
+                    عدد الطلاب الحاليين في هذه الشعبة: <strong>{{ section.enrolled_count() }}</strong>
+                </div>
+                
+                <div class="text-end">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save ms-2"></i>
+                        حفظ التغييرات
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

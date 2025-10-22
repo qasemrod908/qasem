@@ -10,9 +10,10 @@ from app.models.testimonial import Testimonial
 from app.models.certificate import Certificate
 from app.models.contact import Contact
 from app.models.settings import SiteSettings
+from app.models.class_grade import ClassGrade, Section
 
 __all__ = [
     'User', 'Course', 'Teacher', 'Student', 'Enrollment',
     'Lesson', 'Grade', 'News', 'Testimonial', 'Certificate',
-    'Contact', 'SiteSettings'
+    'Contact', 'SiteSettings', 'ClassGrade', 'Section'
 ]

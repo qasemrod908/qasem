@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block title %}إدارة الصفوف والشعب - معهد القاسم{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="fas fa-layer-group ms-2"></i>
+            إدارة الصفوف والشعب
+        </h2>
+        <a href="{{ url_for('admin.add_grade') }}" class="btn btn-primary">
+            <i class="fas fa-plus ms-2"></i>
+            إضافة صف جديد
+        </a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            {% if grades %}
+                {% for grade in grades %}
+                <div class="card mb-3">
+                    <div class="card-header bg-primary text-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-graduation-cap ms-2"></i>
+                                {{ grade.name }}
+                            </h5>
+                            <div>
+                                <a href="{{ url_for('admin.edit_grade', grade_id=grade.id) }}" class="btn btn-sm btn-light">
+                                    <i class="fas fa-edit"></i> تعديل
+                                </a>
+                                <form method="POST" action="{{ url_for('admin.delete_grade', grade_id=grade.id) }}" style="display:inline;">
+                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('هل أنت متأكد من حذف هذا الصف؟')">
+                                        <i class="fas fa-trash"></i> حذف
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        {% if grade.description %}
+                        <small>{{ grade.description }}</small>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6>الشعب ({{ grade.sections.count() }})</h6>
+                            <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#addSectionModal{{ grade.id }}">
+                                <i class="fas fa-plus"></i> إضافة شعبة
+                            </button>
+                        </div>
+                        
+                        {% if grade.sections.count() > 0 %}
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>اسم الشعبة</th>
+                                        <th>الوصف</th>
+                                        <th>العدد المسجل</th>
+                                        <th>الحد الأقصى</th>
+                                        <th>المقاعد المتاحة</th>
+                                        <th>الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for section in grade.sections.order_by('display_order', 'name') %}
+                                    <tr>
+                                        <td><strong>{{ section.name }}</strong></td>
+                                        <td>{{ section.description or '-' }}</td>
+                                        <td>{{ section.enrolled_count() }}</td>
+                                        <td>{{ section.max_students or 'غير محدد' }}</td>
+                                        <td>
+                                            {% if section.max_students %}
+                                                {% set available = section.available_seats() %}
+                                                {% if available > 0 %}
+                                                    <span class="badge bg-success">{{ available }}</span>
+                                                {% elif available == 0 %}
+                                                    <span class="badge bg-danger">مكتمل</span>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="badge bg-secondary">مفتوح</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('admin.edit_section', section_id=section.id) }}" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <form method="POST" action="{{ url_for('admin.delete_section', section_id=section.id) }}" style="display:inline;">
+                                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('هل أنت متأكد من حذف هذه الشعبة؟')">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center">لا توجد شعب لهذا الصف</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="modal fade" id="addSectionModal{{ grade.id }}" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">إضافة شعبة جديدة - {{ grade.name }}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <form method="POST" action="{{ url_for('admin.add_section', grade_id=grade.id) }}">
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">اسم الشعبة <span class="text-danger">*</span></label>
+                                        <input type="text" name="name" class="form-control" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">الوصف</label>
+                                        <textarea name="description" class="form-control" rows="2"></textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">الحد الأقصى للطلاب</label>
+                                        <input type="number" name="max_students" class="form-control" min="1">
+                                        <small class="text-muted">اتركه فارغاً إذا كان غير محدود</small>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">ترتيب العرض</label>
+                                        <input type="number" name="display_order" class="form-control" value="0" min="0">
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save ms-2"></i>
+                                        حفظ
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-center text-muted">لا توجد صفوف حالياً</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

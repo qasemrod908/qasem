@@ -27,6 +27,21 @@
                 <option value="متقدم">متقدم</option>
             </select>
         </div>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">تاريخ البداية</label>
+                <input type="date" class="form-control" name="start_date">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">تاريخ النهاية</label>
+                <input type="date" class="form-control" name="end_date">
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">العدد الأقصى للطلاب</label>
+            <input type="number" class="form-control" name="max_students" min="1" placeholder="اتركه فارغاً إذا كان غير محدود">
+            <small class="text-muted">يمكن تركه فارغاً للدورات غير المحدودة</small>
+        </div>
         <div class="mb-3">
             <label class="form-label">صورة الدورة</label>
             <input type="file" class="form-control" name="image" accept="image/*">

@@ -58,10 +58,19 @@
 
                         <div class="mb-3">
                             <label class="form-label">صورة المدرس</label>
-                            <input type="file" class="form-control" name="photo" accept="image/*">
                             {% if teacher.photo %}
-                            <small class="text-muted">الصورة الحالية: {{ teacher.photo }}</small>
+                            <div class="mb-2">
+                                <img src="{{ url_for('static', filename='uploads/' + teacher.photo) }}" alt="{{ teacher.user.full_name }}" style="max-width: 150px;" class="img-thumbnail">
+                                <div class="form-check mt-2">
+                                    <input type="checkbox" class="form-check-input" name="delete_photo" id="delete_photo">
+                                    <label class="form-check-label text-danger" for="delete_photo">
+                                        <i class="fas fa-trash ms-1"></i> حذف الصورة
+                                    </label>
+                                </div>
+                            </div>
                             {% endif %}
+                            <input type="file" class="form-control" name="photo" accept="image/*">
+                            <small class="text-muted">اختر صورة جديدة أو احذف الحالية</small>
                         </div>
 
                         <button type="submit" class="btn btn-primary">

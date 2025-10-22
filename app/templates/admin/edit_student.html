@@ -50,6 +50,33 @@
                         <input type="tel" name="guardian_phone" class="form-control" value="{{ student.guardian_phone or '' }}">
                     </div>
                     
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">الصف</label>
+                        <select name="class_grade_id" id="class_grade_select" class="form-select">
+                            <option value="">اختر الصف</option>
+                            {% for grade in grades %}
+                            <option value="{{ grade.id }}" {% if student.class_grade_id == grade.id %}selected{% endif %} data-grade-id="{{ grade.id }}">
+                                {{ grade.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">الشعبة</label>
+                        <select name="section_id" id="section_select" class="form-select">
+                            <option value="">اختر الشعبة</option>
+                            {% for section in sections %}
+                            <option value="{{ section.id }}" data-grade-id="{{ section.class_grade_id }}" {% if student.section_id == section.id %}selected{% endif %}>
+                                {{ section.name }}
+                                {% if section.max_students %}
+                                    ({{ section.enrolled_count() }}/{{ section.max_students }})
+                                {% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
                     <div class="col-12 mb-3">
                         <label class="form-label">العنوان</label>
                         <textarea name="address" class="form-control" rows="2">{{ student.address or '' }}</textarea>
@@ -57,12 +84,19 @@
                     
                     <div class="col-12 mb-3">
                         <label class="form-label">صورة الطالب</label>
-                        <input type="file" name="photo" class="form-control" accept="image/*">
                         {% if student.photo %}
-                        <div class="mt-2">
-                            <img src="{{ url_for('static', filename=student.photo) }}" alt="صورة الطالب" style="max-width: 150px;">
+                        <div class="mb-2">
+                            <img src="{{ url_for('static', filename='uploads/' + student.photo) }}" alt="صورة الطالب" style="max-width: 150px;" class="img-thumbnail">
+                            <div class="form-check mt-2">
+                                <input type="checkbox" class="form-check-input" name="delete_photo" id="delete_photo">
+                                <label class="form-check-label text-danger" for="delete_photo">
+                                    <i class="fas fa-trash ms-1"></i> حذف الصورة
+                                </label>
+                            </div>
                         </div>
                         {% endif %}
+                        <input type="file" name="photo" class="form-control" accept="image/*">
+                        <small class="text-muted">اختر صورة جديدة أو احذف الحالية</small>
                     </div>
                 </div>
                 
@@ -76,4 +110,33 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const gradeSelect = document.getElementById('class_grade_select');
+    const sectionSelect = document.getElementById('section_select');
+    const allSections = Array.from(sectionSelect.options);
+    
+    function filterSections() {
+        const selectedGradeId = gradeSelect.value;
+        
+        sectionSelect.innerHTML = '<option value="">اختر الشعبة</option>';
+        
+        allSections.forEach(option => {
+            if (option.value && option.dataset.gradeId === selectedGradeId) {
+                sectionSelect.appendChild(option.cloneNode(true));
+            }
+        });
+        
+        if (sectionSelect.options.length === 1) {
+            sectionSelect.disabled = true;
+        } else {
+            sectionSelect.disabled = false;
+        }
+    }
+    
+    gradeSelect.addEventListener('change', filterSections);
+    filterSections();
+});
+</script>
 {% endblock %}

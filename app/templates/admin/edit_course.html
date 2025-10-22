@@ -27,11 +27,40 @@
                 <option value="متقدم" {% if course.level == 'متقدم' %}selected{% endif %}>متقدم</option>
             </select>
         </div>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">تاريخ البداية</label>
+                <input type="date" class="form-control" name="start_date" value="{{ course.start_date.strftime('%Y-%m-%d') if course.start_date else '' }}">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">تاريخ النهاية</label>
+                <input type="date" class="form-control" name="end_date" value="{{ course.end_date.strftime('%Y-%m-%d') if course.end_date else '' }}">
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">العدد الأقصى للطلاب</label>
+            <input type="number" class="form-control" name="max_students" value="{{ course.max_students or '' }}" min="1" placeholder="اتركه فارغاً إذا كان غير محدود">
+            {% if course.max_students %}
+            <small class="text-muted">
+                المسجلين حالياً: <strong>{{ course.enrolled_count() }}</strong> / {{ course.max_students }}
+                {% set available = course.available_seats() %}
+                {% if available is not none %}
+                    - المقاعد المتاحة: <strong class="{% if available > 0 %}text-success{% else %}text-danger{% endif %}">{{ available }}</strong>
+                {% endif %}
+            </small>
+            {% endif %}
+        </div>
         <div class="mb-3">
             <label class="form-label">صورة الدورة</label>
             {% if course.image %}
             <div class="mb-2">
                 <img src="{{ url_for('static', filename='uploads/' + course.image) }}" alt="{{ course.title }}" style="max-width: 200px;" class="img-thumbnail">
+                <div class="form-check mt-2">
+                    <input type="checkbox" class="form-check-input" name="delete_image" id="delete_image">
+                    <label class="form-check-label text-danger" for="delete_image">
+                        <i class="fas fa-trash ms-1"></i> حذف الصورة
+                    </label>
+                </div>
             </div>
             {% endif %}
             <input type="file" class="form-control" name="image" accept="image/*">

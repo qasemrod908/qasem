@@ -14,9 +14,13 @@ class Student(db.Model):
     photo = db.Column(db.String(255))
     guardian_name = db.Column(db.String(100))
     guardian_phone = db.Column(db.String(20))
+    class_grade_id = db.Column(db.Integer, db.ForeignKey('class_grades.id'))
+    section_id = db.Column(db.Integer, db.ForeignKey('sections.id'))
     created_at = db.Column(db.DateTime, default=damascus_now)
     
     user = db.relationship('User', backref='student_profile', foreign_keys=[user_id])
+    class_grade = db.relationship('ClassGrade', back_populates='students')
+    section = db.relationship('Section', back_populates='students')
     enrollments = db.relationship('Enrollment', backref='student', lazy='dynamic', cascade='all, delete-orphan')
     grades = db.relationship('Grade', backref='student', lazy='dynamic', cascade='all, delete-orphan')
     
