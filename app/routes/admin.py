@@ -65,14 +65,8 @@ def backup():
 @role_required('admin')
 def download_backup(filename):
     try:
-        from werkzeug.security import safe_join
-        
         safe_filename = os.path.basename(filename)
-        file_path = safe_join('backups', safe_filename)
-        
-        if file_path is None:
-            flash('محاولة وصول غير مصرح بها', 'danger')
-            return redirect(url_for('admin.backup'))
+        file_path = os.path.join('backups', safe_filename)
         
         abs_file_path = os.path.abspath(file_path)
         abs_backups_dir = os.path.abspath('backups')
@@ -81,11 +75,15 @@ def download_backup(filename):
             flash('محاولة وصول غير مصرح بها', 'danger')
             return redirect(url_for('admin.backup'))
         
-        if os.path.exists(file_path) and os.path.isfile(file_path):
-            return send_file(file_path, as_attachment=True)
-        else:
-            flash('الملف غير موجود', 'danger')
+        if not os.path.exists(abs_file_path):
+            flash(f'الملف غير موجود: {safe_filename}', 'danger')
             return redirect(url_for('admin.backup'))
+        
+        if not os.path.isfile(abs_file_path):
+            flash('المسار المطلوب ليس ملفاً', 'danger')
+            return redirect(url_for('admin.backup'))
+        
+        return send_file(abs_file_path, as_attachment=True, download_name=safe_filename)
     except Exception as e:
         flash(f'حدث خطأ أثناء تحميل الملف: {str(e)}', 'danger')
         return redirect(url_for('admin.backup'))
@@ -636,6 +634,93 @@ def view_student(student_id):
     enrollments = student.enrollments.all()
     grades = Grade.query.filter_by(student_id=student_id).order_by(Grade.created_at.desc()).all()
     return render_template('admin/view_student.html', student=student, enrollments=enrollments, grades=grades)
+
+@bp.route('/students/<int:student_id>/grades/add', methods=['GET', 'POST'])
+@role_required('admin', 'assistant')
+def add_student_grade(student_id):
+    student = Student.query.get_or_404(student_id)
+    
+    if request.method == 'POST':
+        from datetime import datetime
+        
+        exam_date_str = request.form.get('exam_date')
+        exam_date_obj = None
+        if exam_date_str:
+            try:
+                exam_date_obj = datetime.strptime(exam_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                pass
+        
+        grade = Grade(
+            student_id=student_id,
+            course_id=request.form.get('course_id'),
+            teacher_id=request.form.get('teacher_id'),
+            exam_name=request.form.get('exam_name'),
+            grade=request.form.get('grade'),
+            max_grade=request.form.get('max_grade'),
+            notes=request.form.get('notes'),
+            exam_date=exam_date_obj
+        )
+        
+        db.session.add(grade)
+        db.session.commit()
+        flash('تم إضافة العلامة بنجاح', 'success')
+        return redirect(url_for('admin.view_student', student_id=student_id))
+    
+    courses = Course.query.all()
+    teachers = Teacher.query.all()
+    return render_template('admin/add_student_grade.html', student=student, courses=courses, teachers=teachers)
+
+@bp.route('/students/<int:student_id>/grades/edit/<int:grade_id>', methods=['GET', 'POST'])
+@role_required('admin', 'assistant')
+def edit_student_grade(student_id, grade_id):
+    student = Student.query.get_or_404(student_id)
+    grade = Grade.query.get_or_404(grade_id)
+    
+    if grade.student_id != student_id:
+        flash('هذه العلامة لا تنتمي لهذا الطالب', 'danger')
+        return redirect(url_for('admin.view_student', student_id=student_id))
+    
+    if request.method == 'POST':
+        from datetime import datetime
+        
+        exam_date_str = request.form.get('exam_date')
+        exam_date_obj = None
+        if exam_date_str:
+            try:
+                exam_date_obj = datetime.strptime(exam_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                pass
+        
+        grade.course_id = request.form.get('course_id')
+        grade.teacher_id = request.form.get('teacher_id')
+        grade.exam_name = request.form.get('exam_name')
+        grade.grade = request.form.get('grade')
+        grade.max_grade = request.form.get('max_grade')
+        grade.notes = request.form.get('notes')
+        grade.exam_date = exam_date_obj
+        
+        db.session.commit()
+        flash('تم تحديث العلامة بنجاح', 'success')
+        return redirect(url_for('admin.view_student', student_id=student_id))
+    
+    courses = Course.query.all()
+    teachers = Teacher.query.all()
+    return render_template('admin/edit_student_grade.html', student=student, grade=grade, courses=courses, teachers=teachers)
+
+@bp.route('/students/<int:student_id>/grades/delete/<int:grade_id>', methods=['POST'])
+@role_required('admin')
+def delete_student_grade(student_id, grade_id):
+    grade = Grade.query.get_or_404(grade_id)
+    
+    if grade.student_id != student_id:
+        flash('هذه العلامة لا تنتمي لهذا الطالب', 'danger')
+        return redirect(url_for('admin.view_student', student_id=student_id))
+    
+    db.session.delete(grade)
+    db.session.commit()
+    flash('تم حذف العلامة بنجاح', 'success')
+    return redirect(url_for('admin.view_student', student_id=student_id))
 
 @bp.route('/students/delete/<int:student_id>', methods=['POST'])
 @role_required('admin')

@@ -77,13 +77,27 @@ class BackupManager:
             if not bot_token or not chat_id:
                 return False
             
+            if not os.path.exists(file_path):
+                print(f'الملف غير موجود: {file_path}')
+                return False
+            
+            file_size = os.path.getsize(file_path)
+            max_size = 50 * 1024 * 1024
+            
+            if file_size > max_size:
+                print(f'حجم الملف ({file_size / 1024 / 1024:.2f} MB) أكبر من الحد المسموح (50 MB)')
+                return False
+            
             bot = Bot(token=bot_token)
             
             with open(file_path, 'rb') as file:
                 await bot.send_document(
                     chat_id=chat_id,
                     document=file,
-                    caption=f'📦 نسخة احتياطية - {os.path.basename(file_path)}\n{damascus_now().strftime("%Y-%m-%d %H:%M:%S")}'
+                    caption=f'📦 نسخة احتياطية - {os.path.basename(file_path)}\n📊 الحجم: {file_size / 1024 / 1024:.2f} MB\n⏰ التاريخ: {damascus_now().strftime("%Y-%m-%d %H:%M:%S")}',
+                    read_timeout=120,
+                    write_timeout=120,
+                    connect_timeout=60
                 )
             
             return True
