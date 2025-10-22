@@ -42,9 +42,18 @@ def backup():
             
             site_settings = SiteSettings.query.first()
             if send_telegram and site_settings and site_settings.telegram_backup_enabled:
-                asyncio.run(BackupManager.send_to_telegram(file_path))
+                import threading
+                def send_backup_async():
+                    import asyncio
+                    asyncio.run(BackupManager.send_to_telegram(
+                        file_path, 
+                        site_settings.telegram_bot_token, 
+                        site_settings.telegram_chat_id
+                    ))
+                thread = threading.Thread(target=send_backup_async)
+                thread.start()
             
-            flash(f'تم إنشاء النسخة الاحتياطية بنجاح: {file_path}', 'success')
+            flash(f'تم إنشاء النسخة الاحتياطية بنجاح', 'success')
             return send_file(file_path, as_attachment=True)
         except Exception as e:
             flash(f'حدث خطأ أثناء إنشاء النسخة الاحتياطية: {str(e)}', 'danger')
@@ -145,10 +154,10 @@ def add_user():
         elif user.role == 'student':
             student = Student(
                 user_id=user.id,
-                full_name=user.full_name,
-                birth_date=None,
+                student_number='',
                 phone='',
-                address=''
+                address='',
+                date_of_birth=None
             )
             db.session.add(student)
         
@@ -406,3 +415,33 @@ def edit_teacher(teacher_id):
         return redirect(url_for('admin.teachers'))
     
     return render_template('admin/edit_teacher.html', teacher=teacher)
+
+@bp.route('/users/toggle/<int:user_id>', methods=['POST'])
+@role_required('admin')
+def toggle_user_status(user_id):
+    user = User.query.get_or_404(user_id)
+    user.is_active = not user.is_active
+    db.session.commit()
+    
+    status = 'تفعيل' if user.is_active else 'تعطيل'
+    flash(f'تم {status} المستخدم بنجاح', 'success')
+    return redirect(url_for('admin.users'))
+
+@bp.route('/users/delete/<int:user_id>', methods=['POST'])
+@role_required('admin')
+def delete_user(user_id):
+    if user_id == current_user.id:
+        flash('لا يمكنك حذف حسابك الخاص', 'danger')
+        return redirect(url_for('admin.users'))
+    
+    user = User.query.get_or_404(user_id)
+    
+    if user.role == 'teacher':
+        Teacher.query.filter_by(user_id=user.id).delete()
+    elif user.role == 'student':
+        Student.query.filter_by(user_id=user.id).delete()
+    
+    db.session.delete(user)
+    db.session.commit()
+    flash('تم حذف المستخدم بنجاح', 'success')
+    return redirect(url_for('admin.users'))

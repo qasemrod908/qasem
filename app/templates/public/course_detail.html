@@ -61,15 +61,17 @@
                 </div>
             </div>
             
-            {% if course.lessons.count() > 0 %}
-            <div class="card shadow-sm">
-                <div class="card-header bg-success text-white">
-                    <h5 class="mb-0"><i class="fas fa-book ms-2"></i>الدروس المتاحة</h5>
+            {% if current_user.is_authenticated and current_user.role == 'student' %}
+                {% if course.lessons.count() > 0 %}
+                <div class="card shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="fas fa-book ms-2"></i>الدروس المتاحة</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">عدد الدروس: {{ course.lessons.count() }}</p>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <p class="text-muted">عدد الدروس: {{ course.lessons.count() }}</p>
-                </div>
-            </div>
+                {% endif %}
             {% endif %}
         </div>
     </div>

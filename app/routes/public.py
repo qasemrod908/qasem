@@ -71,6 +71,41 @@ def contact():
         )
         db.session.add(contact_msg)
         db.session.commit()
+        
+        if settings and settings.telegram_bot_token and settings.telegram_chat_id:
+            import threading
+            import asyncio
+            from telegram import Bot
+            
+            def send_contact_notification_async():
+                async def send_notification():
+                    try:
+                        bot = Bot(token=settings.telegram_bot_token)
+                        message_text = f"""
+📧 رسالة جديدة من موقع المعهد
+
+👤 الاسم: {contact_msg.name}
+📧 البريد: {contact_msg.email or 'غير محدد'}
+📞 الهاتف: {contact_msg.phone or 'غير محدد'}
+📌 الموضوع: {contact_msg.subject}
+
+💬 الرسالة:
+{contact_msg.message}
+
+⏰ التاريخ: {contact_msg.created_at.strftime('%Y-%m-%d %H:%M:%S')}
+"""
+                        await bot.send_message(
+                            chat_id=settings.telegram_chat_id,
+                            text=message_text
+                        )
+                    except Exception as e:
+                        print(f'خطأ في إرسال الإشعار إلى Telegram: {str(e)}')
+                
+                asyncio.run(send_notification())
+            
+            thread = threading.Thread(target=send_contact_notification_async)
+            thread.start()
+        
         flash('تم إرسال رسالتك بنجاح. سنتواصل معك قريباً', 'success')
         return redirect(url_for('public.contact'))
     

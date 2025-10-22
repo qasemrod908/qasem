@@ -58,6 +58,7 @@
             </div>
             {% endif %}
             
+            {% if current_user.is_authenticated and current_user.role == 'student' %}
             <div class="card shadow-sm">
                 <div class="card-header bg-info text-white">
                     <h4 class="mb-0"><i class="fas fa-book ms-2"></i>الدروس المنشورة</h4>
@@ -80,6 +81,7 @@
                     {% endif %}
                 </div>
             </div>
+            {% endif %}
         </div>
     </div>
     

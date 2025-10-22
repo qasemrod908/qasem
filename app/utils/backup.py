@@ -61,18 +61,8 @@ class BackupManager:
         return backup_file
     
     @staticmethod
-    async def send_to_telegram(file_path):
+    async def send_to_telegram(file_path, bot_token, chat_id):
         try:
-            from app.models.settings import SiteSettings
-            from app import db
-            
-            settings = SiteSettings.query.first()
-            if not settings:
-                return False
-            
-            bot_token = settings.telegram_bot_token
-            chat_id = settings.telegram_chat_id
-            
             if not bot_token or not chat_id:
                 return False
             
