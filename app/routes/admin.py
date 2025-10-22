@@ -140,6 +140,28 @@ def delete_backup(filename):
     
     return redirect(url_for('admin.backup'))
 
+@bp.route('/backup/confirm-restore/<path:filename>')
+@role_required('admin')
+def confirm_restore_backup(filename):
+    try:
+        safe_filename = os.path.basename(filename)
+        backups = BackupManager.list_backups()
+        
+        backup_info = None
+        for backup in backups:
+            if backup['name'] == safe_filename:
+                backup_info = backup
+                break
+        
+        if not backup_info:
+            flash('النسخة الاحتياطية غير موجودة', 'danger')
+            return redirect(url_for('admin.backup'))
+        
+        return render_template('admin/confirm_restore.html', backup=backup_info)
+    except Exception as e:
+        flash(f'حدث خطأ: {str(e)}', 'danger')
+        return redirect(url_for('admin.backup'))
+
 @bp.route('/backup/restore-existing', methods=['POST'])
 @role_required('admin')
 def restore_existing_backup():

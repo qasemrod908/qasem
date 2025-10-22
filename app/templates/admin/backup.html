@@ -123,13 +123,11 @@
                                                title="تحميل">
                                                 <i class="fas fa-download"></i>
                                             </a>
-                                            <button type="button" 
-                                                    class="btn btn-outline-success" 
-                                                    data-bs-toggle="modal" 
-                                                    data-bs-target="#restoreModal{{ loop.index }}"
-                                                    title="استعادة">
+                                            <a href="{{ url_for('admin.confirm_restore_backup', filename=backup.name) }}" 
+                                               class="btn btn-outline-success" 
+                                               title="استعادة">
                                                 <i class="fas fa-undo"></i>
-                                            </button>
+                                            </a>
                                             <form method="POST" 
                                                   action="{{ url_for('admin.delete_backup', filename=backup.name) }}" 
                                                   style="display:inline;">
@@ -143,57 +141,6 @@
                                         </div>
                                     </td>
                                 </tr>
-                                
-                                <div class="modal fade" id="restoreModal{{ loop.index }}" tabindex="-1">
-                                    <div class="modal-dialog modal-dialog-centered">
-                                        <div class="modal-content">
-                                            <div class="modal-header bg-warning">
-                                                <h5 class="modal-title">
-                                                    <i class="fas fa-exclamation-triangle ms-2"></i>
-                                                    تأكيد استعادة النسخة الاحتياطية
-                                                </h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                            </div>
-                                            <form method="POST" action="{{ url_for('admin.restore_existing_backup') }}">
-                                                <div class="modal-body">
-                                                    <div class="alert alert-danger">
-                                                        <i class="fas fa-exclamation-circle ms-2"></i>
-                                                        <strong>تحذير مهم:</strong> استعادة النسخة الاحتياطية ستستبدل البيانات الحالية بشكل نهائي!
-                                                    </div>
-                                                    
-                                                    <input type="hidden" name="filename" value="{{ backup.name }}">
-                                                    
-                                                    <div class="mb-3">
-                                                        <label class="form-label fw-bold">معلومات النسخة:</label>
-                                                        <ul class="list-unstyled ms-3">
-                                                            <li><strong>الملف:</strong> <span class="text-muted">{{ backup.name }}</span></li>
-                                                            <li><strong>النوع:</strong> <span class="badge bg-secondary">{{ backup.type }}</span></li>
-                                                            <li><strong>الحجم:</strong> {{ "%.2f"|format(backup.size / 1024 / 1024) }} MB</li>
-                                                            <li><strong>التاريخ:</strong> {{ backup.created.strftime('%Y-%m-%d %H:%M:%S') }}</li>
-                                                        </ul>
-                                                    </div>
-                                                    
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="checkbox" id="confirmRestore{{ loop.index }}" required>
-                                                        <label class="form-check-label" for="confirmRestore{{ loop.index }}">
-                                                            أنا متأكد من استعادة هذه النسخة وأدرك أنها ستحل محل البيانات الحالية
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                                <div class="modal-footer">
-                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                                        <i class="fas fa-times ms-2"></i>
-                                                        إلغاء
-                                                    </button>
-                                                    <button type="submit" class="btn btn-warning">
-                                                        <i class="fas fa-undo ms-2"></i>
-                                                        استعادة النسخة
-                                                    </button>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
                                 {% endfor %}
                             </tbody>
                         </table>
