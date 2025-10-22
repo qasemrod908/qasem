@@ -33,27 +33,75 @@
         </div>
         
         <hr class="my-4">
-        <h4 class="mb-3">إعدادات بوت التيليجرام</h4>
+        <h4 class="mb-3">
+            <i class="fab fa-telegram ms-2"></i>
+            إعدادات النسخ الاحتياطي التلقائي عبر تيليجرام
+        </h4>
         <div class="alert alert-info">
             <i class="fas fa-info-circle ms-2"></i>
-            لتفعيل إرسال النسخ الاحتياطية إلى Telegram، يرجى إدخال Token و Chat ID الخاص بالبوت
+            <strong>النسخ الاحتياطي التلقائي الذكي:</strong> عند تفعيل هذه الميزة، سيتم إنشاء نسخة احتياطية شاملة وإرسالها تلقائياً إلى تيليجرام عند حدوث أي تغيير على البيانات الهامة (إضافة، تعديل، أو حذف).
+        </div>
+        
+        <div class="card mb-3 border-primary">
+            <div class="card-header bg-primary text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-shield-alt ms-2"></i>
+                    الجداول المحمية بالنسخ الاحتياطي التلقائي
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <ul class="list-unstyled mb-0">
+                            <li><i class="fas fa-check-circle text-success ms-2"></i> المستخدمين والطلاب والمعلمين</li>
+                            <li><i class="fas fa-check-circle text-success ms-2"></i> الدورات والتسجيلات والدروس</li>
+                            <li><i class="fas fa-check-circle text-success ms-2"></i> العلامات والشهادات</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <ul class="list-unstyled mb-0">
+                            <li><i class="fas fa-check-circle text-success ms-2"></i> الأخبار والشهادات</li>
+                            <li><i class="fas fa-check-circle text-success ms-2"></i> رسائل الاتصال</li>
+                            <li><i class="fas fa-check-circle text-success ms-2"></i> إعدادات الموقع</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="alert alert-warning mt-3 mb-0">
+                    <i class="fas fa-exclamation-triangle ms-2"></i>
+                    <strong>ملاحظة:</strong> النسخة الاحتياطية تُرسل إلى تيليجرام فقط ولا تُحفظ محلياً على السيرفر لتوفير المساحة.
+                </div>
+            </div>
         </div>
         
         <div class="mb-3">
-            <label class="form-label">Telegram Bot Token</label>
-            <input type="text" class="form-control" name="telegram_bot_token" value="{{ settings.telegram_bot_token or '' }}" placeholder="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11">
-        </div>
-        
-        <div class="mb-3">
-            <label class="form-label">Telegram Chat ID</label>
-            <input type="text" class="form-control" name="telegram_chat_id" value="{{ settings.telegram_chat_id or '' }}" placeholder="123456789">
-        </div>
-        
-        <div class="mb-3 form-check">
-            <input type="checkbox" class="form-check-input" id="telegram_backup_enabled" name="telegram_backup_enabled" {{ 'checked' if settings.telegram_backup_enabled else '' }}>
-            <label class="form-check-label" for="telegram_backup_enabled">
-                تفعيل إرسال النسخ الاحتياطية إلى Telegram
+            <label class="form-label">
+                <i class="fab fa-telegram ms-2"></i>
+                Telegram Bot Token
             </label>
+            <input type="text" class="form-control" name="telegram_bot_token" value="{{ settings.telegram_bot_token or '' }}" placeholder="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11">
+            <small class="text-muted">احصل على Token من @BotFather على تيليجرام</small>
+        </div>
+        
+        <div class="mb-3">
+            <label class="form-label">
+                <i class="fas fa-user ms-2"></i>
+                Telegram Chat ID
+            </label>
+            <input type="text" class="form-control" name="telegram_chat_id" value="{{ settings.telegram_chat_id or '' }}" placeholder="123456789">
+            <small class="text-muted">احصل على Chat ID من @userinfobot على تيليجرام</small>
+        </div>
+        
+        <div class="mb-3">
+            <div class="form-check form-switch">
+                <input type="checkbox" class="form-check-input" id="telegram_backup_enabled" name="telegram_backup_enabled" {{ 'checked' if settings.telegram_backup_enabled else '' }} style="font-size: 1.2em;">
+                <label class="form-check-label" for="telegram_backup_enabled">
+                    <strong>
+                        <i class="fas fa-cloud-upload-alt ms-2"></i>
+                        تفعيل النسخ الاحتياطي التلقائي إلى تيليجرام
+                    </strong>
+                </label>
+            </div>
+            <small class="text-muted">عند التفعيل، سيتم إرسال نسخة احتياطية شاملة تلقائياً عند أي تعديل على البيانات الهامة</small>
         </div>
         
         <hr class="my-4">

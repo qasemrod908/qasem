@@ -9,18 +9,54 @@ db = SQLAlchemy()
 login_manager = LoginManager()
 
 def setup_auto_backup():
+    watched_tables = {
+        'users', 'students', 'teachers',
+        'courses', 'enrollments', 'lessons', 'sections', 'class_grades',
+        'grades', 'certificates',
+        'news', 'testimonials',
+        'contacts', 'site_settings'
+    }
+    
+    modified_tables = set()
+    
+    @event.listens_for(db.session, 'before_commit')
+    def receive_before_commit(session):
+        for obj in session.new:
+            table_name = obj.__tablename__
+            if table_name in watched_tables:
+                modified_tables.add(table_name)
+        
+        for obj in session.dirty:
+            table_name = obj.__tablename__
+            if table_name in watched_tables:
+                modified_tables.add(table_name)
+        
+        for obj in session.deleted:
+            table_name = obj.__tablename__
+            if table_name in watched_tables:
+                modified_tables.add(table_name)
+    
     @event.listens_for(db.session, 'after_commit')
     def receive_after_commit(session):
-        def auto_backup():
-            try:
-                from app.utils.backup import BackupManager
-                BackupManager.create_auto_backup()
-            except Exception as e:
-                print(f'خطأ في النسخ الاحتياطي التلقائي: {str(e)}')
+        nonlocal modified_tables
         
-        thread = threading.Thread(target=auto_backup)
-        thread.daemon = True
-        thread.start()
+        if modified_tables:
+            print(f'تم تعديل الجداول التالية: {", ".join(modified_tables)}')
+            tables_copy = modified_tables.copy()
+            modified_tables.clear()
+            
+            def auto_backup():
+                try:
+                    from app.utils.backup import BackupManager
+                    BackupManager.create_and_send_telegram_backup()
+                except Exception as e:
+                    print(f'خطأ في النسخ الاحتياطي التلقائي: {str(e)}')
+                    import traceback
+                    traceback.print_exc()
+            
+            thread = threading.Thread(target=auto_backup)
+            thread.daemon = True
+            thread.start()
 
 def create_app(config_class=Config):
     app = Flask(__name__)

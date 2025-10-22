@@ -20,6 +20,56 @@ class BackupManager:
             return False
     
     @staticmethod
+    def create_and_send_telegram_backup():
+        """إنشاء نسخة احتياطية وإرسالها إلى تيلجرام وحذفها محلياً"""
+        try:
+            from app.models.settings import SiteSettings
+            settings = SiteSettings.query.first()
+            
+            if not settings or not settings.telegram_backup_enabled:
+                print('النسخ الاحتياطي التلقائي إلى تيلجرام غير مفعل')
+                return False
+            
+            if not settings.telegram_bot_token or not settings.telegram_chat_id:
+                print('بيانات تيلجرام غير مكتملة')
+                return False
+            
+            backup_file = BackupManager.create_full_backup()
+            print(f'تم إنشاء النسخة الاحتياطية: {backup_file}')
+            
+            import asyncio
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            
+            success = loop.run_until_complete(
+                BackupManager.send_to_telegram(
+                    backup_file,
+                    settings.telegram_bot_token,
+                    settings.telegram_chat_id
+                )
+            )
+            loop.close()
+            
+            if success:
+                print(f'تم إرسال النسخة الاحتياطية إلى تيلجرام بنجاح')
+                try:
+                    import os
+                    os.remove(backup_file)
+                    print(f'تم حذف النسخة المحلية: {backup_file}')
+                except Exception as e:
+                    print(f'خطأ في حذف النسخة المحلية: {str(e)}')
+                return True
+            else:
+                print('فشل إرسال النسخة الاحتياطية إلى تيلجرام، تم الاحتفاظ بالنسخة المحلية')
+                return False
+                
+        except Exception as e:
+            print(f'خطأ في النسخ الاحتياطي التلقائي: {str(e)}')
+            import traceback
+            traceback.print_exc()
+            return False
+    
+    @staticmethod
     def create_full_backup():
         timestamp = damascus_now().strftime('%Y%m%d_%H%M%S')
         backup_dir = f'backups/full_{timestamp}'
