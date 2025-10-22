@@ -32,7 +32,7 @@
                             <td>{{ teacher.specialization or 'غير محدد' }}</td>
                             <td>{{ teacher.experience_years or 0 }} سنة</td>
                             <td>{{ teacher.phone or 'غير محدد' }}</td>
-                            <td>{{ teacher.lessons.count() }}</td>
+                            <td>{{ teacher.lessons | length }}</td>
                             <td>
                                 <a href="{{ url_for('admin.edit_teacher', teacher_id=teacher.id) }}" class="btn btn-sm btn-primary">
                                     <i class="fas fa-edit"></i> تعديل

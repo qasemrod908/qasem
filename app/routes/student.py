@@ -68,9 +68,9 @@ def download_lesson(lesson_id):
         return redirect(url_for('student.courses'))
     
     if lesson.file_path:
-        file_full_path = os.path.join(current_app.config['UPLOAD_FOLDER'], lesson.file_path.replace('uploads/', ''))
+        file_full_path = os.path.join(current_app.root_path, 'static', lesson.file_path)
         if os.path.exists(file_full_path):
-            return send_file(file_full_path, as_attachment=True)
+            return send_file(file_full_path, as_attachment=True, download_name=os.path.basename(lesson.file_path))
         else:
             flash('الملف غير موجود', 'danger')
     else:

@@ -202,10 +202,10 @@ def edit_user(user_id):
             elif new_role == 'student':
                 student = Student(
                     user_id=user.id,
-                    full_name=user.full_name,
-                    birth_date=None,
+                    student_number='',
                     phone='',
-                    address=''
+                    address='',
+                    date_of_birth=None
                 )
                 db.session.add(student)
         
@@ -445,3 +445,169 @@ def delete_user(user_id):
     db.session.commit()
     flash('تم حذف المستخدم بنجاح', 'success')
     return redirect(url_for('admin.users'))
+
+@bp.route('/students')
+@role_required('admin', 'assistant')
+def students():
+    all_students = Student.query.all()
+    teachers = Teacher.query.all()
+    courses = Course.query.all()
+    return render_template('admin/students.html', students=all_students, teachers=teachers, courses=courses)
+
+@bp.route('/students/edit/<int:student_id>', methods=['GET', 'POST'])
+@role_required('admin', 'assistant')
+def edit_student(student_id):
+    student = Student.query.get_or_404(student_id)
+    
+    if request.method == 'POST':
+        student.student_number = request.form.get('student_number')
+        student.phone = request.form.get('phone')
+        student.address = request.form.get('address')
+        student.guardian_name = request.form.get('guardian_name')
+        student.guardian_phone = request.form.get('guardian_phone')
+        
+        dob = request.form.get('date_of_birth')
+        if dob:
+            from datetime import datetime
+            student.date_of_birth = datetime.strptime(dob, '%Y-%m-%d').date()
+        
+        if 'photo' in request.files:
+            file = request.files['photo']
+            if file and file.filename:
+                filename = secure_filename(file.filename)
+                upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'students', filename)
+                os.makedirs(os.path.dirname(upload_path), exist_ok=True)
+                file.save(upload_path)
+                student.photo = f'students/{filename}'
+        
+        db.session.commit()
+        flash('تم تحديث بيانات الطالب بنجاح', 'success')
+        return redirect(url_for('admin.students'))
+    
+    return render_template('admin/edit_student.html', student=student)
+
+@bp.route('/students/delete/<int:student_id>', methods=['POST'])
+@role_required('admin')
+def delete_student(student_id):
+    student = Student.query.get_or_404(student_id)
+    user = User.query.get(student.user_id)
+    
+    db.session.delete(student)
+    if user:
+        db.session.delete(user)
+    
+    db.session.commit()
+    flash('تم حذف الطالب بنجاح', 'success')
+    return redirect(url_for('admin.students'))
+
+@bp.route('/students/enroll/<int:student_id>', methods=['POST'])
+@role_required('admin', 'assistant')
+def enroll_student(student_id):
+    student = Student.query.get_or_404(student_id)
+    course_id = request.form.get('course_id')
+    teacher_id = request.form.get('teacher_id')
+    
+    existing = Enrollment.query.filter_by(student_id=student_id, course_id=course_id).first()
+    if existing:
+        flash('الطالب مسجل بالفعل في هذه الدورة', 'warning')
+        return redirect(url_for('admin.students'))
+    
+    enrollment = Enrollment(
+        student_id=student_id,
+        course_id=course_id,
+        teacher_id=teacher_id if teacher_id else None
+    )
+    db.session.add(enrollment)
+    db.session.commit()
+    flash('تم تسجيل الطالب في الدورة بنجاح', 'success')
+    return redirect(url_for('admin.students'))
+
+@bp.route('/students/unenroll/<int:enrollment_id>', methods=['POST'])
+@role_required('admin', 'assistant')
+def unenroll_student(enrollment_id):
+    enrollment = Enrollment.query.get_or_404(enrollment_id)
+    db.session.delete(enrollment)
+    db.session.commit()
+    flash('تم إلغاء تسجيل الطالب من الدورة بنجاح', 'success')
+    return redirect(url_for('admin.students'))
+
+@bp.route('/lessons')
+@role_required('admin', 'assistant')
+def lessons():
+    all_lessons = Lesson.query.order_by(Lesson.upload_date.desc()).all()
+    return render_template('admin/lessons.html', lessons=all_lessons)
+
+@bp.route('/lessons/add', methods=['GET', 'POST'])
+@role_required('admin', 'assistant')
+def add_lesson():
+    if request.method == 'POST':
+        course_id = request.form.get('course_id')
+        teacher_id = request.form.get('teacher_id')
+        title = request.form.get('title')
+        description = request.form.get('description')
+        
+        lesson = Lesson(
+            course_id=course_id,
+            teacher_id=teacher_id,
+            title=title,
+            description=description,
+            is_published=request.form.get('is_published') == 'on'
+        )
+        
+        if 'file' in request.files:
+            file = request.files['file']
+            if file and file.filename:
+                filename = secure_filename(file.filename)
+                file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'documents', filename)
+                os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                file.save(file_path)
+                lesson.file_path = f'uploads/documents/{filename}'
+                lesson.file_type = filename.rsplit('.', 1)[1].lower()
+        
+        db.session.add(lesson)
+        db.session.commit()
+        flash('تم إضافة الدرس بنجاح', 'success')
+        return redirect(url_for('admin.lessons'))
+    
+    courses = Course.query.all()
+    teachers = Teacher.query.all()
+    return render_template('admin/add_lesson.html', courses=courses, teachers=teachers)
+
+@bp.route('/lessons/edit/<int:lesson_id>', methods=['GET', 'POST'])
+@role_required('admin', 'assistant')
+def edit_lesson(lesson_id):
+    lesson = Lesson.query.get_or_404(lesson_id)
+    
+    if request.method == 'POST':
+        lesson.course_id = request.form.get('course_id')
+        lesson.teacher_id = request.form.get('teacher_id')
+        lesson.title = request.form.get('title')
+        lesson.description = request.form.get('description')
+        lesson.is_published = request.form.get('is_published') == 'on'
+        
+        if 'file' in request.files:
+            file = request.files['file']
+            if file and file.filename:
+                filename = secure_filename(file.filename)
+                file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'documents', filename)
+                os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                file.save(file_path)
+                lesson.file_path = f'uploads/documents/{filename}'
+                lesson.file_type = filename.rsplit('.', 1)[1].lower()
+        
+        db.session.commit()
+        flash('تم تحديث الدرس بنجاح', 'success')
+        return redirect(url_for('admin.lessons'))
+    
+    courses = Course.query.all()
+    teachers = Teacher.query.all()
+    return render_template('admin/edit_lesson.html', lesson=lesson, courses=courses, teachers=teachers)
+
+@bp.route('/lessons/delete/<int:lesson_id>', methods=['POST'])
+@role_required('admin', 'assistant')
+def delete_lesson(lesson_id):
+    lesson = Lesson.query.get_or_404(lesson_id)
+    db.session.delete(lesson)
+    db.session.commit()
+    flash('تم حذف الدرس بنجاح', 'success')
+    return redirect(url_for('admin.lessons'))

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}إدارة الدروس - معهد القاسم{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="fas fa-book ms-2"></i>
+            إدارة الدروس
+        </h2>
+        <a href="{{ url_for('admin.add_lesson') }}" class="btn btn-success">
+            <i class="fas fa-plus ms-2"></i>
+            إضافة درس جديد
+        </a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>عنوان الدرس</th>
+                            <th>الدورة</th>
+                            <th>الأستاذ</th>
+                            <th>نوع الملف</th>
+                            <th>الحالة</th>
+                            <th>تاريخ الرفع</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for lesson in lessons %}
+                        <tr>
+                            <td>{{ lesson.title }}</td>
+                            <td>{{ lesson.course.title }}</td>
+                            <td>{{ lesson.teacher.user.full_name }}</td>
+                            <td>
+                                {% if lesson.file_type %}
+                                    <span class="badge bg-info">{{ lesson.file_type.upper() }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">لا يوجد</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if lesson.is_published %}
+                                    <span class="badge bg-success">منشور</span>
+                                {% else %}
+                                    <span class="badge bg-warning">مسودة</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ lesson.upload_date.strftime('%Y-%m-%d') }}</td>
+                            <td>
+                                <a href="{{ url_for('admin.edit_lesson', lesson_id=lesson.id) }}" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-edit"></i> تعديل
+                                </a>
+                                <form method="POST" action="{{ url_for('admin.delete_lesson', lesson_id=lesson.id) }}" style="display:inline;">
+                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('هل أنت متأكد من حذف هذا الدرس؟')">
+                                        <i class="fas fa-trash"></i> حذف
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
