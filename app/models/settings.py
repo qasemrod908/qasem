@@ -21,6 +21,11 @@ class SiteSettings(db.Model):
     telegram_chat_id = db.Column(db.String(100))
     telegram_backup_enabled = db.Column(db.Boolean, default=False)
     
+    telegram_bot_enabled = db.Column(db.Boolean, default=False)
+    telegram_bot_webhook_enabled = db.Column(db.Boolean, default=False)
+    telegram_bot_webhook_url = db.Column(db.String(500))
+    telegram_bot_notifications_enabled = db.Column(db.Boolean, default=True)
+    
     courses_slider_items = db.Column(db.Integer, default=3)
     courses_slider_interval = db.Column(db.Integer, default=5000)
     courses_slider_auto_play = db.Column(db.Boolean, default=True)
