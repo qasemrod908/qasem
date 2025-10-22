@@ -32,6 +32,10 @@ def dashboard():
 @role_required('teacher')
 def lessons():
     teacher = Teacher.query.filter_by(user_id=current_user.id).first()
+    if not teacher:
+        flash('الملف الشخصي للمعلم غير موجود', 'danger')
+        return redirect(url_for('public.index'))
+    
     all_lessons = Lesson.query.filter_by(teacher_id=teacher.id).all()
     return render_template('teacher/lessons.html', lessons=all_lessons)
 
@@ -39,11 +43,19 @@ def lessons():
 @role_required('teacher')
 def add_lesson():
     teacher = Teacher.query.filter_by(user_id=current_user.id).first()
+    if not teacher:
+        flash('الملف الشخصي للمعلم غير موجود', 'danger')
+        return redirect(url_for('public.index'))
     
     if request.method == 'POST':
         course_id = request.form.get('course_id')
         title = request.form.get('title')
         description = request.form.get('description')
+        
+        enrollment = Enrollment.query.filter_by(teacher_id=teacher.id, course_id=course_id).first()
+        if not enrollment:
+            flash('ليس لديك صلاحية لإضافة دروس لهذه الدورة', 'danger')
+            return redirect(url_for('teacher.lessons'))
         
         lesson = Lesson(
             course_id=course_id,
@@ -61,20 +73,28 @@ def add_lesson():
                 os.makedirs(os.path.dirname(file_path), exist_ok=True)
                 file.save(file_path)
                 lesson.file_path = f'uploads/documents/{filename}'
-                lesson.file_type = filename.rsplit('.', 1)[1].lower()
+                
+                if '.' in filename:
+                    lesson.file_type = filename.rsplit('.', 1)[1].lower()
+                else:
+                    lesson.file_type = 'unknown'
         
         db.session.add(lesson)
         db.session.commit()
         flash('تم إضافة الدرس بنجاح', 'success')
         return redirect(url_for('teacher.lessons'))
     
-    courses = Course.query.all()
-    return render_template('teacher/add_lesson.html', courses=courses)
+    enrolled_courses = Course.query.join(Enrollment).filter(Enrollment.teacher_id == teacher.id).all()
+    return render_template('teacher/add_lesson.html', courses=enrolled_courses)
 
 @bp.route('/students')
 @role_required('teacher')
 def students():
     teacher = Teacher.query.filter_by(user_id=current_user.id).first()
+    if not teacher:
+        flash('الملف الشخصي للمعلم غير موجود', 'danger')
+        return redirect(url_for('public.index'))
+    
     my_students = Student.query.join(Enrollment).filter(Enrollment.teacher_id == teacher.id).all()
     return render_template('teacher/students.html', students=my_students)
 
@@ -82,6 +102,10 @@ def students():
 @role_required('teacher')
 def edit_lesson(lesson_id):
     teacher = Teacher.query.filter_by(user_id=current_user.id).first()
+    if not teacher:
+        flash('الملف الشخصي للمعلم غير موجود', 'danger')
+        return redirect(url_for('public.index'))
+    
     lesson = Lesson.query.get_or_404(lesson_id)
     
     if lesson.teacher_id != teacher.id:
@@ -89,7 +113,15 @@ def edit_lesson(lesson_id):
         return redirect(url_for('teacher.lessons'))
     
     if request.method == 'POST':
-        lesson.course_id = request.form.get('course_id')
+        new_course_id = request.form.get('course_id')
+        
+        if new_course_id != str(lesson.course_id):
+            enrollment = Enrollment.query.filter_by(teacher_id=teacher.id, course_id=new_course_id).first()
+            if not enrollment:
+                flash('ليس لديك صلاحية لنقل الدرس لهذه الدورة', 'danger')
+                return redirect(url_for('teacher.edit_lesson', lesson_id=lesson_id))
+        
+        lesson.course_id = new_course_id
         lesson.title = request.form.get('title')
         lesson.description = request.form.get('description')
         lesson.is_published = request.form.get('is_published') == 'on'
@@ -102,19 +134,27 @@ def edit_lesson(lesson_id):
                 os.makedirs(os.path.dirname(file_path), exist_ok=True)
                 file.save(file_path)
                 lesson.file_path = f'uploads/documents/{filename}'
-                lesson.file_type = filename.rsplit('.', 1)[1].lower()
+                
+                if '.' in filename:
+                    lesson.file_type = filename.rsplit('.', 1)[1].lower()
+                else:
+                    lesson.file_type = 'unknown'
         
         db.session.commit()
         flash('تم تحديث الدرس بنجاح', 'success')
         return redirect(url_for('teacher.lessons'))
     
-    courses = Course.query.all()
-    return render_template('teacher/edit_lesson.html', lesson=lesson, courses=courses)
+    enrolled_courses = Course.query.join(Enrollment).filter(Enrollment.teacher_id == teacher.id).all()
+    return render_template('teacher/edit_lesson.html', lesson=lesson, courses=enrolled_courses)
 
 @bp.route('/lessons/delete/<int:lesson_id>', methods=['POST'])
 @role_required('teacher')
 def delete_lesson(lesson_id):
     teacher = Teacher.query.filter_by(user_id=current_user.id).first()
+    if not teacher:
+        flash('الملف الشخصي للمعلم غير موجود', 'danger')
+        return redirect(url_for('public.index'))
+    
     lesson = Lesson.query.get_or_404(lesson_id)
     
     if lesson.teacher_id != teacher.id:
@@ -130,6 +170,10 @@ def delete_lesson(lesson_id):
 @role_required('teacher')
 def view_course_lessons(course_id):
     teacher = Teacher.query.filter_by(user_id=current_user.id).first()
+    if not teacher:
+        flash('الملف الشخصي للمعلم غير موجود', 'danger')
+        return redirect(url_for('public.index'))
+    
     course = Course.query.get_or_404(course_id)
     
     teacher_enrollment = Enrollment.query.filter_by(teacher_id=teacher.id, course_id=course_id).first()
@@ -148,6 +192,10 @@ def download_lesson(lesson_id):
     from flask import send_file
     
     teacher = Teacher.query.filter_by(user_id=current_user.id).first()
+    if not teacher:
+        flash('الملف الشخصي للمعلم غير موجود', 'danger')
+        return redirect(url_for('public.index'))
+    
     lesson = Lesson.query.get_or_404(lesson_id)
     
     if lesson.teacher_id != teacher.id:
@@ -171,12 +219,23 @@ def download_lesson(lesson_id):
 @role_required('teacher')
 def add_grade(student_id):
     teacher = Teacher.query.filter_by(user_id=current_user.id).first()
+    if not teacher:
+        flash('الملف الشخصي للمعلم غير موجود', 'danger')
+        return redirect(url_for('public.index'))
+    
     student = Student.query.get_or_404(student_id)
     
     if request.method == 'POST':
+        course_id = request.form.get('course_id')
+        
+        enrollment = Enrollment.query.filter_by(teacher_id=teacher.id, course_id=course_id).first()
+        if not enrollment:
+            flash('ليس لديك صلاحية لإضافة درجات لهذه الدورة', 'danger')
+            return redirect(url_for('teacher.students'))
+        
         grade = Grade(
             student_id=student_id,
-            course_id=request.form.get('course_id'),
+            course_id=course_id,
             teacher_id=teacher.id,
             exam_name=request.form.get('exam_name'),
             grade=float(request.form.get('grade')),
@@ -188,5 +247,5 @@ def add_grade(student_id):
         flash('تم إضافة الدرجة بنجاح', 'success')
         return redirect(url_for('teacher.students'))
     
-    courses = Course.query.all()
-    return render_template('teacher/add_grade.html', student=student, courses=courses)
+    enrolled_courses = Course.query.join(Enrollment).filter(Enrollment.teacher_id == teacher.id).all()
+    return render_template('teacher/add_grade.html', student=student, courses=enrolled_courses)

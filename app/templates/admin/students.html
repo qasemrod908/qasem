@@ -31,7 +31,7 @@
                             <td>{{ student.user.full_name }}</td>
                             <td>{{ student.student_number or 'غير محدد' }}</td>
                             <td>{{ student.phone or 'غير محدد' }}</td>
-                            <td>{{ student.enrollments | length }}</td>
+                            <td>{{ student.enrollments.count() }}</td>
                             <td>
                                 {% if student.user.is_active %}
                                     <span class="badge bg-success">نشط</span>
@@ -90,7 +90,7 @@
                                 </div>
                             </td>
                         </tr>
-                        {% if student.enrollments | length > 0 %}
+                        {% if student.enrollments.count() > 0 %}
                         <tr>
                             <td colspan="6">
                                 <div class="ps-4">

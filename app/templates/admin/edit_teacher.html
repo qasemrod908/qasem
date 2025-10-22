@@ -79,7 +79,7 @@
                     <h5 class="mb-0">إحصائيات</h5>
                 </div>
                 <div class="card-body">
-                    <p><strong>عدد الدروس:</strong> {{ teacher.lessons.count() }}</p>
+                    <p><strong>عدد الدروس:</strong> {{ teacher.lessons | length }}</p>
                     <p><strong>رقم الجوال:</strong> {{ teacher.user.phone_number }}</p>
                     <p><strong>تاريخ الإنضمام:</strong> {{ teacher.created_at.strftime('%Y-%m-%d') }}</p>
                 </div>
@@ -90,7 +90,7 @@
                     <h5 class="mb-0">دروس المدرس</h5>
                 </div>
                 <div class="card-body">
-                    {% if teacher.lessons.count() > 0 %}
+                    {% if teacher.lessons | length > 0 %}
                     <ul class="list-group list-group-flush">
                         {% for lesson in teacher.lessons %}
                         <li class="list-group-item">
