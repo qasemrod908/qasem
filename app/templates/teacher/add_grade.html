@@ -1,34 +1,57 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container mt-4">
-    <h2 class="mb-4">إضافة درجة للطالب: {{ student.user.full_name }}</h2>
-    <form method="POST">
-        <div class="mb-3">
-            <label class="form-label">الدورة</label>
-            <select class="form-select" name="course_id" required>
-                {% for course in courses %}
-                <option value="{{ course.id }}">{{ course.title }}</option>
-                {% endfor %}
-            </select>
+    <h2 class="mb-4"><i class="fas fa-plus-circle ms-2"></i>إضافة درجة للطالب: {{ student.user.full_name }}</h2>
+    
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form method="POST">
+                <div class="mb-3">
+                    <label class="form-label">الدورة <span class="text-danger">*</span></label>
+                    <select class="form-select" name="course_id" required>
+                        <option value="">-- اختر الدورة --</option>
+                        {% for course in courses %}
+                        <option value="{{ course.id }}">{{ course.title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">اسم الاختبار <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" name="exam_name" placeholder="مثال: امتحان نصفي، اختبار شهري..." required>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">الدرجة المكتسبة <span class="text-danger">*</span></label>
+                        <input type="number" step="0.01" class="form-control" name="grade" placeholder="0.00" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">الدرجة الكاملة <span class="text-danger">*</span></label>
+                        <input type="number" step="0.01" class="form-control" name="max_grade" placeholder="100.00" required>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">تاريخ الاختبار (اختياري)</label>
+                    <input type="date" class="form-control" name="exam_date">
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">ملاحظات</label>
+                    <textarea class="form-control" name="notes" rows="4" placeholder="أضف ملاحظات حول أداء الطالب..."></textarea>
+                </div>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <a href="{{ url_for('teacher.students') }}" class="btn btn-secondary">
+                        <i class="fas fa-times ms-2"></i>إلغاء
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save ms-2"></i>إضافة الدرجة
+                    </button>
+                </div>
+            </form>
         </div>
-        <div class="mb-3">
-            <label class="form-label">اسم الاختبار</label>
-            <input type="text" class="form-control" name="exam_name" required>
-        </div>
-        <div class="mb-3">
-            <label class="form-label">الدرجة</label>
-            <input type="number" step="0.01" class="form-control" name="grade" required>
-        </div>
-        <div class="mb-3">
-            <label class="form-label">الدرجة الكاملة</label>
-            <input type="number" step="0.01" class="form-control" name="max_grade" required>
-        </div>
-        <div class="mb-3">
-            <label class="form-label">ملاحظات</label>
-            <textarea class="form-control" name="notes" rows="3"></textarea>
-        </div>
-        <button type="submit" class="btn btn-primary">إضافة</button>
-        <a href="{{ url_for('teacher.students') }}" class="btn btn-secondary">إلغاء</a>
-    </form>
+    </div>
 </div>
 {% endblock %}

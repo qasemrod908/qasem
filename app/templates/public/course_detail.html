@@ -32,21 +32,68 @@
                 </div>
                 <div class="card-body">
                     {% if course.level %}
-                    <p class="mb-2">
+                    <p class="mb-3">
                         <strong><i class="fas fa-signal ms-2"></i>المستوى:</strong>
                         <span class="badge bg-info">{{ course.level }}</span>
                     </p>
                     {% endif %}
                     
                     {% if course.duration %}
-                    <p class="mb-2">
+                    <p class="mb-3">
                         <strong><i class="fas fa-clock ms-2"></i>المدة:</strong> {{ course.duration }}
                     </p>
                     {% endif %}
                     
+                    {% if course.start_date %}
+                    <p class="mb-3">
+                        <strong><i class="fas fa-calendar-alt ms-2"></i>تاريخ البداية:</strong><br>
+                        <span class="text-muted">{{ course.start_date.strftime('%Y-%m-%d') }}</span>
+                    </p>
+                    {% endif %}
+                    
+                    {% if course.end_date %}
+                    <p class="mb-3">
+                        <strong><i class="fas fa-calendar-check ms-2"></i>تاريخ النهاية:</strong><br>
+                        <span class="text-muted">{{ course.end_date.strftime('%Y-%m-%d') }}</span>
+                    </p>
+                    {% endif %}
+                    
+                    <p class="mb-3">
+                        <strong><i class="fas fa-users ms-2"></i>عدد الطلاب المسجلين:</strong>
+                        <span class="badge bg-success">{{ course.enrolled_count() }}</span>
+                        {% if course.max_students %}
+                        / {{ course.max_students }}
+                        {% endif %}
+                    </p>
+                    
+                    {% if course.max_students %}
+                    {% set available = course.available_seats() %}
+                    <p class="mb-3">
+                        <strong><i class="fas fa-chair ms-2"></i>المقاعد المتاحة:</strong>
+                        {% if available is not none %}
+                            {% if available > 0 %}
+                                <span class="badge bg-success">{{ available }}</span>
+                            {% else %}
+                                <span class="badge bg-danger">مكتمل</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="badge bg-secondary">غير محدود</span>
+                        {% endif %}
+                    </p>
+                    {% endif %}
+                    
                     {% if course.is_featured %}
-                    <p class="mb-2">
-                        <span class="badge bg-success"><i class="fas fa-star ms-1"></i>دورة مميزة</span>
+                    <p class="mb-3">
+                        <span class="badge bg-warning"><i class="fas fa-star ms-1"></i>دورة مميزة</span>
+                    </p>
+                    {% endif %}
+                    
+                    {% if course.created_at %}
+                    <p class="mb-3">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle ms-1"></i>
+                            تاريخ الإضافة: {{ course.created_at.strftime('%Y-%m-%d') }}
+                        </small>
                     </p>
                     {% endif %}
                     

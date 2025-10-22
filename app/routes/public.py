@@ -64,9 +64,9 @@ def contact():
     if request.method == 'POST':
         contact_msg = Contact(
             name=request.form.get('name'),
-            email=request.form.get('email'),
+            email=request.form.get('email', ''),
             phone=request.form.get('phone'),
-            subject=request.form.get('subject'),
+            subject=request.form.get('subject', ''),
             message=request.form.get('message')
         )
         db.session.add(contact_msg)
@@ -85,9 +85,8 @@ def contact():
 📧 رسالة جديدة من موقع المعهد
 
 👤 الاسم: {contact_msg.name}
-📧 البريد: {contact_msg.email or 'غير محدد'}
 📞 الهاتف: {contact_msg.phone or 'غير محدد'}
-📌 الموضوع: {contact_msg.subject}
+📌 الموضوع: {contact_msg.subject or 'غير محدد'}
 
 💬 الرسالة:
 {contact_msg.message}

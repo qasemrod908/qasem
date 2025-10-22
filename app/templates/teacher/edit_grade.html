@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4"><i class="fas fa-edit ms-2"></i>تعديل الدرجة</h2>
+    
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form method="POST">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">الطالب</label>
+                        <input type="text" class="form-control" value="{{ grade.student.user.full_name }}" readonly>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">الدورة</label>
+                        <select class="form-select" name="course_id" required>
+                            {% for course in courses %}
+                            <option value="{{ course.id }}" {% if course.id == grade.course_id %}selected{% endif %}>
+                                {{ course.title }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">اسم الاختبار</label>
+                    <input type="text" class="form-control" name="exam_name" value="{{ grade.exam_name }}" required>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">الدرجة المكتسبة</label>
+                        <input type="number" step="0.01" class="form-control" name="grade" value="{{ grade.grade }}" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">الدرجة الكاملة</label>
+                        <input type="number" step="0.01" class="form-control" name="max_grade" value="{{ grade.max_grade }}" required>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">تاريخ الاختبار (اختياري)</label>
+                    <input type="date" class="form-control" name="exam_date" value="{{ grade.exam_date.strftime('%Y-%m-%d') if grade.exam_date else '' }}">
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">الملاحظات</label>
+                    <textarea class="form-control" name="notes" rows="4" placeholder="أضف ملاحظات حول أداء الطالب...">{{ grade.notes or '' }}</textarea>
+                </div>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <a href="{{ url_for('teacher.view_student_grades', student_id=grade.student_id) }}" class="btn btn-secondary">
+                        <i class="fas fa-times ms-2"></i>إلغاء
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save ms-2"></i>حفظ التعديلات
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -10,21 +10,25 @@
                     <h5>أرسل لنا رسالة</h5>
                     <form method="POST">
                         <div class="mb-3">
-                            <input type="text" class="form-control" name="name" placeholder="الاسم" required>
+                            <label class="form-label">الاسم <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="name" placeholder="الاسم الكامل" required>
                         </div>
                         <div class="mb-3">
-                            <input type="email" class="form-control" name="email" placeholder="البريد الإلكتروني" required>
+                            <label class="form-label">رقم الهاتف <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="phone" placeholder="رقم الهاتف" required>
                         </div>
                         <div class="mb-3">
-                            <input type="text" class="form-control" name="phone" placeholder="الهاتف">
+                            <label class="form-label">الموضوع</label>
+                            <input type="text" class="form-control" name="subject" placeholder="موضوع الرسالة">
                         </div>
                         <div class="mb-3">
-                            <input type="text" class="form-control" name="subject" placeholder="الموضوع">
+                            <label class="form-label">الرسالة <span class="text-danger">*</span></label>
+                            <textarea class="form-control" name="message" rows="5" placeholder="اكتب رسالتك هنا..." required></textarea>
                         </div>
-                        <div class="mb-3">
-                            <textarea class="form-control" name="message" rows="4" placeholder="الرسالة" required></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-primary">إرسال</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane ms-2"></i>
+                            إرسال الرسالة
+                        </button>
                     </form>
                 </div>
             </div>

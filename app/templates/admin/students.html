@@ -40,17 +40,22 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <a href="{{ url_for('admin.enroll_student', student_id=student.id) }}" class="btn btn-sm btn-info">
-                                    <i class="fas fa-plus"></i> تسجيل في دورة
-                                </a>
-                                <a href="{{ url_for('admin.edit_student', student_id=student.id) }}" class="btn btn-sm btn-primary">
-                                    <i class="fas fa-edit"></i> تعديل
-                                </a>
-                                <form method="POST" action="{{ url_for('admin.delete_student', student_id=student.id) }}" style="display:inline;">
-                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('هل أنت متأكد من حذف هذا الطالب؟')">
-                                        <i class="fas fa-trash"></i> حذف
-                                    </button>
-                                </form>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('admin.view_student', student_id=student.id) }}" class="btn btn-outline-info" title="عرض التفاصيل">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('admin.enroll_student', student_id=student.id) }}" class="btn btn-outline-success" title="تسجيل في دورة">
+                                        <i class="fas fa-plus"></i>
+                                    </a>
+                                    <a href="{{ url_for('admin.edit_student', student_id=student.id) }}" class="btn btn-outline-primary" title="تعديل">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form method="POST" action="{{ url_for('admin.delete_student', student_id=student.id) }}" style="display:inline;">
+                                        <button type="submit" class="btn btn-outline-danger" onclick="return confirm('هل أنت متأكد من حذف هذا الطالب؟')" title="حذف">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                         {% if student.enrollments.count() > 0 %}

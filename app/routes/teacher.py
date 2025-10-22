@@ -233,6 +233,15 @@ def add_grade(student_id):
             flash('ليس لديك صلاحية لإضافة درجات لهذه الدورة', 'danger')
             return redirect(url_for('teacher.students'))
         
+        exam_date_str = request.form.get('exam_date')
+        exam_date = None
+        if exam_date_str:
+            from datetime import datetime
+            try:
+                exam_date = datetime.strptime(exam_date_str, '%Y-%m-%d').date()
+            except:
+                pass
+        
         grade = Grade(
             student_id=student_id,
             course_id=course_id,
@@ -240,12 +249,97 @@ def add_grade(student_id):
             exam_name=request.form.get('exam_name'),
             grade=float(request.form.get('grade')),
             max_grade=float(request.form.get('max_grade')),
-            notes=request.form.get('notes')
+            notes=request.form.get('notes'),
+            exam_date=exam_date
         )
         db.session.add(grade)
         db.session.commit()
         flash('تم إضافة الدرجة بنجاح', 'success')
-        return redirect(url_for('teacher.students'))
+        return redirect(url_for('teacher.view_student_grades', student_id=student_id))
     
     enrolled_courses = Course.query.join(Enrollment).filter(Enrollment.teacher_id == teacher.id).all()
     return render_template('teacher/add_grade.html', student=student, courses=enrolled_courses)
+
+@bp.route('/students/<int:student_id>/grades')
+@role_required('teacher')
+def view_student_grades(student_id):
+    teacher = Teacher.query.filter_by(user_id=current_user.id).first()
+    if not teacher:
+        flash('الملف الشخصي للمعلم غير موجود', 'danger')
+        return redirect(url_for('public.index'))
+    
+    student = Student.query.get_or_404(student_id)
+    
+    student_enrollment = Enrollment.query.filter_by(student_id=student_id, teacher_id=teacher.id).first()
+    if not student_enrollment:
+        flash('ليس لديك صلاحية لعرض درجات هذا الطالب', 'danger')
+        return redirect(url_for('teacher.students'))
+    
+    grades = Grade.query.filter_by(student_id=student_id, teacher_id=teacher.id).order_by(Grade.created_at.desc()).all()
+    
+    return render_template('teacher/view_student_grades.html', student=student, grades=grades)
+
+@bp.route('/grades/edit/<int:grade_id>', methods=['GET', 'POST'])
+@role_required('teacher')
+def edit_grade(grade_id):
+    teacher = Teacher.query.filter_by(user_id=current_user.id).first()
+    if not teacher:
+        flash('الملف الشخصي للمعلم غير موجود', 'danger')
+        return redirect(url_for('public.index'))
+    
+    grade = Grade.query.get_or_404(grade_id)
+    
+    if grade.teacher_id != teacher.id:
+        flash('ليس لديك صلاحية لتعديل هذه الدرجة', 'danger')
+        return redirect(url_for('teacher.students'))
+    
+    if request.method == 'POST':
+        course_id = request.form.get('course_id')
+        
+        enrollment = Enrollment.query.filter_by(teacher_id=teacher.id, course_id=course_id).first()
+        if not enrollment:
+            flash('ليس لديك صلاحية لتعديل درجات لهذه الدورة', 'danger')
+            return redirect(url_for('teacher.view_student_grades', student_id=grade.student_id))
+        
+        exam_date_str = request.form.get('exam_date')
+        exam_date = None
+        if exam_date_str:
+            from datetime import datetime
+            try:
+                exam_date = datetime.strptime(exam_date_str, '%Y-%m-%d').date()
+            except:
+                pass
+        
+        grade.course_id = course_id
+        grade.exam_name = request.form.get('exam_name')
+        grade.grade = float(request.form.get('grade'))
+        grade.max_grade = float(request.form.get('max_grade'))
+        grade.notes = request.form.get('notes')
+        grade.exam_date = exam_date
+        
+        db.session.commit()
+        flash('تم تحديث الدرجة بنجاح', 'success')
+        return redirect(url_for('teacher.view_student_grades', student_id=grade.student_id))
+    
+    enrolled_courses = Course.query.join(Enrollment).filter(Enrollment.teacher_id == teacher.id).all()
+    return render_template('teacher/edit_grade.html', grade=grade, courses=enrolled_courses)
+
+@bp.route('/grades/delete/<int:grade_id>', methods=['POST'])
+@role_required('teacher')
+def delete_grade(grade_id):
+    teacher = Teacher.query.filter_by(user_id=current_user.id).first()
+    if not teacher:
+        flash('الملف الشخصي للمعلم غير موجود', 'danger')
+        return redirect(url_for('public.index'))
+    
+    grade = Grade.query.get_or_404(grade_id)
+    
+    if grade.teacher_id != teacher.id:
+        flash('ليس لديك صلاحية لحذف هذه الدرجة', 'danger')
+        return redirect(url_for('teacher.students'))
+    
+    student_id = grade.student_id
+    db.session.delete(grade)
+    db.session.commit()
+    flash('تم حذف الدرجة بنجاح', 'success')
+    return redirect(url_for('teacher.view_student_grades', student_id=student_id))

@@ -173,9 +173,12 @@ class BackupManager:
     @staticmethod
     def delete_backup(filename):
         try:
-            file_path = os.path.join('backups', filename)
+            safe_filename = os.path.basename(filename)
+            file_path = os.path.join('backups', safe_filename)
+            abs_file_path = os.path.abspath(file_path)
+            abs_backups_dir = os.path.abspath('backups')
             
-            if not file_path.startswith(os.path.abspath('backups')):
+            if not abs_file_path.startswith(abs_backups_dir + os.sep):
                 raise ValueError('محاولة وصول غير مصرح بها')
             
             if os.path.exists(file_path) and os.path.isfile(file_path):

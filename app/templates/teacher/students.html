@@ -1,23 +1,63 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container mt-4">
-    <h2 class="mb-4">طلابي</h2>
-    <table class="table">
-        <thead><tr><th>رقم الطالب</th><th>الاسم</th><th>البريد</th><th>إجراءات</th></tr></thead>
-        <tbody>
-            {% for student in students %}
-            <tr>
-                <td>{{ student.student_number }}</td>
-                <td>{{ student.user.full_name }}</td>
-                <td>{{ student.user.email }}</td>
-                <td>
-                    <a href="{{ url_for('teacher.add_grade', student_id=student.id) }}" class="btn btn-sm btn-primary">إضافة درجة</a>
-                </td>
-            </tr>
-            {% else %}
-            <tr><td colspan="4">لا يوجد طلاب</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <h2 class="mb-4"><i class="fas fa-users ms-2"></i>طلابي</h2>
+    
+    {% if students %}
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>رقم الطالب</th>
+                    <th>الاسم</th>
+                    <th>البريد الإلكتروني</th>
+                    <th>الهاتف</th>
+                    <th>عدد الدرجات</th>
+                    <th class="text-center">الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students %}
+                <tr>
+                    <td><span class="badge bg-secondary">{{ student.student_number or 'غير محدد' }}</span></td>
+                    <td>
+                        <strong>{{ student.user.full_name }}</strong>
+                        {% if student.class_grade %}
+                        <br><small class="text-muted">{{ student.class_grade.name }}{% if student.section %} - {{ student.section.name }}{% endif %}</small>
+                        {% endif %}
+                    </td>
+                    <td>{{ student.user.email }}</td>
+                    <td>{{ student.phone or '-' }}</td>
+                    <td>
+                        {% set grade_count = student.grades.count() %}
+                        <span class="badge {% if grade_count > 0 %}bg-success{% else %}bg-secondary{% endif %}">
+                            {{ grade_count }}
+                        </span>
+                    </td>
+                    <td class="text-center">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a href="{{ url_for('teacher.view_student_grades', student_id=student.id) }}" 
+                               class="btn btn-outline-info" 
+                               title="عرض الدرجات">
+                                <i class="fas fa-chart-bar"></i> الدرجات
+                            </a>
+                            <a href="{{ url_for('teacher.add_grade', student_id=student.id) }}" 
+                               class="btn btn-outline-primary" 
+                               title="إضافة درجة">
+                                <i class="fas fa-plus"></i> إضافة درجة
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle ms-2"></i>
+        لا يوجد طلاب مسجلين في دوراتك حالياً
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

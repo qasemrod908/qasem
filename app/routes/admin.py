@@ -70,7 +70,14 @@ def download_backup(filename):
         safe_filename = os.path.basename(filename)
         file_path = safe_join('backups', safe_filename)
         
-        if file_path is None or not file_path.startswith(os.path.abspath('backups')):
+        if file_path is None:
+            flash('محاولة وصول غير مصرح بها', 'danger')
+            return redirect(url_for('admin.backup'))
+        
+        abs_file_path = os.path.abspath(file_path)
+        abs_backups_dir = os.path.abspath('backups')
+        
+        if not abs_file_path.startswith(abs_backups_dir + os.sep):
             flash('محاولة وصول غير مصرح بها', 'danger')
             return redirect(url_for('admin.backup'))
         
@@ -151,7 +158,13 @@ def restore_existing_backup():
         backups_dir = os.path.abspath('backups')
         file_path = safe_join(backups_dir, safe_filename)
         
-        if file_path is None or not file_path.startswith(backups_dir):
+        if file_path is None:
+            flash('محاولة وصول غير مصرح بها', 'danger')
+            return redirect(url_for('admin.backup'))
+        
+        abs_file_path = os.path.abspath(file_path)
+        
+        if not abs_file_path.startswith(backups_dir + os.sep):
             flash('محاولة وصول غير مصرح بها', 'danger')
             return redirect(url_for('admin.backup'))
         
@@ -615,6 +628,14 @@ def edit_student(student_id):
     grades = ClassGrade.query.order_by(ClassGrade.display_order, ClassGrade.name).all()
     sections = Section.query.order_by(Section.display_order, Section.name).all()
     return render_template('admin/edit_student.html', student=student, grades=grades, sections=sections)
+
+@bp.route('/students/view/<int:student_id>')
+@role_required('admin', 'assistant')
+def view_student(student_id):
+    student = Student.query.get_or_404(student_id)
+    enrollments = student.enrollments.all()
+    grades = Grade.query.filter_by(student_id=student_id).order_by(Grade.created_at.desc()).all()
+    return render_template('admin/view_student.html', student=student, enrollments=enrollments, grades=grades)
 
 @bp.route('/students/delete/<int:student_id>', methods=['POST'])
 @role_required('admin')

@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2><i class="fas fa-user-graduate ms-2"></i>تفاصيل الطالب: {{ student.user.full_name }}</h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('admin.students') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right ms-2"></i>العودة
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-id-card ms-2"></i>المعلومات الشخصية</h5>
+                </div>
+                <div class="card-body text-center">
+                    {% if student.photo %}
+                    <img src="{{ url_for('static', filename='uploads/' + student.photo) }}" 
+                         class="img-fluid rounded-circle mb-3" 
+                         style="width: 150px; height: 150px; object-fit: cover;" 
+                         alt="{{ student.user.full_name }}">
+                    {% else %}
+                    <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
+                         style="width: 150px; height: 150px;">
+                        <i class="fas fa-user-circle fa-5x text-primary"></i>
+                    </div>
+                    {% endif %}
+                    
+                    <h4>{{ student.user.full_name }}</h4>
+                    <p class="text-muted mb-0">{{ student.student_number or 'رقم غير محدد' }}</p>
+                </div>
+                <div class="card-body">
+                    <p><strong><i class="fas fa-envelope ms-2"></i>البريد:</strong><br>{{ student.user.email }}</p>
+                    <p><strong><i class="fas fa-phone ms-2"></i>الهاتف:</strong><br>{{ student.phone or 'غير محدد' }}</p>
+                    {% if student.date_of_birth %}
+                    <p><strong><i class="fas fa-birthday-cake ms-2"></i>تاريخ الميلاد:</strong><br>{{ student.date_of_birth.strftime('%Y-%m-%d') }}</p>
+                    {% endif %}
+                    <p><strong><i class="fas fa-map-marker-alt ms-2"></i>العنوان:</strong><br>{{ student.address or 'غير محدد' }}</p>
+                    {% if student.class_grade %}
+                    <p><strong><i class="fas fa-graduation-cap ms-2"></i>الصف:</strong><br>{{ student.class_grade.name }}</p>
+                    {% endif %}
+                    {% if student.section %}
+                    <p><strong><i class="fas fa-users ms-2"></i>الشعبة:</strong><br>{{ student.section.name }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {% if student.guardian_name or student.guardian_phone %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-user-friends ms-2"></i>معلومات ولي الأمر</h5>
+                </div>
+                <div class="card-body">
+                    {% if student.guardian_name %}
+                    <p><strong>الاسم:</strong><br>{{ student.guardian_name }}</p>
+                    {% endif %}
+                    {% if student.guardian_phone %}
+                    <p><strong>الهاتف:</strong><br>{{ student.guardian_phone }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-cog ms-2"></i>إجراءات</h5>
+                </div>
+                <div class="card-body d-grid gap-2">
+                    <a href="{{ url_for('admin.edit_student', student_id=student.id) }}" class="btn btn-outline-primary">
+                        <i class="fas fa-edit ms-2"></i>تعديل البيانات
+                    </a>
+                    <a href="{{ url_for('admin.enroll_student', student_id=student.id) }}" class="btn btn-outline-success">
+                        <i class="fas fa-plus-circle ms-2"></i>تسجيل في دورة
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-book-reader ms-2"></i>الدورات المسجلة ({{ enrollments|length }})</h5>
+                </div>
+                <div class="card-body">
+                    {% if enrollments %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>الدورة</th>
+                                    <th>المدرس</th>
+                                    <th>الحالة</th>
+                                    <th>تاريخ التسجيل</th>
+                                    <th class="text-center">الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for enrollment in enrollments %}
+                                <tr>
+                                    <td>{{ enrollment.course.title }}</td>
+                                    <td>{{ enrollment.teacher.user.full_name if enrollment.teacher else '-' }}</td>
+                                    <td>
+                                        <span class="badge {% if enrollment.status == 'active' %}bg-success{% else %}bg-secondary{% endif %}">
+                                            {{ 'نشط' if enrollment.status == 'active' else enrollment.status }}
+                                        </span>
+                                    </td>
+                                    <td>{{ enrollment.enrollment_date.strftime('%Y-%m-%d') if enrollment.enrollment_date else '-' }}</td>
+                                    <td class="text-center">
+                                        <form method="POST" action="{{ url_for('admin.unenroll_student', enrollment_id=enrollment.id) }}" style="display:inline;">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" 
+                                                    onclick="return confirm('هل أنت متأكد من إلغاء التسجيل؟')">
+                                                <i class="fas fa-times"></i> إلغاء
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle ms-2"></i>
+                        لم يتم تسجيل الطالب في أي دورة حتى الآن
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-chart-line ms-2"></i>الدرجات والتقييمات ({{ grades|length }})</h5>
+                </div>
+                <div class="card-body">
+                    {% if grades %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>الدورة</th>
+                                    <th>الاختبار</th>
+                                    <th>الدرجة</th>
+                                    <th>النسبة</th>
+                                    <th>المدرس</th>
+                                    <th>الملاحظات</th>
+                                    <th>التاريخ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for grade in grades %}
+                                <tr>
+                                    <td>{{ grade.course.title }}</td>
+                                    <td>{{ grade.exam_name }}</td>
+                                    <td>
+                                        <span class="badge {% if (grade.grade / grade.max_grade * 100) >= 60 %}bg-success{% else %}bg-danger{% endif %}">
+                                            {{ grade.grade }} / {{ grade.max_grade }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% set percentage = (grade.grade / grade.max_grade * 100)|round(2) %}
+                                        {{ percentage }}%
+                                    </td>
+                                    <td>{{ grade.teacher.user.full_name if grade.teacher else '-' }}</td>
+                                    <td>
+                                        {% if grade.notes %}
+                                        <button type="button" class="btn btn-sm btn-outline-info" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#notesModal{{ grade.id }}">
+                                            <i class="fas fa-eye"></i> عرض
+                                        </button>
+                                        
+                                        <div class="modal fade" id="notesModal{{ grade.id }}" tabindex="-1">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">ملاحظات: {{ grade.exam_name }}</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        {{ grade.notes }}
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ grade.created_at.strftime('%Y-%m-%d') if grade.created_at else '-' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle ms-2"></i>
+                        لا توجد درجات مسجلة للطالب حتى الآن
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
