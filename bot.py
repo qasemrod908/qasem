@@ -173,7 +173,7 @@ async def login_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         if session and session.is_authenticated:
             user_obj = User.query.get(session.user_id)
             await update.message.reply_text(
-                f"أنت مسجل دخول بالفعل كـ {user_obj.name} ({user_obj.role})\n\n"
+                f"أنت مسجل دخول بالفعل كـ {user_obj.full_name} ({user_obj.role})\n\n"
                 "استخدم /logout لتسجيل الخروج أولاً."
             )
             update_statistics(increment_sent=True)
@@ -377,7 +377,7 @@ async def dashboard(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             dashboard_text = f"""
 👑 *لوحة تحكم الإدارة*
 
-👤 الاسم: {user_obj.name}
+👤 الاسم: {user_obj.full_name}
 📋 الدور: {user_obj.role}
 
 📊 *إحصائيات النظام:*
@@ -614,6 +614,235 @@ async def my_grades(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 )
                 update_statistics(increment_sent=True)
 
+async def my_lessons(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user = update.effective_user
+    update_statistics()
+    
+    with flask_app.app_context():
+        session = BotSession.query.filter_by(telegram_id=user.id).first()
+        if not session or not session.is_authenticated:
+            await update.message.reply_text(
+                "🔒 يجب تسجيل الدخول أولاً!\n\nاستخدم /login"
+            )
+            update_statistics(increment_sent=True)
+            return
+        
+        user_obj = User.query.get(session.user_id)
+        
+        if user_obj.role == 'student':
+            student = Student.query.filter_by(user_id=user_obj.id).first()
+            if student:
+                enrollments = Enrollment.query.filter_by(student_id=student.id).all()
+                
+                if not enrollments:
+                    await update.message.reply_text("أنت غير مسجل في أي دورة حالياً")
+                    update_statistics(increment_sent=True)
+                    return
+                
+                await update.message.reply_text(
+                    "📖 *دروسي*\n\nاختر دورة لعرض دروسها:",
+                    parse_mode=ParseMode.MARKDOWN
+                )
+                update_statistics(increment_sent=True)
+                
+                for enrollment in enrollments:
+                    course = enrollment.course
+                    lessons_count = Lesson.query.filter_by(
+                        course_id=course.id,
+                        is_published=True
+                    ).count()
+                    
+                    course_text = f"""
+📖 *{course.title}*
+
+📝 عدد الدروس: {lessons_count}
+"""
+                    
+                    keyboard = [[InlineKeyboardButton("عرض الدروس", callback_data=f"lessons_{course.id}")]]
+                    reply_markup = InlineKeyboardMarkup(keyboard)
+                    
+                    await update.message.reply_text(
+                        course_text,
+                        parse_mode=ParseMode.MARKDOWN,
+                        reply_markup=reply_markup
+                    )
+                    update_statistics(increment_sent=True)
+                    await asyncio.sleep(0.5)
+
+async def teacher_courses(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user = update.effective_user
+    update_statistics()
+    
+    with flask_app.app_context():
+        session = BotSession.query.filter_by(telegram_id=user.id).first()
+        if not session or not session.is_authenticated:
+            await update.message.reply_text(
+                "🔒 يجب تسجيل الدخول أولاً!\n\nاستخدم /login"
+            )
+            update_statistics(increment_sent=True)
+            return
+        
+        user_obj = User.query.get(session.user_id)
+        
+        if user_obj.role == 'teacher':
+            teacher = Teacher.query.filter_by(user_id=user_obj.id).first()
+            if teacher:
+                enrollments = Enrollment.query.filter_by(teacher_id=teacher.id).all()
+                
+                if not enrollments:
+                    await update.message.reply_text("ليس لديك دورات حالياً")
+                    update_statistics(increment_sent=True)
+                    return
+                
+                courses_dict = {}
+                for enrollment in enrollments:
+                    if enrollment.course_id not in courses_dict:
+                        courses_dict[enrollment.course_id] = {
+                            'course': enrollment.course,
+                            'students': 0
+                        }
+                    courses_dict[enrollment.course_id]['students'] += 1
+                
+                await update.message.reply_text(
+                    f"📚 *دوراتي ({len(courses_dict)})*",
+                    parse_mode=ParseMode.MARKDOWN
+                )
+                update_statistics(increment_sent=True)
+                
+                for course_data in courses_dict.values():
+                    course = course_data['course']
+                    students_count = course_data['students']
+                    lessons_count = Lesson.query.filter_by(
+                        course_id=course.id,
+                        teacher_id=teacher.id
+                    ).count()
+                    
+                    course_text = f"""
+📖 *{course.title}*
+
+👥 عدد الطلاب: {students_count}
+📝 عدد الدروس: {lessons_count}
+⏱️ المدة: {course.duration}
+"""
+                    
+                    await update.message.reply_text(
+                        course_text,
+                        parse_mode=ParseMode.MARKDOWN
+                    )
+                    update_statistics(increment_sent=True)
+                    await asyncio.sleep(0.5)
+
+async def teacher_lessons(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user = update.effective_user
+    update_statistics()
+    
+    with flask_app.app_context():
+        session = BotSession.query.filter_by(telegram_id=user.id).first()
+        if not session or not session.is_authenticated:
+            await update.message.reply_text(
+                "🔒 يجب تسجيل الدخول أولاً!\n\nاستخدم /login"
+            )
+            update_statistics(increment_sent=True)
+            return
+        
+        user_obj = User.query.get(session.user_id)
+        
+        if user_obj.role == 'teacher':
+            teacher = Teacher.query.filter_by(user_id=user_obj.id).first()
+            if teacher:
+                lessons = Lesson.query.filter_by(teacher_id=teacher.id).all()
+                
+                if not lessons:
+                    await update.message.reply_text("ليس لديك دروس حالياً")
+                    update_statistics(increment_sent=True)
+                    return
+                
+                await update.message.reply_text(
+                    f"📖 *دروسي ({len(lessons)})*",
+                    parse_mode=ParseMode.MARKDOWN
+                )
+                update_statistics(increment_sent=True)
+                
+                for lesson in lessons[:20]:
+                    course = Course.query.get(lesson.course_id)
+                    lesson_date = lesson.upload_date.strftime('%Y-%m-%d')
+                    has_file = "📎" if lesson.file_path else ""
+                    
+                    lesson_text = f"""
+📖 *{lesson.title}* {has_file}
+
+📚 الدورة: {course.title if course else 'غير محدد'}
+📅 التاريخ: {lesson_date}
+{'✅ منشور' if lesson.is_published else '⏸️ غير منشور'}
+"""
+                    
+                    await update.message.reply_text(
+                        lesson_text,
+                        parse_mode=ParseMode.MARKDOWN
+                    )
+                    update_statistics(increment_sent=True)
+                    await asyncio.sleep(0.5)
+
+async def teacher_students(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user = update.effective_user
+    update_statistics()
+    
+    with flask_app.app_context():
+        session = BotSession.query.filter_by(telegram_id=user.id).first()
+        if not session or not session.is_authenticated:
+            await update.message.reply_text(
+                "🔒 يجب تسجيل الدخول أولاً!\n\nاستخدم /login"
+            )
+            update_statistics(increment_sent=True)
+            return
+        
+        user_obj = User.query.get(session.user_id)
+        
+        if user_obj.role == 'teacher':
+            teacher = Teacher.query.filter_by(user_id=user_obj.id).first()
+            if teacher:
+                enrollments = Enrollment.query.filter_by(teacher_id=teacher.id).all()
+                
+                if not enrollments:
+                    await update.message.reply_text("ليس لديك طلاب حالياً")
+                    update_statistics(increment_sent=True)
+                    return
+                
+                students_dict = {}
+                for enrollment in enrollments:
+                    student_id = enrollment.student_id
+                    if student_id not in students_dict:
+                        student = Student.query.get(student_id)
+                        students_dict[student_id] = {
+                            'student': student,
+                            'courses': []
+                        }
+                    students_dict[student_id]['courses'].append(enrollment.course.title)
+                
+                await update.message.reply_text(
+                    f"👥 *طلابي ({len(students_dict)})*",
+                    parse_mode=ParseMode.MARKDOWN
+                )
+                update_statistics(increment_sent=True)
+                
+                for student_data in list(students_dict.values())[:20]:
+                    student = student_data['student']
+                    courses_list = ', '.join(student_data['courses'])
+                    
+                    student_text = f"""
+👨‍🎓 *{student.user.full_name}*
+
+📱 الجوال: {student.user.phone_number}
+📚 الدورات: {courses_list}
+"""
+                    
+                    await update.message.reply_text(
+                        student_text,
+                        parse_mode=ParseMode.MARKDOWN
+                    )
+                    update_statistics(increment_sent=True)
+                    await asyncio.sleep(0.5)
+
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     await query.answer()
@@ -666,12 +895,144 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 )
                 update_statistics(increment_sent=True)
     
-    elif data in ['teacher_courses', 'teacher_lessons', 'teacher_students']:
-        await query.edit_message_text(
-            "⚠️ هذه الميزة قيد التطوير حالياً.\n\n"
-            "يرجى استخدام /dashboard للعودة إلى لوحة التحكم"
-        )
-        update_statistics(increment_sent=True)
+    elif data == 'teacher_courses':
+        user = query.from_user
+        with flask_app.app_context():
+            session = BotSession.query.filter_by(telegram_id=user.id).first()
+            if not session or not session.is_authenticated:
+                await query.edit_message_text("🔒 يجب تسجيل الدخول أولاً!")
+                update_statistics(increment_sent=True)
+                return
+            
+            user_obj = User.query.get(session.user_id)
+            if user_obj.role == 'teacher':
+                teacher = Teacher.query.filter_by(user_id=user_obj.id).first()
+                if teacher:
+                    enrollments = Enrollment.query.filter_by(teacher_id=teacher.id).all()
+                    
+                    if not enrollments:
+                        await query.edit_message_text("ليس لديك دورات حالياً")
+                        update_statistics(increment_sent=True)
+                        return
+                    
+                    courses_dict = {}
+                    for enrollment in enrollments:
+                        if enrollment.course_id not in courses_dict:
+                            courses_dict[enrollment.course_id] = {
+                                'course': enrollment.course,
+                                'students': 0
+                            }
+                        courses_dict[enrollment.course_id]['students'] += 1
+                    
+                    courses_text = f"📚 *دوراتي ({len(courses_dict)})*\n\n"
+                    
+                    for course_data in list(courses_dict.values())[:10]:
+                        course = course_data['course']
+                        students_count = course_data['students']
+                        lessons_count = Lesson.query.filter_by(
+                            course_id=course.id,
+                            teacher_id=teacher.id
+                        ).count()
+                        
+                        courses_text += f"""📖 *{course.title}*
+👥 عدد الطلاب: {students_count}
+📝 عدد الدروس: {lessons_count}
+━━━━━━━━━━━━━━━
+"""
+                    
+                    await query.edit_message_text(
+                        courses_text,
+                        parse_mode=ParseMode.MARKDOWN
+                    )
+                    update_statistics(increment_sent=True)
+    
+    elif data == 'teacher_lessons':
+        user = query.from_user
+        with flask_app.app_context():
+            session = BotSession.query.filter_by(telegram_id=user.id).first()
+            if not session or not session.is_authenticated:
+                await query.edit_message_text("🔒 يجب تسجيل الدخول أولاً!")
+                update_statistics(increment_sent=True)
+                return
+            
+            user_obj = User.query.get(session.user_id)
+            if user_obj.role == 'teacher':
+                teacher = Teacher.query.filter_by(user_id=user_obj.id).first()
+                if teacher:
+                    lessons = Lesson.query.filter_by(teacher_id=teacher.id).all()
+                    
+                    if not lessons:
+                        await query.edit_message_text("ليس لديك دروس حالياً")
+                        update_statistics(increment_sent=True)
+                        return
+                    
+                    lessons_text = f"📖 *دروسي ({len(lessons)})*\n\n"
+                    
+                    for lesson in lessons[:10]:
+                        course = Course.query.get(lesson.course_id)
+                        lesson_date = lesson.upload_date.strftime('%Y-%m-%d')
+                        has_file = "📎" if lesson.file_path else ""
+                        
+                        lessons_text += f"""📖 *{lesson.title}* {has_file}
+📚 الدورة: {course.title if course else 'غير محدد'}
+📅 {lesson_date}
+━━━━━━━━━━━━━━━
+"""
+                    
+                    await query.edit_message_text(
+                        lessons_text,
+                        parse_mode=ParseMode.MARKDOWN
+                    )
+                    update_statistics(increment_sent=True)
+    
+    elif data == 'teacher_students':
+        user = query.from_user
+        with flask_app.app_context():
+            session = BotSession.query.filter_by(telegram_id=user.id).first()
+            if not session or not session.is_authenticated:
+                await query.edit_message_text("🔒 يجب تسجيل الدخول أولاً!")
+                update_statistics(increment_sent=True)
+                return
+            
+            user_obj = User.query.get(session.user_id)
+            if user_obj.role == 'teacher':
+                teacher = Teacher.query.filter_by(user_id=user_obj.id).first()
+                if teacher:
+                    enrollments = Enrollment.query.filter_by(teacher_id=teacher.id).all()
+                    
+                    if not enrollments:
+                        await query.edit_message_text("ليس لديك طلاب حالياً")
+                        update_statistics(increment_sent=True)
+                        return
+                    
+                    students_dict = {}
+                    for enrollment in enrollments:
+                        student_id = enrollment.student_id
+                        if student_id not in students_dict:
+                            student = Student.query.get(student_id)
+                            students_dict[student_id] = {
+                                'student': student,
+                                'courses': []
+                            }
+                        students_dict[student_id]['courses'].append(enrollment.course.title)
+                    
+                    students_text = f"👥 *طلابي ({len(students_dict)})*\n\n"
+                    
+                    for student_data in list(students_dict.values())[:10]:
+                        student = student_data['student']
+                        courses_list = ', '.join(student_data['courses'][:3])
+                        
+                        students_text += f"""👨‍🎓 *{student.user.full_name}*
+📱 {student.user.phone_number}
+📚 {courses_list}
+━━━━━━━━━━━━━━━
+"""
+                    
+                    await query.edit_message_text(
+                        students_text,
+                        parse_mode=ParseMode.MARKDOWN
+                    )
+                    update_statistics(increment_sent=True)
     
     elif data.startswith('teacher_'):
         teacher_id = int(data.split('_')[1])
@@ -737,7 +1098,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             lessons_text = f"📖 *دروس دورة {course.title}*\n\n"
             
             for i, lesson in enumerate(lessons, 1):
-                lesson_date = lesson.created_at.strftime('%Y-%m-%d')
+                lesson_date = lesson.upload_date.strftime('%Y-%m-%d')
                 has_file = "📎" if lesson.file_path else ""
                 lessons_text += f"{i}. {lesson.title} {has_file}\n"
                 lessons_text += f"   📅 {lesson_date}\n\n"
@@ -748,12 +1109,21 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             )
             update_statistics(increment_sent=True)
     
-    elif data in ['my_courses', 'my_lessons', 'my_grades']:
+    elif data == 'my_courses':
         await query.edit_message_text(
-            "⚠️ هذه الميزة متاحة من القائمة الرئيسية.\n\n"
-            "يرجى استخدام القوائم أدناه أو الأوامر:\n"
-            "/mycourses - دوراتي\n"
-            "/mygrades - درجاتي"
+            "📚 استخدم زر 'دوراتي' من القائمة الرئيسية لعرض دوراتك"
+        )
+        update_statistics(increment_sent=True)
+    
+    elif data == 'my_lessons':
+        await query.edit_message_text(
+            "📖 استخدم زر 'دروسي' من القائمة الرئيسية لعرض دروسك"
+        )
+        update_statistics(increment_sent=True)
+    
+    elif data == 'my_grades':
+        await query.edit_message_text(
+            "📝 استخدم زر 'درجاتي' من القائمة الرئيسية لعرض درجاتك"
         )
         update_statistics(increment_sent=True)
 
@@ -773,6 +1143,8 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         return await dashboard(update, context)
     elif text == "📚 دوراتي":
         return await my_courses(update, context)
+    elif text == "📖 دروسي":
+        return await my_lessons(update, context)
     elif text == "📝 درجاتي":
         return await my_grades(update, context)
     elif text == "🚪 تسجيل الخروج":
