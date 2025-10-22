@@ -4,6 +4,7 @@ from flask_login import LoginManager
 from config import Config
 from sqlalchemy import event
 import threading
+import logging
 
 db = SQLAlchemy()
 login_manager = LoginManager()
@@ -36,27 +37,45 @@ def setup_auto_backup():
             if table_name in watched_tables:
                 modified_tables.add(table_name)
     
+    app_instance = None
+    
     @event.listens_for(db.session, 'after_commit')
     def receive_after_commit(session):
-        nonlocal modified_tables
+        nonlocal modified_tables, app_instance
         
         if modified_tables:
-            print(f'تم تعديل الجداول التالية: {", ".join(modified_tables)}')
+            logging.info(f'🔄 تم تعديل الجداول التالية: {", ".join(modified_tables)}')
             tables_copy = modified_tables.copy()
             modified_tables.clear()
             
+            if app_instance is None:
+                try:
+                    from flask import current_app
+                    app_instance = current_app._get_current_object()
+                    logging.info(f'✅ تم الحصول على سياق التطبيق')
+                except Exception as e:
+                    logging.error(f'❌ خطأ في الحصول على سياق التطبيق: {e}')
+                    return
+            
             def auto_backup():
                 try:
-                    from app.utils.backup import BackupManager
-                    BackupManager.create_and_send_telegram_backup()
+                    logging.info('📦 بدء عملية النسخ الاحتياطي التلقائي...')
+                    with app_instance.app_context():
+                        from app.utils.backup import BackupManager
+                        result = BackupManager.create_and_send_telegram_backup()
+                        if result:
+                            logging.info('✅ تم إرسال النسخة الاحتياطية إلى تيليجرام بنجاح')
+                        else:
+                            logging.warning('⚠️ فشل إرسال النسخة الاحتياطية إلى تيليجرام')
                 except Exception as e:
-                    print(f'خطأ في النسخ الاحتياطي التلقائي: {str(e)}')
+                    logging.error(f'❌ خطأ في النسخ الاحتياطي التلقائي: {str(e)}')
                     import traceback
                     traceback.print_exc()
             
             thread = threading.Thread(target=auto_backup)
             thread.daemon = True
             thread.start()
+            logging.info('🚀 تم تشغيل thread النسخ الاحتياطي')
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -85,6 +104,7 @@ def create_app(config_class=Config):
         db.create_all()
         from app.utils import init_db
         init_db.initialize_database()
-        setup_auto_backup()
+    
+    setup_auto_backup()
     
     return app
