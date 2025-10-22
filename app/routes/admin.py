@@ -61,7 +61,7 @@ def users():
 def add_user():
     if request.method == 'POST':
         user = User(
-            email=request.form.get('email'),
+            phone_number=request.form.get('phone_number'),
             full_name=request.form.get('full_name'),
             role=request.form.get('role'),
             is_active=True
@@ -101,7 +101,7 @@ def edit_user(user_id):
     old_role = user.role
     
     if request.method == 'POST':
-        user.email = request.form.get('email')
+        user.phone_number = request.form.get('phone_number')
         user.full_name = request.form.get('full_name')
         new_role = request.form.get('role')
         user.is_active = request.form.get('is_active') == 'on'
@@ -160,12 +160,59 @@ def add_course():
             level=request.form.get('level'),
             is_featured=request.form.get('is_featured') == 'on'
         )
+        
+        if 'image' in request.files:
+            file = request.files['image']
+            if file and file.filename:
+                filename = secure_filename(file.filename)
+                upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'courses', filename)
+                os.makedirs(os.path.dirname(upload_path), exist_ok=True)
+                file.save(upload_path)
+                course.image = f'courses/{filename}'
+        
         db.session.add(course)
         db.session.commit()
         flash('تم إضافة الدورة بنجاح', 'success')
         return redirect(url_for('admin.courses'))
     
     return render_template('admin/add_course.html')
+
+@bp.route('/courses/edit/<int:course_id>', methods=['GET', 'POST'])
+@role_required('admin', 'assistant')
+def edit_course(course_id):
+    course = Course.query.get_or_404(course_id)
+    
+    if request.method == 'POST':
+        course.title = request.form.get('title')
+        course.description = request.form.get('description')
+        course.short_description = request.form.get('short_description')
+        course.duration = request.form.get('duration')
+        course.level = request.form.get('level')
+        course.is_featured = request.form.get('is_featured') == 'on'
+        
+        if 'image' in request.files:
+            file = request.files['image']
+            if file and file.filename:
+                filename = secure_filename(file.filename)
+                upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'courses', filename)
+                os.makedirs(os.path.dirname(upload_path), exist_ok=True)
+                file.save(upload_path)
+                course.image = f'courses/{filename}'
+        
+        db.session.commit()
+        flash('تم تحديث الدورة بنجاح', 'success')
+        return redirect(url_for('admin.courses'))
+    
+    return render_template('admin/edit_course.html', course=course)
+
+@bp.route('/courses/delete/<int:course_id>', methods=['POST'])
+@role_required('admin', 'assistant')
+def delete_course(course_id):
+    course = Course.query.get_or_404(course_id)
+    db.session.delete(course)
+    db.session.commit()
+    flash('تم حذف الدورة بنجاح', 'success')
+    return redirect(url_for('admin.courses'))
 
 @bp.route('/settings', methods=['GET', 'POST'])
 @role_required('admin')
@@ -209,9 +256,53 @@ def add_news():
             author_id=current_user.id,
             is_published=request.form.get('is_published') == 'on'
         )
+        
+        if 'image' in request.files:
+            file = request.files['image']
+            if file and file.filename:
+                filename = secure_filename(file.filename)
+                upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'news', filename)
+                os.makedirs(os.path.dirname(upload_path), exist_ok=True)
+                file.save(upload_path)
+                news.image = f'news/{filename}'
+        
         db.session.add(news)
         db.session.commit()
         flash('تم إضافة الخبر بنجاح', 'success')
         return redirect(url_for('admin.news'))
     
     return render_template('admin/add_news.html')
+
+@bp.route('/news/edit/<int:news_id>', methods=['GET', 'POST'])
+@role_required('admin', 'assistant')
+def edit_news(news_id):
+    news = News.query.get_or_404(news_id)
+    
+    if request.method == 'POST':
+        news.title = request.form.get('title')
+        news.content = request.form.get('content')
+        news.is_published = request.form.get('is_published') == 'on'
+        
+        if 'image' in request.files:
+            file = request.files['image']
+            if file and file.filename:
+                filename = secure_filename(file.filename)
+                upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'news', filename)
+                os.makedirs(os.path.dirname(upload_path), exist_ok=True)
+                file.save(upload_path)
+                news.image = f'news/{filename}'
+        
+        db.session.commit()
+        flash('تم تحديث الخبر بنجاح', 'success')
+        return redirect(url_for('admin.news'))
+    
+    return render_template('admin/edit_news.html', news=news)
+
+@bp.route('/news/delete/<int:news_id>', methods=['POST'])
+@role_required('admin', 'assistant')
+def delete_news(news_id):
+    news = News.query.get_or_404(news_id)
+    db.session.delete(news)
+    db.session.commit()
+    flash('تم حذف الخبر بنجاح', 'success')
+    return redirect(url_for('admin.news'))

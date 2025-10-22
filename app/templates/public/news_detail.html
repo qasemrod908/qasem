@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}{{ news.title }} - معهد القاسم{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    {% if news.image %}
+                    <img src="{{ url_for('static', filename='uploads/' + news.image) }}" class="img-fluid rounded mb-4" alt="{{ news.title }}">
+                    {% endif %}
+                    
+                    <h2 class="mb-3">{{ news.title }}</h2>
+                    
+                    <div class="text-muted mb-4">
+                        <i class="fas fa-calendar-alt ms-2"></i>
+                        {{ news.created_at.strftime('%Y/%m/%d') }}
+                        
+                        {% if news.author %}
+                        <span class="ms-3">
+                            <i class="fas fa-user ms-2"></i>
+                            {{ news.author.full_name }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="news-content">
+                        <p style="white-space: pre-line; font-size: 1.1rem; line-height: 1.8;">{{ news.content }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <a href="{{ url_for('public.news') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-right ms-2"></i>
+                    العودة إلى قائمة الأخبار
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

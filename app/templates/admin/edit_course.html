@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">تعديل دورة</h2>
+    <form method="POST" enctype="multipart/form-data">
+        <div class="mb-3">
+            <label class="form-label">العنوان</label>
+            <input type="text" class="form-control" name="title" value="{{ course.title }}" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">وصف مختصر</label>
+            <input type="text" class="form-control" name="short_description" value="{{ course.short_description }}" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">الوصف الكامل</label>
+            <textarea class="form-control" name="description" rows="4">{{ course.description }}</textarea>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">المدة</label>
+            <input type="text" class="form-control" name="duration" value="{{ course.duration }}" placeholder="مثال: 3 أشهر">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">المستوى</label>
+            <select class="form-select" name="level">
+                <option value="مبتدئ" {% if course.level == 'مبتدئ' %}selected{% endif %}>مبتدئ</option>
+                <option value="متوسط" {% if course.level == 'متوسط' %}selected{% endif %}>متوسط</option>
+                <option value="متقدم" {% if course.level == 'متقدم' %}selected{% endif %}>متقدم</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">صورة الدورة</label>
+            {% if course.image %}
+            <div class="mb-2">
+                <img src="{{ url_for('static', filename='uploads/' + course.image) }}" alt="{{ course.title }}" style="max-width: 200px;" class="img-thumbnail">
+            </div>
+            {% endif %}
+            <input type="file" class="form-control" name="image" accept="image/*">
+            <small class="text-muted">اترك الحقل فارغاً إن لم ترد تغيير الصورة</small>
+        </div>
+        <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input" name="is_featured" {% if course.is_featured %}checked{% endif %}>
+            <label class="form-check-label">دورة مميزة</label>
+        </div>
+        <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+        <a href="{{ url_for('admin.courses') }}" class="btn btn-secondary">إلغاء</a>
+    </form>
+</div>
+{% endblock %}

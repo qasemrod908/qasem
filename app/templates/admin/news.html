@@ -13,6 +13,16 @@
             <span class="badge bg-{{ 'success' if item.is_published else 'secondary' }}">
                 {{ 'منشور' if item.is_published else 'مسودة' }}
             </span>
+            <div class="mt-3">
+                <a href="{{ url_for('admin.edit_news', news_id=item.id) }}" class="btn btn-sm btn-warning">
+                    <i class="fas fa-edit"></i> تعديل
+                </a>
+                <form method="POST" action="{{ url_for('admin.delete_news', news_id=item.id) }}" style="display: inline;" onsubmit="return confirm('هل أنت متأكد من حذف هذا الخبر؟');">
+                    <button type="submit" class="btn btn-sm btn-danger">
+                        <i class="fas fa-trash"></i> حذف
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
     {% endfor %}

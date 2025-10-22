@@ -38,13 +38,13 @@ args = "Flask App"
 name = "Flask App"
 author = "agent"
 
+[workflows.workflow.metadata]
+outputType = "webview"
+
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python main.py"
 waitForPort = 5000
-
-[workflows.workflow.metadata]
-outputType = "webview"
 
 [[ports]]
 localPort = 80
@@ -52,11 +52,7 @@ externalPort = 80
 
 [[ports]]
 localPort = 5000
-externalPort = 5000
-
-[[ports]]
-localPort = 38783
-externalPort = 3000
+externalPort = 80
 
 [agent]
 expertMode = true

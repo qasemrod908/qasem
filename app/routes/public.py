@@ -39,11 +39,23 @@ def teachers():
     all_teachers = Teacher.query.all()
     return render_template('public/teachers.html', settings=settings, teachers=all_teachers)
 
+@bp.route('/teacher/<int:teacher_id>')
+def teacher_detail(teacher_id):
+    settings = SiteSettings.query.first()
+    teacher = Teacher.query.get_or_404(teacher_id)
+    return render_template('public/teacher_detail.html', settings=settings, teacher=teacher)
+
 @bp.route('/news')
 def news():
     settings = SiteSettings.query.first()
     all_news = News.query.filter_by(is_published=True).order_by(News.created_at.desc()).all()
     return render_template('public/news.html', settings=settings, news=all_news)
+
+@bp.route('/news/<int:news_id>')
+def news_detail(news_id):
+    settings = SiteSettings.query.first()
+    news_item = News.query.get_or_404(news_id)
+    return render_template('public/news_detail.html', settings=settings, news=news_item)
 
 @bp.route('/contact', methods=['GET', 'POST'])
 def contact():

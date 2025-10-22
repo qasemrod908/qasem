@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}{{ course.title }} - معهد القاسم{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    {% if course.image %}
+                    <img src="{{ url_for('static', filename='uploads/' + course.image) }}" class="img-fluid rounded mb-4" alt="{{ course.title }}">
+                    {% endif %}
+                    <h2 class="mb-3">{{ course.title }}</h2>
+                    
+                    {% if course.short_description %}
+                    <p class="lead text-muted">{{ course.short_description }}</p>
+                    {% endif %}
+                    
+                    <hr>
+                    
+                    {% if course.description %}
+                    <h4 class="mb-3"><i class="fas fa-info-circle ms-2"></i>تفاصيل الدورة</h4>
+                    <p style="white-space: pre-line;">{{ course.description }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-graduation-cap ms-2"></i>معلومات الدورة</h5>
+                </div>
+                <div class="card-body">
+                    {% if course.level %}
+                    <p class="mb-2">
+                        <strong><i class="fas fa-signal ms-2"></i>المستوى:</strong>
+                        <span class="badge bg-info">{{ course.level }}</span>
+                    </p>
+                    {% endif %}
+                    
+                    {% if course.duration %}
+                    <p class="mb-2">
+                        <strong><i class="fas fa-clock ms-2"></i>المدة:</strong> {{ course.duration }}
+                    </p>
+                    {% endif %}
+                    
+                    {% if course.is_featured %}
+                    <p class="mb-2">
+                        <span class="badge bg-success"><i class="fas fa-star ms-1"></i>دورة مميزة</span>
+                    </p>
+                    {% endif %}
+                    
+                    <hr>
+                    
+                    <div class="d-grid">
+                        <a href="{{ url_for('public.contact') }}" class="btn btn-primary">
+                            <i class="fas fa-envelope ms-2"></i>
+                            استفسر عن الدورة
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            {% if course.lessons.count() > 0 %}
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-book ms-2"></i>الدروس المتاحة</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">عدد الدروس: {{ course.lessons.count() }}</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="mt-4">
+        <a href="{{ url_for('public.courses') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-right ms-2"></i>
+            العودة إلى قائمة الدورات
+        </a>
+    </div>
+</div>
+{% endblock %}

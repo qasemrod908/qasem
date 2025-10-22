@@ -11,11 +11,11 @@ def login():
         return redirect(url_for('public.index'))
     
     if request.method == 'POST':
-        email = request.form.get('email')
+        phone_number = request.form.get('phone_number')
         password = request.form.get('password')
-        remember = request.form.get('remember', False)
+        remember = bool(request.form.get('remember'))
         
-        user = User.query.filter_by(email=email).first()
+        user = User.query.filter_by(phone_number=phone_number).first()
         
         if user and user.check_password(password):
             if not user.is_active:
@@ -34,7 +34,7 @@ def login():
             else:
                 return redirect(next_page or url_for('public.index'))
         else:
-            flash('البريد الإلكتروني أو كلمة المرور غير صحيحة', 'danger')
+            flash('رقم الجوال أو كلمة المرور غير صحيحة', 'danger')
     
     return render_template('auth/login.html')
 

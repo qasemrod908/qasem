@@ -6,11 +6,18 @@
     <div class="row">
         {% for teacher in teachers %}
         <div class="col-md-3 mb-4">
-            <div class="card text-center shadow-sm">
-                <div class="card-body">
+            <div class="card text-center shadow-sm h-100">
+                <div class="card-body d-flex flex-column">
+                    {% if teacher.photo %}
+                    <img src="{{ url_for('static', filename='uploads/' + teacher.photo) }}" class="rounded-circle mb-3" alt="{{ teacher.user.full_name }}" style="width: 100px; height: 100px; object-fit: cover; margin: 0 auto;">
+                    {% else %}
                     <i class="fas fa-user-circle fa-4x text-primary mb-3"></i>
+                    {% endif %}
                     <h5>{{ teacher.user.full_name }}</h5>
-                    {% if teacher.specialization %}<p>{{ teacher.specialization }}</p>{% endif %}
+                    {% if teacher.specialization %}<p class="text-muted">{{ teacher.specialization }}</p>{% endif %}
+                    <div class="mt-auto">
+                        <a href="{{ url_for('public.teacher_detail', teacher_id=teacher.id) }}" class="btn btn-outline-primary btn-sm">عرض التفاصيل</a>
+                    </div>
                 </div>
             </div>
         </div>

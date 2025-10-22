@@ -3,11 +3,11 @@ from app.models import User, SiteSettings
 from werkzeug.security import generate_password_hash
 
 def initialize_database():
-    admin_user = User.query.filter_by(email='admin@alqasim.edu').first()
+    admin_user = User.query.filter_by(phone_number='0501234567').first()
     
     if not admin_user:
         admin = User(
-            email='admin@alqasim.edu',
+            phone_number='0501234567',
             full_name='المدير العام',
             role='admin',
             is_active=True
@@ -30,5 +30,5 @@ def initialize_database():
         
         db.session.commit()
         print('✅ تم إنشاء المستخدم الإداري الافتراضي')
-        print('   البريد الإلكتروني: admin@alqasim.edu')
+        print('   رقم الجوال: 0501234567')
         print('   ⚠️  يرجى تغيير كلمة المرور الافتراضية فوراً من لوحة التحكم')

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">تعديل خبر</h2>
+    <form method="POST" enctype="multipart/form-data">
+        <div class="mb-3">
+            <label class="form-label">العنوان</label>
+            <input type="text" class="form-control" name="title" value="{{ news.title }}" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">المحتوى</label>
+            <textarea class="form-control" name="content" rows="6" required>{{ news.content }}</textarea>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">صورة الخبر</label>
+            {% if news.image %}
+            <div class="mb-2">
+                <img src="{{ url_for('static', filename='uploads/' + news.image) }}" alt="{{ news.title }}" style="max-width: 200px;" class="img-thumbnail">
+            </div>
+            {% endif %}
+            <input type="file" class="form-control" name="image" accept="image/*">
+            <small class="text-muted">اترك الحقل فارغاً إن لم ترد تغيير الصورة</small>
+        </div>
+        <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input" name="is_published" {% if news.is_published %}checked{% endif %}>
+            <label class="form-check-label">نشر مباشرة</label>
+        </div>
+        <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+        <a href="{{ url_for('admin.news') }}" class="btn btn-secondary">إلغاء</a>
+    </form>
+</div>
+{% endblock %}

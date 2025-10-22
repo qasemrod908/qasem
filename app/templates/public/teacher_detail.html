@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}{{ teacher.user.full_name }} - معهد القاسم{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body text-center">
+                    {% if teacher.photo %}
+                    <img src="{{ url_for('static', filename='uploads/' + teacher.photo) }}" class="rounded-circle mb-3" alt="{{ teacher.user.full_name }}" style="width: 200px; height: 200px; object-fit: cover;">
+                    {% else %}
+                    <i class="fas fa-user-circle fa-10x text-primary mb-3"></i>
+                    {% endif %}
+                    <h3>{{ teacher.user.full_name }}</h3>
+                    {% if teacher.specialization %}
+                    <p class="text-muted lead">{{ teacher.specialization }}</p>
+                    {% endif %}
+                    
+                    {% if teacher.experience_years %}
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-briefcase ms-2"></i>
+                        <strong>سنوات الخبرة:</strong> {{ teacher.experience_years }} سنة
+                    </div>
+                    {% endif %}
+                    
+                    {% if teacher.phone %}
+                    <p class="mt-3">
+                        <i class="fas fa-phone ms-2"></i>
+                        <strong>الهاتف:</strong> {{ teacher.phone }}
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-user-graduate ms-2"></i>نبذة عن المدرس</h4>
+                </div>
+                <div class="card-body">
+                    {% if teacher.bio %}
+                    <p style="white-space: pre-line;">{{ teacher.bio }}</p>
+                    {% else %}
+                    <p class="text-muted">لا توجد نبذة متوفرة حالياً</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {% if teacher.qualifications %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0"><i class="fas fa-certificate ms-2"></i>المؤهلات</h4>
+                </div>
+                <div class="card-body">
+                    <p style="white-space: pre-line;">{{ teacher.qualifications }}</p>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0"><i class="fas fa-book ms-2"></i>الدروس المنشورة</h4>
+                </div>
+                <div class="card-body">
+                    {% if teacher.lessons %}
+                    <ul class="list-group">
+                        {% for lesson in teacher.lessons %}
+                        {% if lesson.is_published %}
+                        <li class="list-group-item">
+                            <i class="fas fa-file-alt ms-2"></i>
+                            {{ lesson.title }}
+                            <span class="badge bg-secondary float-start">{{ lesson.course.title }}</span>
+                        </li>
+                        {% endif %}
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-muted">لا توجد دروس منشورة حالياً</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mt-4">
+        <a href="{{ url_for('public.teachers') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-right ms-2"></i>
+            العودة إلى قائمة المدرسين
+        </a>
+    </div>
+</div>
+{% endblock %}
