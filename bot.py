@@ -311,10 +311,8 @@ async def dashboard(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 dashboard_text = f"""
 📊 *لوحة تحكم الطالب*
 
-👤 الاسم: {student.full_name}
-📱 الجوال: {student.phone_number}
-📧 البريد: {student.email or 'غير محدد'}
-
+👤 الاسم: {student.user.full_name}
+📱 الجوال: {student.user.phone_number}
 📚 عدد الدورات: {my_courses}
 📝 عدد الدرجات: {total_grades}
 
@@ -753,9 +751,7 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     text = update.message.text
     update_statistics()
     
-    if text == "🔐 تسجيل الدخول":
-        return await login_start(update, context)
-    elif text == "📚 الدورات":
+    if text == "📚 الدورات":
         return await view_courses(update, context)
     elif text == "📰 الأخبار":
         return await view_news(update, context)
@@ -841,7 +837,10 @@ def main() -> None:
     application = Application.builder().token(token).build()
     
     login_handler = ConversationHandler(
-        entry_points=[CommandHandler('login', login_start)],
+        entry_points=[
+            CommandHandler('login', login_start),
+            MessageHandler(filters.Regex('^🔐 تسجيل الدخول$'), login_start)
+        ],
         states={
             LOGIN_PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, login_phone)],
             LOGIN_PASSWORD: [MessageHandler(filters.TEXT & ~filters.COMMAND, login_password)],
