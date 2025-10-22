@@ -239,7 +239,7 @@ async def login_password(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             
             await update.message.reply_text(
                 f"✅ تم تسجيل الدخول بنجاح!\n\n"
-                f"{role_emoji.get(user.role, '👤')} مرحباً {user.name}\n"
+                f"{role_emoji.get(user.role, '👤')} مرحباً {user.full_name}\n"
                 f"📋 الدور: {user.role}\n\n"
                 f"استخدم القائمة أدناه أو /dashboard للبدء",
                 reply_markup=reply_markup
@@ -346,7 +346,7 @@ async def dashboard(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 dashboard_text = f"""
 👨‍🏫 *لوحة تحكم المعلم*
 
-👤 الاسم: {teacher.full_name}
+👤 الاسم: {teacher.user.full_name}
 📚 التخصص: {teacher.specialization or 'غير محدد'}
 📖 عدد الدورات: {my_enrollments}
 👥 عدد الطلاب: {my_students}
@@ -417,11 +417,10 @@ async def view_courses(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             available_seats = (course.max_students - enrolled_count) if course.max_students else "غير محدود"
             
             course_text = f"""
-📖 *{course.name}*
+📖 *{course.title}*
 
 📝 الوصف: {course.description[:100] if course.description else 'لا يوجد وصف'}...
 ⏱️ المدة: {course.duration}
-💰 السعر: {course.price} ل.س
 👥 المقاعد المتاحة: {available_seats}
 """
             
@@ -495,7 +494,7 @@ async def view_teachers(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         
         for teacher in teachers:
             teacher_text = f"""
-👨‍🏫 *{teacher.full_name}*
+👨‍🏫 *{teacher.user.full_name}*
 
 📚 التخصص: {teacher.specialization or 'غير محدد'}
 📜 المؤهلات: {teacher.qualifications or 'غير محدد'}
@@ -553,9 +552,9 @@ async def my_courses(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
                     ).count()
                     
                     course_text = f"""
-📖 *{course.name}*
+📖 *{course.title}*
 
-👨‍🏫 المعلم: {teacher.full_name if teacher else 'غير محدد'}
+👨‍🏫 المعلم: {teacher.user.full_name if teacher else 'غير محدد'}
 📝 عدد الدروس: {lessons_count}
 ⏱️ المدة: {course.duration}
 """
@@ -604,7 +603,7 @@ async def my_grades(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                     course = grade.course
                     grade_date = grade.created_at.strftime('%Y-%m-%d')
                     grades_text += f"""
-📚 {course.name}
+📚 {course.title}
 📋 {grade.exam_name}
 ✅ الدرجة: {grade.score}/{grade.max_score}
 📅 التاريخ: {grade_date}
@@ -634,13 +633,12 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 lessons_count = Lesson.query.filter_by(course_id=course.id, is_published=True).count()
                 
                 course_detail = f"""
-📖 *{course.name}*
+📖 *{course.title}*
 
 📝 *الوصف:*
 {course.description or 'لا يوجد وصف'}
 
 ⏱️ المدة: {course.duration}
-💰 السعر: {course.price} ل.س
 📚 عدد الدروس: {lessons_count}
 👥 المقاعد المتاحة: {available_seats}
 {'⭐ دورة مميزة' if course.is_featured else ''}
@@ -676,13 +674,12 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             teacher = Teacher.query.get(teacher_id)
             if teacher:
                 teacher_detail = f"""
-👨‍🏫 *{teacher.full_name}*
+👨‍🏫 *{teacher.user.full_name}*
 
 📚 التخصص: {teacher.specialization or 'غير محدد'}
 📜 المؤهلات: {teacher.qualifications or 'غير محدد'}
 ⏱️ الخبرة: {teacher.experience_years or 0} سنة
-📧 البريد: {teacher.email or 'غير محدد'}
-📱 الجوال: {teacher.phone_number or 'غير محدد'}
+📱 الجوال: {teacher.phone or 'غير محدد'}
 
 {teacher.bio or ''}
 """
@@ -728,11 +725,11 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             ).all()
             
             if not lessons:
-                await query.edit_message_text(f"لا توجد دروس متاحة في دورة {course.name}")
+                await query.edit_message_text(f"لا توجد دروس متاحة في دورة {course.title}")
                 update_statistics(increment_sent=True)
                 return
             
-            lessons_text = f"📖 *دروس دورة {course.name}*\n\n"
+            lessons_text = f"📖 *دروس دورة {course.title}*\n\n"
             
             for i, lesson in enumerate(lessons, 1):
                 lesson_date = lesson.created_at.strftime('%Y-%m-%d')
