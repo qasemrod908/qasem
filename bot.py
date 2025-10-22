@@ -230,11 +230,25 @@ async def login_password(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 'student': '👨‍🎓'
             }
             
-            keyboard = [
-                [KeyboardButton("📊 لوحة التحكم"), KeyboardButton("📚 دوراتي")],
-                [KeyboardButton("📖 دروسي"), KeyboardButton("📝 درجاتي")],
-                [KeyboardButton("📰 الأخبار"), KeyboardButton("🚪 تسجيل الخروج")]
-            ]
+            # تخصيص الأزرار حسب دور المستخدم
+            if user.role == 'student':
+                keyboard = [
+                    [KeyboardButton("📊 لوحة التحكم"), KeyboardButton("📚 دوراتي")],
+                    [KeyboardButton("📖 دروسي"), KeyboardButton("📝 درجاتي")],
+                    [KeyboardButton("📰 الأخبار"), KeyboardButton("🚪 تسجيل الخروج")]
+                ]
+            elif user.role == 'teacher':
+                keyboard = [
+                    [KeyboardButton("📊 لوحة التحكم"), KeyboardButton("📚 دوراتي")],
+                    [KeyboardButton("📖 دروسي"), KeyboardButton("👥 طلابي")],
+                    [KeyboardButton("📰 الأخبار"), KeyboardButton("🚪 تسجيل الخروج")]
+                ]
+            else:  # admin or assistant
+                keyboard = [
+                    [KeyboardButton("📊 لوحة التحكم"), KeyboardButton("📰 الأخبار")],
+                    [KeyboardButton("🚪 تسجيل الخروج")]
+                ]
+            
             reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
             
             await update.message.reply_text(
@@ -1095,19 +1109,100 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 update_statistics(increment_sent=True)
                 return
             
-            lessons_text = f"📖 *دروس دورة {course.title}*\n\n"
+            lessons_text = f"📖 *دروس دورة {course.title}*\n\nاختر درساً لعرض التفاصيل:"
             
-            for i, lesson in enumerate(lessons, 1):
-                lesson_date = lesson.upload_date.strftime('%Y-%m-%d')
-                has_file = "📎" if lesson.file_path else ""
-                lessons_text += f"{i}. {lesson.title} {has_file}\n"
-                lessons_text += f"   📅 {lesson_date}\n\n"
+            keyboard = []
+            for lesson in lessons[:20]:
+                has_file = "📎 " if lesson.file_path else ""
+                keyboard.append([InlineKeyboardButton(
+                    f"{has_file}{lesson.title}", 
+                    callback_data=f"lesson_{lesson.id}"
+                )])
+            
+            reply_markup = InlineKeyboardMarkup(keyboard)
             
             await query.edit_message_text(
                 lessons_text,
-                parse_mode=ParseMode.MARKDOWN
+                parse_mode=ParseMode.MARKDOWN,
+                reply_markup=reply_markup
             )
             update_statistics(increment_sent=True)
+    
+    elif data.startswith('lesson_'):
+        lesson_id = int(data.split('_')[1])
+        user = query.from_user
+        
+        with flask_app.app_context():
+            session = BotSession.query.filter_by(telegram_id=user.id).first()
+            if not session or not session.is_authenticated:
+                await query.edit_message_text("🔒 يجب تسجيل الدخول أولاً!")
+                update_statistics(increment_sent=True)
+                return
+            
+            lesson = Lesson.query.get(lesson_id)
+            if not lesson:
+                await query.edit_message_text("لم يتم العثور على الدرس")
+                update_statistics(increment_sent=True)
+                return
+            
+            course = Course.query.get(lesson.course_id)
+            teacher = Teacher.query.get(lesson.teacher_id)
+            lesson_date = lesson.upload_date.strftime('%Y-%m-%d')
+            
+            lesson_detail = f"""
+📖 *{lesson.title}*
+
+📚 الدورة: {course.title if course else 'غير محدد'}
+👨‍🏫 المعلم: {teacher.user.full_name if teacher else 'غير محدد'}
+📅 التاريخ: {lesson_date}
+
+📝 *الوصف:*
+{lesson.description or 'لا يوجد وصف'}
+"""
+            
+            if lesson.file_path:
+                lesson_detail += f"\n📎 *يوجد ملف مرفق*"
+                keyboard = [[InlineKeyboardButton("📥 تحميل الملف", callback_data=f"download_{lesson.id}")]]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+                
+                await query.edit_message_text(
+                    lesson_detail,
+                    parse_mode=ParseMode.MARKDOWN,
+                    reply_markup=reply_markup
+                )
+            else:
+                await query.edit_message_text(
+                    lesson_detail,
+                    parse_mode=ParseMode.MARKDOWN
+                )
+            
+            update_statistics(increment_sent=True)
+    
+    elif data.startswith('download_'):
+        lesson_id = int(data.split('_')[1])
+        user = query.from_user
+        
+        with flask_app.app_context():
+            lesson = Lesson.query.get(lesson_id)
+            if lesson and lesson.file_path:
+                file_path = os.path.join('static', lesson.file_path)
+                
+                if os.path.exists(file_path):
+                    await query.answer("جاري إرسال الملف...")
+                    
+                    with open(file_path, 'rb') as f:
+                        await query.message.reply_document(
+                            document=f,
+                            filename=os.path.basename(lesson.file_path),
+                            caption=f"📖 {lesson.title}"
+                        )
+                    update_statistics(increment_sent=True)
+                else:
+                    await query.answer("عذراً، الملف غير موجود", show_alert=True)
+                    update_statistics(increment_sent=True)
+            else:
+                await query.answer("عذراً، لا يوجد ملف مرفق", show_alert=True)
+                update_statistics(increment_sent=True)
     
     elif data == 'my_courses':
         await query.edit_message_text(
@@ -1147,6 +1242,8 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         return await my_lessons(update, context)
     elif text == "📝 درجاتي":
         return await my_grades(update, context)
+    elif text == "👥 طلابي":
+        return await teacher_students(update, context)
     elif text == "🚪 تسجيل الخروج":
         return await logout(update, context)
     elif text == "📞 التواصل":
