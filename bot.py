@@ -56,7 +56,13 @@ def update_statistics(increment_received=True, increment_sent=False):
         today = damascus_now().date()
         stats = BotStatistics.query.filter_by(date=today).first()
         if not stats:
-            stats = BotStatistics(date=today)
+            stats = BotStatistics(
+                date=today,
+                messages_received=0,
+                messages_sent=0,
+                total_users=0,
+                active_users_today=0
+            )
             db.session.add(stats)
         
         if increment_received:
