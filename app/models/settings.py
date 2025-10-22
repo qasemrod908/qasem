@@ -16,6 +16,9 @@ class SiteSettings(db.Model):
     phone2 = db.Column(db.String(20))
     email = db.Column(db.String(120))
     address = db.Column(db.Text)
+    telegram_bot_token = db.Column(db.String(255))
+    telegram_chat_id = db.Column(db.String(100))
+    telegram_backup_enabled = db.Column(db.Boolean, default=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     def __repr__(self):

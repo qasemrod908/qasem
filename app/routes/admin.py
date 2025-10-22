@@ -40,7 +40,8 @@ def backup():
                 flash('نوع النسخة الاحتياطية غير صحيح', 'danger')
                 return redirect(url_for('admin.backup'))
             
-            if send_telegram and current_app.config['TELEGRAM_BACKUP_ENABLED']:
+            site_settings = SiteSettings.query.first()
+            if send_telegram and site_settings and site_settings.telegram_backup_enabled:
                 asyncio.run(BackupManager.send_to_telegram(file_path))
             
             flash(f'تم إنشاء النسخة الاحتياطية بنجاح: {file_path}', 'success')
@@ -48,7 +49,70 @@ def backup():
         except Exception as e:
             flash(f'حدث خطأ أثناء إنشاء النسخة الاحتياطية: {str(e)}', 'danger')
     
-    return render_template('admin/backup.html')
+    backups = BackupManager.list_backups()
+    return render_template('admin/backup.html', backups=backups)
+
+@bp.route('/backup/download/<path:filename>')
+@role_required('admin')
+def download_backup(filename):
+    try:
+        from werkzeug.security import safe_join
+        
+        safe_filename = os.path.basename(filename)
+        file_path = safe_join('backups', safe_filename)
+        
+        if file_path is None or not file_path.startswith(os.path.abspath('backups')):
+            flash('محاولة وصول غير مصرح بها', 'danger')
+            return redirect(url_for('admin.backup'))
+        
+        if os.path.exists(file_path) and os.path.isfile(file_path):
+            return send_file(file_path, as_attachment=True)
+        else:
+            flash('الملف غير موجود', 'danger')
+            return redirect(url_for('admin.backup'))
+    except Exception as e:
+        flash(f'حدث خطأ أثناء تحميل الملف: {str(e)}', 'danger')
+        return redirect(url_for('admin.backup'))
+
+@bp.route('/backup/restore', methods=['POST'])
+@role_required('admin')
+def restore_backup():
+    restore_type = request.form.get('restore_type')
+    
+    if 'backup_file' not in request.files:
+        flash('لم يتم اختيار ملف', 'danger')
+        return redirect(url_for('admin.backup'))
+    
+    file = request.files['backup_file']
+    if file.filename == '':
+        flash('لم يتم اختيار ملف', 'danger')
+        return redirect(url_for('admin.backup'))
+    
+    try:
+        filename = secure_filename(file.filename)
+        temp_path = os.path.join('temp_uploads', filename)
+        os.makedirs('temp_uploads', exist_ok=True)
+        file.save(temp_path)
+        
+        if restore_type == 'full':
+            BackupManager.restore_full_backup(temp_path)
+            flash('تم استعادة النسخة الاحتياطية الكاملة بنجاح. سيتم إعادة تشغيل التطبيق.', 'success')
+        elif restore_type == 'structure':
+            BackupManager.restore_structure_backup(temp_path)
+            flash('تم استعادة البنية بنجاح. سيتم إعادة تشغيل التطبيق.', 'success')
+        elif restore_type == 'data':
+            BackupManager.restore_data_backup(temp_path)
+            flash('تم استعادة البيانات بنجاح. سيتم إعادة تشغيل التطبيق.', 'success')
+        else:
+            flash('نوع الاستعادة غير صحيح', 'danger')
+            return redirect(url_for('admin.backup'))
+        
+        os.remove(temp_path)
+        
+    except Exception as e:
+        flash(f'حدث خطأ أثناء استعادة النسخة الاحتياطية: {str(e)}', 'danger')
+    
+    return redirect(url_for('admin.backup'))
 
 @bp.route('/users')
 @role_required('admin')
@@ -234,6 +298,9 @@ def settings():
         site_settings.phone2 = request.form.get('phone2')
         site_settings.email = request.form.get('email')
         site_settings.address = request.form.get('address')
+        site_settings.telegram_bot_token = request.form.get('telegram_bot_token')
+        site_settings.telegram_chat_id = request.form.get('telegram_chat_id')
+        site_settings.telegram_backup_enabled = request.form.get('telegram_backup_enabled') == 'on'
         db.session.commit()
         flash('تم تحديث الإعدادات بنجاح', 'success')
         return redirect(url_for('admin.settings'))
@@ -306,3 +373,36 @@ def delete_news(news_id):
     db.session.commit()
     flash('تم حذف الخبر بنجاح', 'success')
     return redirect(url_for('admin.news'))
+
+@bp.route('/teachers')
+@role_required('admin', 'assistant')
+def teachers():
+    all_teachers = Teacher.query.all()
+    return render_template('admin/teachers.html', teachers=all_teachers)
+
+@bp.route('/teachers/edit/<int:teacher_id>', methods=['GET', 'POST'])
+@role_required('admin', 'assistant')
+def edit_teacher(teacher_id):
+    teacher = Teacher.query.get_or_404(teacher_id)
+    
+    if request.method == 'POST':
+        teacher.specialization = request.form.get('specialization')
+        teacher.bio = request.form.get('bio')
+        teacher.experience_years = request.form.get('experience_years')
+        teacher.qualifications = request.form.get('qualifications')
+        teacher.phone = request.form.get('phone')
+        
+        if 'photo' in request.files:
+            file = request.files['photo']
+            if file and file.filename:
+                filename = secure_filename(file.filename)
+                upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'teachers', filename)
+                os.makedirs(os.path.dirname(upload_path), exist_ok=True)
+                file.save(upload_path)
+                teacher.photo = f'teachers/{filename}'
+        
+        db.session.commit()
+        flash('تم تحديث بيانات المدرس بنجاح', 'success')
+        return redirect(url_for('admin.teachers'))
+    
+    return render_template('admin/edit_teacher.html', teacher=teacher)

@@ -48,3 +48,32 @@ def grades():
     student = Student.query.filter_by(user_id=current_user.id).first()
     my_grades = Grade.query.filter_by(student_id=student.id).order_by(Grade.created_at.desc()).all()
     return render_template('student/grades.html', grades=my_grades)
+
+@bp.route('/lesson/download/<int:lesson_id>')
+@role_required('student')
+def download_lesson(lesson_id):
+    from flask import send_file, current_app
+    import os
+    
+    student = Student.query.filter_by(user_id=current_user.id).first()
+    if not student:
+        flash('الملف الشخصي للطالب غير موجود', 'danger')
+        return redirect(url_for('public.index'))
+    
+    lesson = Lesson.query.get_or_404(lesson_id)
+    
+    enrollment = Enrollment.query.filter_by(student_id=student.id, course_id=lesson.course_id).first()
+    if not enrollment:
+        flash('ليس لديك صلاحية لتحميل هذا الدرس', 'danger')
+        return redirect(url_for('student.courses'))
+    
+    if lesson.file_path:
+        file_full_path = os.path.join(current_app.config['UPLOAD_FOLDER'], lesson.file_path.replace('uploads/', ''))
+        if os.path.exists(file_full_path):
+            return send_file(file_full_path, as_attachment=True)
+        else:
+            flash('الملف غير موجود', 'danger')
+    else:
+        flash('لا يوجد ملف مرفق لهذا الدرس', 'warning')
+    
+    return redirect(url_for('student.lessons', course_id=lesson.course_id))

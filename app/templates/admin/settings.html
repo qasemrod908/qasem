@@ -31,7 +31,35 @@
             <label class="form-label">رابط الفيسبوك</label>
             <input type="url" class="form-control" name="facebook_url" value="{{ settings.facebook_url or '' }}">
         </div>
-        <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+        
+        <hr class="my-4">
+        <h4 class="mb-3">إعدادات بوت التيليجرام</h4>
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle ms-2"></i>
+            لتفعيل إرسال النسخ الاحتياطية إلى Telegram، يرجى إدخال Token و Chat ID الخاص بالبوت
+        </div>
+        
+        <div class="mb-3">
+            <label class="form-label">Telegram Bot Token</label>
+            <input type="text" class="form-control" name="telegram_bot_token" value="{{ settings.telegram_bot_token or '' }}" placeholder="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11">
+        </div>
+        
+        <div class="mb-3">
+            <label class="form-label">Telegram Chat ID</label>
+            <input type="text" class="form-control" name="telegram_chat_id" value="{{ settings.telegram_chat_id or '' }}" placeholder="123456789">
+        </div>
+        
+        <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input" id="telegram_backup_enabled" name="telegram_backup_enabled" {{ 'checked' if settings.telegram_backup_enabled else '' }}>
+            <label class="form-check-label" for="telegram_backup_enabled">
+                تفعيل إرسال النسخ الاحتياطية إلى Telegram
+            </label>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save ms-2"></i>
+            حفظ التغييرات
+        </button>
     </form>
 </div>
 {% endblock %}

@@ -10,10 +10,10 @@
     </h2>
 
     <div class="row">
-        <div class="col-md-8">
-            <div class="card shadow-sm">
+        <div class="col-md-6">
+            <div class="card shadow-sm mb-4">
                 <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">إنشاء نسخة احتياطية</h5>
+                    <h5 class="mb-0"><i class="fas fa-plus-circle ms-2"></i> إنشاء نسخة احتياطية</h5>
                 </div>
                 <div class="card-body">
                     <form method="POST" action="{{ url_for('admin.backup') }}">
@@ -35,38 +35,92 @@
 
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-download ms-2"></i>
-                            إنشاء نسخة احتياطية
+                            إنشاء وتحميل
                         </button>
                     </form>
                 </div>
             </div>
 
-            <div class="card shadow-sm mt-4">
+            <div class="card shadow-sm">
                 <div class="card-header bg-success text-white">
-                    <h5 class="mb-0">إعدادات Telegram</h5>
+                    <h5 class="mb-0"><i class="fas fa-upload ms-2"></i> استعادة نسخة احتياطية</h5>
                 </div>
                 <div class="card-body">
-                    <div class="alert alert-info">
-                        <strong>لتفعيل إرسال النسخ الاحتياطية إلى Telegram:</strong><br>
-                        1. قم بإنشاء بوت جديد عبر <a href="https://t.me/BotFather" target="_blank">@BotFather</a><br>
-                        2. احصل على Token الخاص بالبوت<br>
-                        3. احصل على Chat ID الخاص بك<br>
-                        4. أضف المتغيرات في إعدادات البيئة (Secrets)
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle ms-2"></i>
+                        <strong>تحذير:</strong> استعادة النسخة الاحتياطية ستستبدل البيانات الحالية!
                     </div>
-                    <p><strong>المتغيرات المطلوبة:</strong></p>
-                    <ul>
-                        <li><code>TELEGRAM_BOT_TOKEN</code></li>
-                        <li><code>TELEGRAM_CHAT_ID</code></li>
-                        <li><code>TELEGRAM_BACKUP_ENABLED=true</code></li>
-                    </ul>
+                    <form method="POST" action="{{ url_for('admin.restore_backup') }}" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label class="form-label">نوع الاستعادة</label>
+                            <select class="form-select" name="restore_type" required>
+                                <option value="full">استعادة كاملة (قاعدة البيانات + الملفات)</option>
+                                <option value="structure">استعادة البنية فقط (التصميم والقوالب)</option>
+                                <option value="data">استعادة البيانات فقط</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">اختر ملف النسخة الاحتياطية</label>
+                            <input type="file" class="form-control" name="backup_file" required accept=".zip,.db">
+                        </div>
+
+                        <button type="submit" class="btn btn-success" onclick="return confirm('هل أنت متأكد من استعادة النسخة الاحتياطية؟ سيتم استبدال البيانات الحالية!')">
+                            <i class="fas fa-undo ms-2"></i>
+                            استعادة النسخة
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-list ms-2"></i> النسخ الاحتياطية المتوفرة</h5>
+                </div>
+                <div class="card-body">
+                    {% if backups %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>اسم الملف</th>
+                                    <th>النوع</th>
+                                    <th>الحجم</th>
+                                    <th>التاريخ</th>
+                                    <th>تحميل</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for backup in backups %}
+                                <tr>
+                                    <td>{{ backup.name }}</td>
+                                    <td><span class="badge bg-secondary">{{ backup.type }}</span></td>
+                                    <td>{{ "%.2f"|format(backup.size / 1024 / 1024) }} MB</td>
+                                    <td>{{ backup.created.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        <a href="{{ url_for('admin.download_backup', filename=backup.name) }}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-download"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle ms-2"></i>
+                        لا توجد نسخ احتياطية متوفرة
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
             <div class="card shadow-sm">
                 <div class="card-header bg-warning">
-                    <h5 class="mb-0">ملاحظات هامة</h5>
+                    <h5 class="mb-0"><i class="fas fa-info-circle ms-2"></i> ملاحظات هامة</h5>
                 </div>
                 <div class="card-body">
                     <ul class="list-unstyled">
@@ -85,6 +139,10 @@
                         <li class="mb-2">
                             <i class="fas fa-exclamation-triangle text-warning ms-2"></i>
                             احفظ النسخ في مكان آمن
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-cog text-info ms-2"></i>
+                            إعدادات Telegram في صفحة <a href="{{ url_for('admin.settings') }}">الإعدادات</a>
                         </li>
                     </ul>
                 </div>

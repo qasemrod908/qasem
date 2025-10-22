@@ -1,21 +1,60 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container mt-4">
-    <h2 class="mb-4">دروس: {{ course.title }}</h2>
-    {% for lesson in lessons %}
-    <div class="card mb-3">
-        <div class="card-body">
-            <h5>{{ lesson.title }}</h5>
-            <p>{{ lesson.description }}</p>
-            {% if lesson.file_path %}
-            <a href="{{ url_for('static', filename=lesson.file_path) }}" class="btn btn-success" download>
-                <i class="fas fa-download ms-2"></i> تحميل الملف
-            </a>
-            {% endif %}
-        </div>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="fas fa-book-reader ms-2"></i>
+            دروس: {{ course.title }}
+        </h2>
+        <a href="{{ url_for('student.courses') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-right ms-2"></i>
+            العودة للدورات
+        </a>
     </div>
+    
+    {% if lessons %}
+        {% for lesson in lessons %}
+        <div class="card mb-3 shadow-sm">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <h5 class="card-title">
+                            <i class="fas fa-file-alt ms-2"></i>
+                            {{ lesson.title }}
+                        </h5>
+                        <p class="card-text text-muted">{{ lesson.description }}</p>
+                        {% if lesson.file_type %}
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle ms-1"></i>
+                            نوع الملف: {{ lesson.file_type.upper() }}
+                        </small>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4 text-end">
+                        {% if lesson.file_path %}
+                        <div class="btn-group-vertical" role="group">
+                            <a href="{{ url_for('student.download_lesson', lesson_id=lesson.id) }}" class="btn btn-primary mb-2">
+                                <i class="fas fa-download ms-2"></i>
+                                تحميل الدرس
+                            </a>
+                            <a href="{{ url_for('static', filename=lesson.file_path) }}" class="btn btn-outline-primary" target="_blank">
+                                <i class="fas fa-external-link-alt ms-2"></i>
+                                فتح الدرس
+                            </a>
+                        </div>
+                        {% else %}
+                        <span class="badge bg-warning">لا يوجد ملف مرفق</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
     {% else %}
-    <p>لا توجد دروس منشورة بعد</p>
-    {% endfor %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle ms-2"></i>
+            لا توجد دروس منشورة بعد لهذه الدورة
+        </div>
+    {% endif %}
 </div>
 {% endblock %}
