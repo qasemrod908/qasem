@@ -30,6 +30,32 @@ class BackupManager:
         if os.path.exists('app/static/uploads'):
             shutil.copytree('app/static/uploads', f'{backup_dir}/uploads')
         
+        if os.path.exists('app/templates'):
+            shutil.copytree('app/templates', f'{backup_dir}/templates')
+        
+        if os.path.exists('app/static/css'):
+            shutil.copytree('app/static/css', f'{backup_dir}/css')
+        
+        if os.path.exists('app/static/js'):
+            shutil.copytree('app/static/js', f'{backup_dir}/js')
+        
+        if os.path.exists('app/static/images'):
+            shutil.copytree('app/static/images', f'{backup_dir}/images')
+        
+        if os.path.exists('app/models'):
+            shutil.copytree('app/models', f'{backup_dir}/models')
+        
+        if os.path.exists('app/routes'):
+            shutil.copytree('app/routes', f'{backup_dir}/routes')
+        
+        if os.path.exists('app/utils'):
+            shutil.copytree('app/utils', f'{backup_dir}/utils')
+        
+        important_files = ['run.py', 'requirements.txt', 'config.py', '.env']
+        for file in important_files:
+            if os.path.exists(file):
+                shutil.copy(file, f'{backup_dir}/{file}')
+        
         shutil.make_archive(f'backups/full_{timestamp}', 'zip', backup_dir)
         shutil.rmtree(backup_dir)
         
@@ -120,6 +146,46 @@ class BackupManager:
             if os.path.exists('app/static/uploads'):
                 shutil.rmtree('app/static/uploads')
             shutil.copytree(f'{temp_dir}/uploads', 'app/static/uploads')
+        
+        if os.path.exists(f'{temp_dir}/templates'):
+            if os.path.exists('app/templates'):
+                shutil.rmtree('app/templates')
+            shutil.copytree(f'{temp_dir}/templates', 'app/templates')
+        
+        if os.path.exists(f'{temp_dir}/css'):
+            if os.path.exists('app/static/css'):
+                shutil.rmtree('app/static/css')
+            shutil.copytree(f'{temp_dir}/css', 'app/static/css')
+        
+        if os.path.exists(f'{temp_dir}/js'):
+            if os.path.exists('app/static/js'):
+                shutil.rmtree('app/static/js')
+            shutil.copytree(f'{temp_dir}/js', 'app/static/js')
+        
+        if os.path.exists(f'{temp_dir}/images'):
+            if os.path.exists('app/static/images'):
+                shutil.rmtree('app/static/images')
+            shutil.copytree(f'{temp_dir}/images', 'app/static/images')
+        
+        if os.path.exists(f'{temp_dir}/models'):
+            if os.path.exists('app/models'):
+                shutil.rmtree('app/models')
+            shutil.copytree(f'{temp_dir}/models', 'app/models')
+        
+        if os.path.exists(f'{temp_dir}/routes'):
+            if os.path.exists('app/routes'):
+                shutil.rmtree('app/routes')
+            shutil.copytree(f'{temp_dir}/routes', 'app/routes')
+        
+        if os.path.exists(f'{temp_dir}/utils'):
+            if os.path.exists('app/utils'):
+                shutil.rmtree('app/utils')
+            shutil.copytree(f'{temp_dir}/utils', 'app/utils')
+        
+        important_files = ['run.py', 'requirements.txt', 'config.py']
+        for file in important_files:
+            if os.path.exists(f'{temp_dir}/{file}'):
+                shutil.copy(f'{temp_dir}/{file}', file)
         
         shutil.rmtree(temp_dir)
         return True
