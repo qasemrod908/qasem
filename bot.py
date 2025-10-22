@@ -543,7 +543,7 @@ async def my_courses(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
                 
                 for enrollment in enrollments:
                     course = enrollment.course
-                    teacher = enrollment.teacher
+                    teacher = Teacher.query.get(enrollment.teacher_id) if enrollment.teacher_id else None
                     lessons_count = Lesson.query.filter_by(
                         course_id=course.id,
                         is_published=True
@@ -603,7 +603,7 @@ async def my_grades(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                     grades_text += f"""
 📚 {course.title}
 📋 {grade.exam_name}
-✅ الدرجة: {grade.score}/{grade.max_score}
+✅ الدرجة: {grade.grade}/{grade.max_grade}
 📅 التاريخ: {grade_date}
 ━━━━━━━━━━━━━━━
 """
@@ -665,6 +665,13 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                     parse_mode=ParseMode.MARKDOWN
                 )
                 update_statistics(increment_sent=True)
+    
+    elif data in ['teacher_courses', 'teacher_lessons', 'teacher_students']:
+        await query.edit_message_text(
+            "⚠️ هذه الميزة قيد التطوير حالياً.\n\n"
+            "يرجى استخدام /dashboard للعودة إلى لوحة التحكم"
+        )
+        update_statistics(increment_sent=True)
     
     elif data.startswith('teacher_'):
         teacher_id = int(data.split('_')[1])
@@ -741,11 +748,14 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             )
             update_statistics(increment_sent=True)
     
-    elif data == 'my_courses':
-        await my_courses(query, context)
-    
-    elif data == 'my_grades':
-        await my_grades(query, context)
+    elif data in ['my_courses', 'my_lessons', 'my_grades']:
+        await query.edit_message_text(
+            "⚠️ هذه الميزة متاحة من القائمة الرئيسية.\n\n"
+            "يرجى استخدام القوائم أدناه أو الأوامر:\n"
+            "/mycourses - دوراتي\n"
+            "/mygrades - درجاتي"
+        )
+        update_statistics(increment_sent=True)
 
 async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     text = update.message.text

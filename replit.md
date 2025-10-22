@@ -51,11 +51,17 @@
   - البوت يعمل الآن تلقائياً عند تشغيل المشروع
   - لا حاجة لاستخدام Terminal لتشغيل البوت يدوياً
 - **إصلاح أخطاء البوت بشكل كامل**:
-  - إصلاح جميع أخطاء أسماء الحقول (Course.name → Course.title)
-  - إصلاح أخطاء الوصول لاسم المعلم (teacher.full_name → teacher.user.full_name)
-  - إصلاح أخطاء الوصول لاسم المستخدم (user.name → user.full_name)
-  - إزالة حقول غير موجودة (course.price، teacher.email)
+  - إصلاح جميع أخطاء أسماء الحقول:
+    * Course.name → Course.title
+    * Grade.score/max_score → Grade.grade/max_grade
+  - إصلاح أخطاء الوصول للحقول المرتبطة:
+    * teacher.full_name → teacher.user.full_name
+    * student.full_name/phone_number → student.user.full_name/phone_number
+    * user.name → user.full_name
+    * enrollment.teacher → Teacher.query.get(enrollment.teacher_id)
+  - إزالة حقول غير موجودة (course.price، teacher.email، student.email)
   - إصلاح مشكلة زر "🔐 تسجيل الدخول" - الآن يعمل بشكل صحيح
+  - إصلاح معالجة أزرار callback (teacher_courses، my_courses، إلخ)
   - البوت يعمل الآن بدون أي أخطاء
 - **إصلاح خطأ في الإحصائيات**: إصلاح مشكلة NoneType في دالة update_statistics عند إنشاء سجل إحصائيات جديد
 
