@@ -56,6 +56,19 @@
                                 </a>
                             </li>
                         {% endif %}
+                        {% if current_user.role in ['student', 'teacher'] %}
+                            <li class="nav-item">
+                                <a class="nav-link position-relative" href="{% if current_user.role == 'student' %}{{ url_for('student.notifications') }}{% else %}{{ url_for('teacher.notifications') }}{% endif %}">
+                                    <i class="fas fa-bell"></i>
+                                    {% set unread_count = current_user.get_unread_notifications_count() %}
+                                    {% if unread_count > 0 %}
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
+                                        {{ unread_count if unread_count < 100 else '99+' }}
+                                    </span>
+                                    {% endif %}
+                                </a>
+                            </li>
+                        {% endif %}
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('auth.logout') }}">
                                 <i class="fas fa-sign-out-alt"></i> خروج

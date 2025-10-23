@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}إشعاراتي - معهد القاسم{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2><i class="fas fa-bell ms-2"></i> إشعاراتي</h2>
+        </div>
+        <div class="col-md-4 text-end">
+            {% if unread_count > 0 %}
+            <span class="badge bg-danger fs-6">
+                {{ unread_count }} إشعار غير مقروء
+            </span>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if notifications %}
+        <div class="row">
+            {% for recipient in notifications %}
+                {% set notif = recipient.notification %}
+                <div class="col-md-12 mb-3">
+                    <div class="card {% if not recipient.is_read %}border-primary{% endif %}">
+                        <div class="card-header d-flex justify-content-between align-items-center {% if not recipient.is_read %}bg-primary bg-opacity-10{% endif %}">
+                            <div>
+                                <h5 class="mb-0">
+                                    {% if not recipient.is_read %}
+                                        <i class="fas fa-circle text-primary" style="font-size: 0.5rem;"></i>
+                                    {% endif %}
+                                    {{ notif.title }}
+                                </h5>
+                                <small class="text-muted">
+                                    <i class="fas fa-clock"></i>
+                                    {{ notif.created_at.strftime('%Y-%m-%d %H:%M') if notif.created_at else 'N/A' }}
+                                </small>
+                            </div>
+                            <div>
+                                {% if notif.notification_type == 'new_lesson' %}
+                                    <span class="badge bg-primary">درس جديد</span>
+                                {% elif notif.notification_type == 'new_grade' %}
+                                    <span class="badge bg-success">علامة جديدة</span>
+                                {% elif notif.notification_type == 'updated_grade' %}
+                                    <span class="badge bg-warning">تحديث علامة</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">عام</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text" style="white-space: pre-wrap;">{{ notif.message }}</p>
+                            {% if not recipient.is_read %}
+                                <form method="POST" action="{{ url_for('student.mark_notification_read', recipient_id=recipient.id) }}" style="display: inline;">
+                                    <button type="submit" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-check"></i> تحديد كمقروء
+                                    </button>
+                                </form>
+                            {% else %}
+                                <small class="text-success">
+                                    <i class="fas fa-check-circle"></i> 
+                                    تم القراءة في {{ recipient.read_at.strftime('%Y-%m-%d %H:%M') if recipient.read_at else '' }}
+                                </small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info text-center">
+            <i class="fas fa-info-circle fa-3x mb-3"></i>
+            <h4>لا توجد إشعارات حالياً</h4>
+            <p>ستظهر الإشعارات هنا عندما يكون هناك جديد</p>
+        </div>
+    {% endif %}
+
+    <div class="text-center mt-4">
+        <a href="{{ url_for('student.dashboard') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-right"></i> رجوع إلى لوحة التحكم
+        </a>
+    </div>
+</div>
+{% endblock %}

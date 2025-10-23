@@ -28,5 +28,12 @@ class User(UserMixin, db.Model):
             return True
         return self.permissions.get(permission, False)
     
+    def get_unread_notifications_count(self):
+        from app.models.notification import NotificationRecipient, Notification
+        return NotificationRecipient.query.filter_by(
+            user_id=self.id,
+            is_read=False
+        ).join(Notification).filter(Notification.is_active == True).count()
+    
     def __repr__(self):
         return f'<User {self.phone_number}>'

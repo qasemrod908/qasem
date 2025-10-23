@@ -1,8 +1,9 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 from flask_login import login_required, current_user
 from app import db
-from app.models import Student, Enrollment, Lesson, Grade, Course
+from app.models import Student, Enrollment, Lesson, Grade, Course, NotificationRecipient, Notification
 from app.utils.decorators import role_required
+from app.utils.notifications import get_user_notifications, get_unread_count, mark_notification_as_read
 
 bp = Blueprint('student', __name__, url_prefix='/student')
 
@@ -16,13 +17,20 @@ def dashboard():
     
     my_courses = Enrollment.query.filter_by(student_id=student.id).count()
     total_grades = Grade.query.filter_by(student_id=student.id).count()
+    unread_notifications = get_unread_count(current_user.id)
     
     stats = {
         'courses': my_courses,
-        'grades': total_grades
+        'grades': total_grades,
+        'notifications': unread_notifications
     }
     
-    return render_template('student/dashboard.html', student=student, stats=stats)
+    recent_notifications = get_user_notifications(current_user.id, unread_only=False, limit=5)
+    
+    return render_template('student/dashboard.html', 
+                          student=student, 
+                          stats=stats,
+                          recent_notifications=recent_notifications)
 
 @bp.route('/courses')
 @role_required('student')
@@ -77,3 +85,31 @@ def download_lesson(lesson_id):
         flash('لا يوجد ملف مرفق لهذا الدرس', 'warning')
     
     return redirect(url_for('student.lessons', course_id=lesson.course_id))
+
+@bp.route('/notifications')
+@role_required('student')
+def notifications():
+    student = Student.query.filter_by(user_id=current_user.id).first()
+    if not student:
+        flash('الملف الشخصي للطالب غير موجود', 'danger')
+        return redirect(url_for('public.index'))
+    
+    all_notifications = get_user_notifications(current_user.id, unread_only=False, limit=50)
+    unread_count = get_unread_count(current_user.id)
+    
+    return render_template('student/notifications.html', 
+                          notifications=all_notifications,
+                          unread_count=unread_count)
+
+@bp.route('/notifications/read/<int:recipient_id>', methods=['POST'])
+@role_required('student')
+def mark_notification_read(recipient_id):
+    recipient = NotificationRecipient.query.get_or_404(recipient_id)
+    
+    if recipient.user_id != current_user.id:
+        flash('ليس لديك صلاحية لهذا الإجراء', 'danger')
+        return redirect(url_for('student.notifications'))
+    
+    mark_notification_as_read(recipient_id)
+    flash('تم تحديد الإشعار كمقروء', 'success')
+    return redirect(url_for('student.notifications'))

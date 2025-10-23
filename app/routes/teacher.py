@@ -1,8 +1,9 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app
 from flask_login import login_required, current_user
 from app import db
-from app.models import Teacher, Student, Course, Enrollment, Lesson, Grade
+from app.models import Teacher, Student, Course, Enrollment, Lesson, Grade, NotificationRecipient, Notification
 from app.utils.decorators import role_required
+from app.utils.notifications import get_user_notifications, get_unread_count, mark_notification_as_read
 from werkzeug.utils import secure_filename
 import os
 
@@ -19,14 +20,21 @@ def dashboard():
     my_courses = Enrollment.query.filter_by(teacher_id=teacher.id).count()
     my_students = Student.query.join(Enrollment).filter(Enrollment.teacher_id == teacher.id).count()
     my_lessons = Lesson.query.filter_by(teacher_id=teacher.id).count()
+    unread_notifications = get_unread_count(current_user.id)
     
     stats = {
         'courses': my_courses,
         'students': my_students,
-        'lessons': my_lessons
+        'lessons': my_lessons,
+        'notifications': unread_notifications
     }
     
-    return render_template('teacher/dashboard.html', teacher=teacher, stats=stats)
+    recent_notifications = get_user_notifications(current_user.id, unread_only=False, limit=5)
+    
+    return render_template('teacher/dashboard.html', 
+                          teacher=teacher, 
+                          stats=stats,
+                          recent_notifications=recent_notifications)
 
 @bp.route('/lessons')
 @role_required('teacher')
@@ -356,3 +364,31 @@ def delete_grade(grade_id):
     db.session.commit()
     flash('تم حذف الدرجة بنجاح', 'success')
     return redirect(url_for('teacher.view_student_grades', student_id=student_id))
+
+@bp.route('/notifications')
+@role_required('teacher')
+def notifications():
+    teacher = Teacher.query.filter_by(user_id=current_user.id).first()
+    if not teacher:
+        flash('الملف الشخصي للمعلم غير موجود', 'danger')
+        return redirect(url_for('public.index'))
+    
+    all_notifications = get_user_notifications(current_user.id, unread_only=False, limit=50)
+    unread_count = get_unread_count(current_user.id)
+    
+    return render_template('teacher/notifications.html', 
+                          notifications=all_notifications,
+                          unread_count=unread_count)
+
+@bp.route('/notifications/read/<int:recipient_id>', methods=['POST'])
+@role_required('teacher')
+def mark_notification_read(recipient_id):
+    recipient = NotificationRecipient.query.get_or_404(recipient_id)
+    
+    if recipient.user_id != current_user.id:
+        flash('ليس لديك صلاحية لهذا الإجراء', 'danger')
+        return redirect(url_for('teacher.notifications'))
+    
+    mark_notification_as_read(recipient_id)
+    flash('تم تحديد الإشعار كمقروء', 'success')
+    return redirect(url_for('teacher.notifications'))
