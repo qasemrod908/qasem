@@ -91,8 +91,8 @@ def add_lesson():
         db.session.commit()
         
         if lesson.is_published:
-            from app.utils.notifications import send_course_lesson_notification
-            send_course_lesson_notification(lesson)
+            from app.utils.notifications import send_new_lesson_notification
+            send_new_lesson_notification(lesson.id)
         
         flash('تم إضافة الدرس بنجاح', 'success')
         return redirect(url_for('teacher.lessons'))
@@ -268,8 +268,8 @@ def add_grade(student_id):
         db.session.add(grade)
         db.session.commit()
         
-        from app.utils.notifications import send_grade_notification
-        send_grade_notification(grade, is_new=True)
+        from app.utils.notifications import send_new_grade_notification
+        send_new_grade_notification(grade.id)
         
         flash('تم إضافة الدرجة بنجاح', 'success')
         return redirect(url_for('teacher.view_student_grades', student_id=student_id))
@@ -336,8 +336,8 @@ def edit_grade(grade_id):
         
         db.session.commit()
         
-        from app.utils.notifications import send_grade_notification
-        send_grade_notification(grade, is_new=False)
+        from app.utils.notifications import send_updated_grade_notification
+        send_updated_grade_notification(grade.id)
         
         flash('تم تحديث الدرجة بنجاح', 'success')
         return redirect(url_for('teacher.view_student_grades', student_id=grade.student_id))
