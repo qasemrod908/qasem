@@ -57,39 +57,41 @@ def create_notification(title, message, notification_type, created_by_id,
 
 
 def get_notification_recipients(target_type, target_id=None):
+    excluded_roles = ['admin', 'assistant']
+    
     if target_type == 'all':
-        return User.query.filter_by(is_active=True).all()
+        return User.query.filter(User.is_active == True).filter(User.role.notin_(excluded_roles)).all()
     
     elif target_type == 'all_students':
         student_ids = db.session.query(Student.user_id).all()
         user_ids = [sid[0] for sid in student_ids]
-        return User.query.filter(User.id.in_(user_ids), User.is_active == True).all()
+        return User.query.filter(User.id.in_(user_ids)).filter(User.is_active == True).filter(User.role.notin_(excluded_roles)).all()
     
     elif target_type == 'all_teachers':
         teacher_ids = db.session.query(Teacher.user_id).all()
         user_ids = [tid[0] for tid in teacher_ids]
-        return User.query.filter(User.id.in_(user_ids), User.is_active == True).all()
+        return User.query.filter(User.id.in_(user_ids)).filter(User.is_active == True).filter(User.role.notin_(excluded_roles)).all()
     
     elif target_type == 'student' and target_id:
         student = Student.query.get(target_id)
-        if student and student.user.is_active:
+        if student and student.user.is_active and student.user.role not in excluded_roles:
             return [student.user]
         return []
     
     elif target_type == 'teacher' and target_id:
         teacher = Teacher.query.get(target_id)
-        if teacher and teacher.user.is_active:
+        if teacher and teacher.user.is_active and teacher.user.role not in excluded_roles:
             return [teacher.user]
         return []
     
     elif target_type == 'course' and target_id:
         enrollments = Enrollment.query.filter_by(course_id=target_id).all()
         user_ids = [e.student.user_id for e in enrollments if e.student.user.is_active]
-        return User.query.filter(User.id.in_(user_ids)).all()
+        return User.query.filter(User.id.in_(user_ids)).filter(User.role.notin_(excluded_roles)).all()
     
     elif target_type == 'user' and target_id:
         user = User.query.get(target_id)
-        if user and user.is_active:
+        if user and user.is_active and user.role not in excluded_roles:
             return [user]
         return []
     
@@ -184,8 +186,8 @@ def send_new_grade_notification(grade_id):
     message = f"تم إضافة علامة جديدة لك\n\n"
     message += f"📚 المادة: {grade.course.title if grade.course else 'غير محدد'}\n"
     message += f"📊 العلامة: {grade.grade} من {grade.max_grade}\n"
-    if grade.remarks:
-        message += f"💬 ملاحظات: {grade.remarks}\n"
+    if grade.notes:
+        message += f"💬 ملاحظات: {grade.notes}\n"
     
     create_notification(
         title=title,
@@ -214,8 +216,8 @@ def send_updated_grade_notification(grade_id):
     message = f"تم تحديث علامتك\n\n"
     message += f"📚 المادة: {grade.course.title if grade.course else 'غير محدد'}\n"
     message += f"📊 العلامة الجديدة: {grade.grade} من {grade.max_grade}\n"
-    if grade.remarks:
-        message += f"💬 ملاحظات: {grade.remarks}\n"
+    if grade.notes:
+        message += f"💬 ملاحظات: {grade.notes}\n"
     
     create_notification(
         title=title,
