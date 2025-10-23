@@ -19,8 +19,21 @@ def dashboard():
         'courses': Course.query.count(),
         'enrollments': Enrollment.query.count()
     }
+    
+    notification_stats = {
+        'total': Notification.query.count(),
+        'active': Notification.query.filter_by(is_active=True).count(),
+        'total_unread': NotificationRecipient.query.filter_by(is_read=False).count()
+    }
+    
     recent_contacts = Contact.query.order_by(Contact.created_at.desc()).limit(5).all()
-    return render_template('admin/dashboard.html', stats=stats, recent_contacts=recent_contacts)
+    recent_notifications = Notification.query.order_by(Notification.created_at.desc()).limit(5).all()
+    
+    return render_template('admin/dashboard.html', 
+                          stats=stats, 
+                          notification_stats=notification_stats,
+                          recent_contacts=recent_contacts,
+                          recent_notifications=recent_notifications)
 
 @bp.route('/backup', methods=['GET', 'POST'])
 @role_required('admin')

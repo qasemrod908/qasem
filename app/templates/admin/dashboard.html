@@ -48,6 +48,44 @@
         </div>
     </div>
 
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bell ms-2"></i>
+                        إحصائيات الإشعارات
+                    </h5>
+                    <a href="{{ url_for('admin.notifications') }}" class="btn btn-light btn-sm">
+                        <i class="fas fa-arrow-left"></i> عرض الكل
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h4 class="text-primary">{{ notification_stats.total }}</h4>
+                                <p class="mb-0">إجمالي الإشعارات</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h4 class="text-success">{{ notification_stats.active }}</h4>
+                                <p class="mb-0">الإشعارات النشطة</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h4 class="text-warning">{{ notification_stats.total_unread }}</h4>
+                                <p class="mb-0">إشعارات غير مقروءة</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row">
         <div class="col-md-6">
             <div class="card shadow-sm">
@@ -78,6 +116,9 @@
                     </a>
                     <a href="{{ url_for('admin.contacts') }}" class="list-group-item list-group-item-action">
                         <i class="fas fa-envelope ms-2"></i> إدارة الرسائل
+                    </a>
+                    <a href="{{ url_for('admin.notifications') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-bell ms-2"></i> إدارة الإشعارات
                     </a>
                     <a href="{{ url_for('admin.bot_management') }}" class="list-group-item list-group-item-action">
                         <i class="fab fa-telegram-plane ms-2"></i> إدارة البوت
@@ -110,6 +151,51 @@
                         </ul>
                     {% else %}
                         <p class="text-muted">لا توجد رسائل جديدة</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">الإشعارات الأخيرة</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_notifications %}
+                        <ul class="list-group">
+                            {% for notif in recent_notifications %}
+                            <li class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <strong>{{ notif.title }}</strong>
+                                        <p class="mb-1 text-muted small">{{ notif.message[:50] }}{% if notif.message|length > 50 %}...{% endif %}</p>
+                                        <small class="text-muted">
+                                            <i class="fas fa-clock"></i> {{ notif.created_at.strftime('%Y-%m-%d %H:%M') if notif.created_at else 'N/A' }}
+                                        </small>
+                                    </div>
+                                    <div>
+                                        {% if notif.send_telegram %}
+                                        <i class="fab fa-telegram text-info" title="تيليجرام"></i>
+                                        {% endif %}
+                                        {% if notif.send_web %}
+                                        <i class="fas fa-globe text-success" title="موقع"></i>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        <div class="text-center mt-3">
+                            <a href="{{ url_for('admin.notifications') }}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-bell"></i> عرض جميع الإشعارات
+                            </a>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">لا توجد إشعارات</p>
+                        <a href="{{ url_for('admin.create_notification') }}" class="btn btn-sm btn-primary mt-2">
+                            <i class="fas fa-plus"></i> إنشاء إشعار جديد
+                        </a>
                     {% endif %}
                 </div>
             </div>
