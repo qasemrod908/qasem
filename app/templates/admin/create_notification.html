@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}إنشاء إشعار جديد{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-bell"></i> إرسال إشعار جديد</h3>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin.create_notification') }}">
+                        <div class="mb-3">
+                            <label for="title" class="form-label">عنوان الإشعار *</label>
+                            <input type="text" class="form-control" id="title" name="title" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="message" class="form-label">نص الرسالة *</label>
+                            <textarea class="form-control" id="message" name="message" rows="5" required></textarea>
+                            <small class="form-text text-muted">يمكنك استخدام تنسيق Markdown في الرسالة</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="notification_type" class="form-label">نوع الإشعار</label>
+                            <select class="form-select" id="notification_type" name="notification_type">
+                                <option value="general">عام</option>
+                                <option value="announcement">إعلان</option>
+                                <option value="reminder">تذكير</option>
+                                <option value="urgent">عاجل</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="target_type" class="form-label">المرسل إليه *</label>
+                            <select class="form-select" id="target_type" name="target_type" onchange="updateTargetOptions()">
+                                <option value="all">الجميع</option>
+                                <option value="all_students">كل الطلاب</option>
+                                <option value="all_teachers">كل المدرسين</option>
+                                <option value="student">طالب محدد</option>
+                                <option value="teacher">مدرس محدد</option>
+                                <option value="course">دورة محددة</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3" id="target_selection" style="display: none;">
+                            <label for="target_id" class="form-label">اختر الهدف</label>
+                            
+                            <select class="form-select" id="student_select" name="target_id" style="display: none;">
+                                <option value="">-- اختر طالب --</option>
+                                {% for student in students %}
+                                <option value="{{ student.id }}">{{ student.user.full_name }} ({{ student.phone }})</option>
+                                {% endfor %}
+                            </select>
+
+                            <select class="form-select" id="teacher_select" name="target_id" style="display: none;">
+                                <option value="">-- اختر مدرس --</option>
+                                {% for teacher in teachers %}
+                                <option value="{{ teacher.id }}">{{ teacher.user.full_name }}</option>
+                                {% endfor %}
+                            </select>
+
+                            <select class="form-select" id="course_select" name="target_id" style="display: none;">
+                                <option value="">-- اختر دورة --</option>
+                                {% for course in courses %}
+                                <option value="{{ course.id }}">{{ course.title }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">طريقة الإرسال</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="send_telegram" name="send_telegram" checked>
+                                <label class="form-check-label" for="send_telegram">
+                                    <i class="fab fa-telegram text-info"></i> إرسال على التيليجرام
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="send_web" name="send_web" checked>
+                                <label class="form-check-label" for="send_web">
+                                    <i class="fas fa-globe text-success"></i> إرسال على الموقع
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> سيتم إرسال الإشعار فوراً بعد الضغط على "إرسال"
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('admin.notifications') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-right"></i> رجوع
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i> إرسال الإشعار
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateTargetOptions() {
+    const targetType = document.getElementById('target_type').value;
+    const targetSelection = document.getElementById('target_selection');
+    const studentSelect = document.getElementById('student_select');
+    const teacherSelect = document.getElementById('teacher_select');
+    const courseSelect = document.getElementById('course_select');
+    
+    studentSelect.style.display = 'none';
+    teacherSelect.style.display = 'none';
+    courseSelect.style.display = 'none';
+    targetSelection.style.display = 'none';
+    
+    studentSelect.removeAttribute('name');
+    teacherSelect.removeAttribute('name');
+    courseSelect.removeAttribute('name');
+    
+    if (targetType === 'student') {
+        targetSelection.style.display = 'block';
+        studentSelect.style.display = 'block';
+        studentSelect.setAttribute('name', 'target_id');
+    } else if (targetType === 'teacher') {
+        targetSelection.style.display = 'block';
+        teacherSelect.style.display = 'block';
+        teacherSelect.setAttribute('name', 'target_id');
+    } else if (targetType === 'course') {
+        targetSelection.style.display = 'block';
+        courseSelect.style.display = 'block';
+        courseSelect.setAttribute('name', 'target_id');
+    }
+}
+</script>
+{% endblock %}

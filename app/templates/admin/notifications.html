@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}إدارة الإشعارات{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2><i class="fas fa-bell"></i> إدارة الإشعارات</h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('admin.create_notification') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> إرسال إشعار جديد
+            </a>
+            <a href="{{ url_for('admin.notifications_stats') }}" class="btn btn-info">
+                <i class="fas fa-chart-bar"></i> الإحصائيات
+            </a>
+        </div>
+    </div>
+
+    {% if notifications %}
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>العنوان</th>
+                            <th>النوع</th>
+                            <th>الهدف</th>
+                            <th>عدد المستلمين</th>
+                            <th>معدل القراءة</th>
+                            <th>التاريخ</th>
+                            <th>الحالة</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for notif in notifications %}
+                        <tr>
+                            <td>{{ notif.id }}</td>
+                            <td>
+                                <strong>{{ notif.title }}</strong>
+                                {% if notif.send_telegram %}
+                                <i class="fab fa-telegram text-info" title="إرسال على التيليجرام"></i>
+                                {% endif %}
+                                {% if notif.send_web %}
+                                <i class="fas fa-globe text-success" title="إرسال على الموقع"></i>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if notif.notification_type == 'new_lesson' %}
+                                <span class="badge bg-primary">درس جديد</span>
+                                {% elif notif.notification_type == 'new_grade' %}
+                                <span class="badge bg-success">علامة جديدة</span>
+                                {% elif notif.notification_type == 'updated_grade' %}
+                                <span class="badge bg-warning">تحديث علامة</span>
+                                {% else %}
+                                <span class="badge bg-secondary">عام</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if notif.target_type == 'all' %}
+                                <span class="badge bg-dark">الجميع</span>
+                                {% elif notif.target_type == 'all_students' %}
+                                <span class="badge bg-info">كل الطلاب</span>
+                                {% elif notif.target_type == 'all_teachers' %}
+                                <span class="badge bg-warning">كل المدرسين</span>
+                                {% elif notif.target_type == 'course' %}
+                                <span class="badge bg-primary">دورة محددة</span>
+                                {% elif notif.target_type == 'student' %}
+                                <span class="badge bg-success">طالب محدد</span>
+                                {% elif notif.target_type == 'teacher' %}
+                                <span class="badge bg-danger">مدرس محدد</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ notif.recipients|length }}</td>
+                            <td>
+                                {% set stats = notif.get_delivery_stats() %}
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar bg-success" role="progressbar" 
+                                         style="width: {{ stats.read_rate }}%"
+                                         aria-valuenow="{{ stats.read_rate }}" aria-valuemin="0" aria-valuemax="100">
+                                        {{ "%.1f"|format(stats.read_rate) }}%
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ notif.created_at.strftime('%Y-%m-%d %H:%M') if notif.created_at else 'N/A' }}</td>
+                            <td>
+                                {% if notif.is_active %}
+                                <span class="badge bg-success">نشط</span>
+                                {% else %}
+                                <span class="badge bg-secondary">معطل</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('admin.view_notification', notification_id=notif.id) }}" 
+                                   class="btn btn-sm btn-info" title="عرض">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <form method="POST" action="{{ url_for('admin.delete_notification', notification_id=notif.id) }}" 
+                                      style="display: inline;">
+                                    <button type="submit" class="btn btn-sm btn-danger" 
+                                            onclick="return confirm('هل أنت متأكد من حذف هذا الإشعار؟')" 
+                                            title="حذف">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info text-center">
+        <i class="fas fa-info-circle fa-3x mb-3"></i>
+        <h4>لا توجد إشعارات حتى الآن</h4>
+        <p>ابدأ بإنشاء إشعار جديد للمستخدمين</p>
+        <a href="{{ url_for('admin.create_notification') }}" class="btn btn-primary mt-2">
+            <i class="fas fa-plus"></i> إرسال إشعار جديد
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

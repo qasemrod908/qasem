@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}إحصائيات الإشعارات{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2><i class="fas fa-chart-bar"></i> إحصائيات الإشعارات</h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('admin.notifications') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right"></i> رجوع
+            </a>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-white bg-primary">
+                <div class="card-body text-center">
+                    <h3>{{ stats.total_notifications }}</h3>
+                    <p class="mb-0">إجمالي الإشعارات</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success">
+                <div class="card-body text-center">
+                    <h3>{{ stats.active_notifications }}</h3>
+                    <p class="mb-0">إشعارات نشطة</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-info">
+                <div class="card-body text-center">
+                    <h3>{{ stats.total_recipients }}</h3>
+                    <p class="mb-0">إجمالي المستلمين</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-warning">
+                <div class="card-body text-center">
+                    <h3>{{ "%.1f"|format(stats.read_rate) }}%</h3>
+                    <p class="mb-0">معدل القراءة</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-check-circle"></i> الإشعارات المقروءة</h5>
+                </div>
+                <div class="card-body text-center">
+                    <h2>{{ stats.total_read }}</h2>
+                    <p class="text-muted">من أصل {{ stats.total_recipients }}</p>
+                    <div class="progress">
+                        <div class="progress-bar bg-success" role="progressbar" 
+                             style="width: {{ stats.read_rate }}%">
+                            {{ "%.1f"|format(stats.read_rate) }}%
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fab fa-telegram"></i> إرسال التيليجرام</h5>
+                </div>
+                <div class="card-body text-center">
+                    <h2>{{ stats.telegram_delivered }}</h2>
+                    <p class="text-muted">من أصل {{ stats.total_recipients }}</p>
+                    <div class="progress">
+                        <div class="progress-bar bg-info" role="progressbar" 
+                             style="width: {{ stats.telegram_delivery_rate }}%">
+                            {{ "%.1f"|format(stats.telegram_delivery_rate) }}%
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-globe"></i> تسليم الموقع</h5>
+                </div>
+                <div class="card-body text-center">
+                    <h2>{{ stats.web_delivered }}</h2>
+                    <p class="text-muted">من أصل {{ stats.total_recipients }}</p>
+                    <div class="progress">
+                        <div class="progress-bar bg-primary" role="progressbar" 
+                             style="width: {{ stats.web_delivery_rate }}%">
+                            {{ "%.1f"|format(stats.web_delivery_rate) }}%
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if recent_notifications %}
+    <div class="card">
+        <div class="card-header">
+            <h5><i class="fas fa-history"></i> آخر 10 إشعارات</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>العنوان</th>
+                            <th>النوع</th>
+                            <th>المستلمين</th>
+                            <th>معدل القراءة</th>
+                            <th>التاريخ</th>
+                            <th>عرض</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for notif in recent_notifications %}
+                        {% set notif_stats = notif.get_delivery_stats() %}
+                        <tr>
+                            <td>{{ notif.id }}</td>
+                            <td>{{ notif.title }}</td>
+                            <td>
+                                {% if notif.notification_type == 'new_lesson' %}
+                                <span class="badge bg-primary">درس جديد</span>
+                                {% elif notif.notification_type == 'new_grade' %}
+                                <span class="badge bg-success">علامة جديدة</span>
+                                {% elif notif.notification_type == 'updated_grade' %}
+                                <span class="badge bg-warning">تحديث علامة</span>
+                                {% else %}
+                                <span class="badge bg-secondary">عام</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ notif.recipients|length }}</td>
+                            <td>
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar bg-success" role="progressbar" 
+                                         style="width: {{ notif_stats.read_rate }}%">
+                                        {{ "%.1f"|format(notif_stats.read_rate) }}%
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ notif.created_at.strftime('%Y-%m-%d %H:%M') if notif.created_at else 'N/A' }}</td>
+                            <td>
+                                <a href="{{ url_for('admin.view_notification', notification_id=notif.id) }}" 
+                                   class="btn btn-sm btn-info">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

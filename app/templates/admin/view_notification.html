@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block title %}تفاصيل الإشعار{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-10 offset-md-1">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3><i class="fas fa-bell"></i> تفاصيل الإشعار</h3>
+                    <a href="{{ url_for('admin.notifications') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-right"></i> رجوع
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h5>{{ notification.title }}</h5>
+                            <p class="text-muted">
+                                <small>
+                                    <i class="fas fa-clock"></i> 
+                                    {{ notification.created_at.strftime('%Y-%m-%d %H:%M') if notification.created_at else 'N/A' }}
+                                </small>
+                            </p>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <span class="badge bg-{{ 'success' if notification.is_active else 'secondary' }}">
+                                {{ 'نشط' if notification.is_active else 'معطل' }}
+                            </span>
+                            {% if notification.send_telegram %}
+                            <span class="badge bg-info"><i class="fab fa-telegram"></i> تيليجرام</span>
+                            {% endif %}
+                            {% if notification.send_web %}
+                            <span class="badge bg-success"><i class="fas fa-globe"></i> موقع</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="alert alert-light">
+                        <h6>نص الرسالة:</h6>
+                        <p style="white-space: pre-wrap;">{{ notification.message }}</p>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h3>{{ stats.total }}</h3>
+                                    <p class="mb-0">إجمالي المستلمين</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-success text-white">
+                                <div class="card-body text-center">
+                                    <h3>{{ stats.read }}</h3>
+                                    <p class="mb-0">تم القراءة ({{ "%.1f"|format(stats.read_rate) }}%)</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-warning text-white">
+                                <div class="card-body text-center">
+                                    <h3>{{ stats.unread }}</h3>
+                                    <p class="mb-0">غير مقروء</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <i class="fab fa-telegram"></i> إحصائيات التيليجرام
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>تم الإرسال:</strong> {{ stats.delivered_telegram }} / {{ stats.total }}</p>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-info" role="progressbar" 
+                                             style="width: {{ stats.delivery_rate_telegram }}%">
+                                            {{ "%.1f"|format(stats.delivery_rate_telegram) }}%
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <i class="fas fa-globe"></i> إحصائيات الموقع
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>تم التسليم:</strong> {{ stats.delivered_web }} / {{ stats.total }}</p>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-success" role="progressbar" 
+                                             style="width: {{ stats.delivery_rate_web }}%">
+                                            {{ "%.1f"|format(stats.delivery_rate_web) }}%
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>قائمة المستلمين</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>المستخدم</th>
+                                            <th>الحالة</th>
+                                            <th>تيليجرام</th>
+                                            <th>موقع</th>
+                                            <th>وقت القراءة</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for recipient in notification.recipients[:50] %}
+                                        <tr>
+                                            <td>{{ recipient.user.full_name }}</td>
+                                            <td>
+                                                {% if recipient.is_read %}
+                                                <span class="badge bg-success"><i class="fas fa-check"></i> مقروء</span>
+                                                {% else %}
+                                                <span class="badge bg-warning"><i class="fas fa-clock"></i> غير مقروء</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if recipient.telegram_delivered %}
+                                                <span class="text-success"><i class="fas fa-check-circle"></i></span>
+                                                {% else %}
+                                                <span class="text-muted"><i class="fas fa-times-circle"></i></span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if recipient.web_delivered %}
+                                                <span class="text-success"><i class="fas fa-check-circle"></i></span>
+                                                {% else %}
+                                                <span class="text-muted"><i class="fas fa-times-circle"></i></span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if recipient.read_at %}
+                                                {{ recipient.read_at.strftime('%Y-%m-%d %H:%M') }}
+                                                {% else %}
+                                                -
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                                {% if notification.recipients|length > 50 %}
+                                <p class="text-muted text-center">عرض أول 50 مستلم من أصل {{ notification.recipients|length }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
