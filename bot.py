@@ -235,18 +235,20 @@ async def login_password(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 keyboard = [
                     [KeyboardButton("📊 لوحة التحكم"), KeyboardButton("📚 دوراتي")],
                     [KeyboardButton("📖 دروسي"), KeyboardButton("📝 درجاتي")],
-                    [KeyboardButton("📰 الأخبار"), KeyboardButton("🚪 تسجيل الخروج")]
+                    [KeyboardButton("🔔 الإشعارات"), KeyboardButton("📰 الأخبار")],
+                    [KeyboardButton("🚪 تسجيل الخروج")]
                 ]
             elif user.role == 'teacher':
                 keyboard = [
                     [KeyboardButton("📊 لوحة التحكم"), KeyboardButton("📚 دوراتي")],
                     [KeyboardButton("📖 دروسي"), KeyboardButton("👥 طلابي")],
-                    [KeyboardButton("📰 الأخبار"), KeyboardButton("🚪 تسجيل الخروج")]
+                    [KeyboardButton("🔔 الإشعارات"), KeyboardButton("📰 الأخبار")],
+                    [KeyboardButton("🚪 تسجيل الخروج")]
                 ]
             else:  # admin or assistant
                 keyboard = [
-                    [KeyboardButton("📊 لوحة التحكم"), KeyboardButton("📰 الأخبار")],
-                    [KeyboardButton("🚪 تسجيل الخروج")]
+                    [KeyboardButton("📊 لوحة التحكم"), KeyboardButton("🔔 الإشعارات")],
+                    [KeyboardButton("📰 الأخبار"), KeyboardButton("🚪 تسجيل الخروج")]
                 ]
             
             reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
@@ -1221,6 +1223,96 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             "📝 استخدم زر 'درجاتي' من القائمة الرئيسية لعرض درجاتك"
         )
         update_statistics(increment_sent=True)
+    
+    elif data.startswith('read_notif_'):
+        notif_recipient_id = int(data.split('_')[2])
+        user = query.from_user
+        
+        with flask_app.app_context():
+            recipient = NotificationRecipient.query.get(notif_recipient_id)
+            if recipient and recipient.user.id:
+                session = BotSession.query.filter_by(telegram_id=user.id).first()
+                if session and session.user_id == recipient.user_id:
+                    if not recipient.is_read:
+                        recipient.mark_as_read()
+                    
+                    notification = recipient.notification
+                    notif_text = f"""
+🔔 *{notification.title}*
+
+{notification.message}
+
+📅 {notification.created_at.strftime('%Y-%m-%d %H:%M') if notification.created_at else ''}
+"""
+                    keyboard = [[InlineKeyboardButton("✅ تم القراءة", callback_data="notif_read_ok")]]
+                    reply_markup = InlineKeyboardMarkup(keyboard)
+                    
+                    await query.edit_message_text(
+                        notif_text,
+                        parse_mode=ParseMode.MARKDOWN,
+                        reply_markup=reply_markup
+                    )
+                    update_statistics(increment_sent=True)
+    
+    elif data == 'notif_read_ok':
+        await query.answer("تمت القراءة", show_alert=False)
+
+async def my_notifications(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user = update.effective_user
+    update_statistics()
+    
+    with flask_app.app_context():
+        session = BotSession.query.filter_by(telegram_id=user.id).first()
+        if not session or not session.is_authenticated:
+            await update.message.reply_text(
+                "🔒 يجب تسجيل الدخول أولاً!\n\nاستخدم /login"
+            )
+            update_statistics(increment_sent=True)
+            return
+        
+        from app.utils.notifications import get_user_notifications, get_unread_count
+        
+        unread_count = get_unread_count(session.user_id)
+        notifications = get_user_notifications(session.user_id, unread_only=False, limit=20)
+        
+        if not notifications:
+            await update.message.reply_text(
+                "📭 لا توجد إشعارات حالياً"
+            )
+            update_statistics(increment_sent=True)
+            return
+        
+        header_text = f"🔔 *الإشعارات*\n\n"
+        if unread_count > 0:
+            header_text += f"📬 لديك {unread_count} إشعار غير مقروء\n\n"
+        
+        await update.message.reply_text(header_text, parse_mode=ParseMode.MARKDOWN)
+        update_statistics(increment_sent=True)
+        
+        for recipient in notifications[:10]:
+            notification = recipient.notification
+            if not notification:
+                continue
+            
+            status_emoji = "📬" if not recipient.is_read else "✅"
+            notif_preview = f"""
+{status_emoji} *{notification.title}*
+
+{notification.message[:100]}{'...' if len(notification.message) > 100 else ''}
+
+📅 {notification.created_at.strftime('%Y-%m-%d %H:%M') if notification.created_at else ''}
+"""
+            
+            keyboard = [[InlineKeyboardButton("📖 قراءة", callback_data=f"read_notif_{recipient.id}")]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            await update.message.reply_text(
+                notif_preview,
+                parse_mode=ParseMode.MARKDOWN,
+                reply_markup=reply_markup
+            )
+            update_statistics(increment_sent=True)
+            await asyncio.sleep(0.5)
 
 async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     text = update.message.text
@@ -1242,6 +1334,8 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         return await my_lessons(update, context)
     elif text == "📝 درجاتي":
         return await my_grades(update, context)
+    elif text == "🔔 الإشعارات":
+        return await my_notifications(update, context)
     elif text == "👥 طلابي":
         return await teacher_students(update, context)
     elif text == "🚪 تسجيل الخروج":
