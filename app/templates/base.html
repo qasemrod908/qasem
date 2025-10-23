@@ -103,6 +103,34 @@
         {% block content %}{% endblock %}
     </main>
 
+    {% if current_user.is_authenticated and current_user.role in ['student', 'teacher'] %}
+    <div class="modal fade" id="notificationsModal" tabindex="-1" aria-labelledby="notificationsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="notificationsModalLabel">
+                        <i class="fas fa-bell ms-2"></i> إشعارات جديدة
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="notificationsModalBody">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">جاري التحميل...</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <a href="{% if current_user.role == 'student' %}{{ url_for('student.notifications') }}{% else %}{{ url_for('teacher.notifications') }}{% endif %}" class="btn btn-primary">
+                        عرض جميع الإشعارات
+                    </a>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <footer class="bg-dark text-white py-4 mt-5">
         <div class="container">
             <div class="row">
@@ -136,6 +164,192 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    {% if current_user.is_authenticated and current_user.role in ['student', 'teacher'] %}
+    <script>
+        let lastNotificationCheck = 0;
+        let previousUnreadCount = {{ current_user.get_unread_notifications_count() }};
+        let notificationCheckInterval = null;
+        let hasShownPopup = false;
+        
+        function getNotificationsApiUrl() {
+            {% if current_user.role == 'student' %}
+            return '{{ url_for("student.api_get_unread_notifications") }}';
+            {% else %}
+            return '{{ url_for("teacher.api_get_unread_notifications") }}';
+            {% endif %}
+        }
+        
+        function getMarkReadApiUrl(recipientId) {
+            {% if current_user.role == 'student' %}
+            return '{{ url_for("student.api_mark_notification_read", recipient_id=0) }}'.replace('0', recipientId);
+            {% else %}
+            return '{{ url_for("teacher.api_mark_notification_read", recipient_id=0) }}'.replace('0', recipientId);
+            {% endif %}
+        }
+        
+        function updateBadge(count) {
+            const badge = document.querySelector('.nav-link .badge');
+            const bellIcon = document.querySelector('.nav-link .fa-bell');
+            
+            if (count > 0) {
+                if (badge) {
+                    badge.textContent = count < 100 ? count : '99+';
+                } else if (bellIcon) {
+                    const newBadge = document.createElement('span');
+                    newBadge.className = 'position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger';
+                    newBadge.style.fontSize = '0.6rem';
+                    newBadge.textContent = count < 100 ? count : '99+';
+                    bellIcon.parentElement.classList.add('position-relative');
+                    bellIcon.parentElement.appendChild(newBadge);
+                }
+            } else {
+                if (badge) {
+                    badge.remove();
+                }
+            }
+        }
+        
+        function checkForNewNotifications() {
+            fetch(getNotificationsApiUrl())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        updateBadge(data.count);
+                        
+                        if (data.count > previousUnreadCount && data.count > 0 && !hasShownPopup) {
+                            showNotificationPopup(data.notifications);
+                            hasShownPopup = true;
+                            setTimeout(() => { hasShownPopup = false; }, 300000);
+                        }
+                        
+                        previousUnreadCount = data.count;
+                    } else {
+                        console.error('فشل في جلب الإشعارات:', data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('خطأ في التحقق من الإشعارات:', error);
+                });
+        }
+        
+        function showNotificationPopup(notifications) {
+            const modalBody = document.getElementById('notificationsModalBody');
+            
+            if (notifications.length === 0) {
+                modalBody.innerHTML = '<div class="alert alert-info">لا توجد إشعارات جديدة</div>';
+                return;
+            }
+            
+            let html = '<div class="list-group">';
+            
+            notifications.forEach(notif => {
+                let badgeClass = 'bg-secondary';
+                let badgeText = 'عام';
+                
+                if (notif.type === 'new_lesson') {
+                    badgeClass = 'bg-primary';
+                    badgeText = 'درس جديد';
+                } else if (notif.type === 'new_grade') {
+                    badgeClass = 'bg-success';
+                    badgeText = 'علامة جديدة';
+                } else if (notif.type === 'updated_grade') {
+                    badgeClass = 'bg-warning';
+                    badgeText = 'تحديث علامة';
+                }
+                
+                const message = notif.message || '';
+                const messagePreview = message.length > 100 
+                    ? message.substring(0, 100) + '...' 
+                    : message;
+                
+                html += `
+                    <div class="list-group-item" id="notification-${notif.id}">
+                        <div class="d-flex w-100 justify-content-between align-items-start mb-2">
+                            <h6 class="mb-1">
+                                <i class="fas fa-circle text-primary" style="font-size: 0.5rem;"></i>
+                                ${notif.title}
+                            </h6>
+                            <span class="badge ${badgeClass}">${badgeText}</span>
+                        </div>
+                        <p class="mb-2" style="white-space: pre-wrap;">${messagePreview}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                <i class="fas fa-clock"></i> ${notif.created_at}
+                            </small>
+                            <button class="btn btn-sm btn-outline-primary" onclick="markAsRead(${notif.id})">
+                                <i class="fas fa-check"></i> تحديد كمقروء
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            modalBody.innerHTML = html;
+            
+            const modal = new bootstrap.Modal(document.getElementById('notificationsModal'));
+            modal.show();
+            
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.3);
+        }
+        
+        function markAsRead(recipientId) {
+            fetch(getMarkReadApiUrl(recipientId), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const notifElement = document.getElementById(`notification-${recipientId}`);
+                    if (notifElement) {
+                        notifElement.style.opacity = '0.5';
+                        notifElement.querySelector('.btn').disabled = true;
+                        notifElement.querySelector('.btn').innerHTML = '<i class="fas fa-check-circle"></i> تم القراءة';
+                    }
+                    
+                    checkForNewNotifications();
+                }
+            })
+            .catch(error => {
+                console.error('خطأ في تحديد الإشعار كمقروء:', error);
+            });
+        }
+        
+        checkForNewNotifications();
+        
+        notificationCheckInterval = setInterval(checkForNewNotifications, 30000);
+        
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'visible') {
+                checkForNewNotifications();
+            }
+        });
+    </script>
+    {% endif %}
+    
     {% block extra_js %}{% endblock %}
 </body>
 </html>

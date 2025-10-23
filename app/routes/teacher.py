@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app
+from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, jsonify
 from flask_login import login_required, current_user
 from app import db
 from app.models import Teacher, Student, Course, Enrollment, Lesson, Grade, NotificationRecipient, Notification
@@ -392,3 +392,65 @@ def mark_notification_read(recipient_id):
     mark_notification_as_read(recipient_id)
     flash('تم تحديد الإشعار كمقروء', 'success')
     return redirect(url_for('teacher.notifications'))
+
+@bp.route('/api/notifications/unread', methods=['GET'])
+@role_required('teacher')
+def api_get_unread_notifications():
+    try:
+        unread_notifications = get_user_notifications(current_user.id, unread_only=True, limit=10)
+        unread_count = get_unread_count(current_user.id)
+        
+        notifications_data = []
+        for recipient in unread_notifications:
+            notif = recipient.notification
+            if notif:
+                notifications_data.append({
+                    'id': recipient.id,
+                    'notification_id': notif.id,
+                    'title': notif.title or 'إشعار',
+                    'message': notif.message or '',
+                    'type': notif.notification_type,
+                    'created_at': notif.created_at.strftime('%Y-%m-%d %H:%M') if notif.created_at else '',
+                    'is_read': recipient.is_read
+                })
+        
+        return jsonify({
+            'success': True,
+            'count': unread_count,
+            'notifications': notifications_data
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@bp.route('/api/notifications/mark-read/<int:recipient_id>', methods=['POST'])
+@role_required('teacher')
+def api_mark_notification_read(recipient_id):
+    try:
+        recipient = NotificationRecipient.query.get(recipient_id)
+        
+        if not recipient:
+            return jsonify({
+                'success': False,
+                'error': 'الإشعار غير موجود'
+            }), 404
+        
+        if recipient.user_id != current_user.id:
+            return jsonify({
+                'success': False,
+                'error': 'ليس لديك صلاحية لهذا الإجراء'
+            }), 403
+        
+        mark_notification_as_read(recipient_id)
+        
+        return jsonify({
+            'success': True,
+            'message': 'تم تحديد الإشعار كمقروء'
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
