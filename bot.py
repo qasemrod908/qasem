@@ -1185,7 +1185,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         with flask_app.app_context():
             lesson = Lesson.query.get(lesson_id)
             if lesson and lesson.file_path:
-                file_path = os.path.join('static', lesson.file_path)
+                file_path = os.path.join('app', 'static', lesson.file_path)
                 
                 if os.path.exists(file_path):
                     await query.answer("جاري إرسال الملف...")
