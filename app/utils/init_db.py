@@ -66,4 +66,46 @@ def initialize_database():
                 )
             """))
     
+    if 'notifications' not in inspector.get_table_names():
+        logger.info("Creating notifications table")
+        with db.engine.begin() as connection:
+            connection.execute(text("""
+                CREATE TABLE notifications (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    title VARCHAR(200) NOT NULL,
+                    message TEXT NOT NULL,
+                    notification_type VARCHAR(50) NOT NULL,
+                    target_type VARCHAR(50) NOT NULL,
+                    target_id INTEGER,
+                    created_by INTEGER NOT NULL,
+                    created_at TIMESTAMP,
+                    send_telegram BOOLEAN DEFAULT 1,
+                    send_web BOOLEAN DEFAULT 1,
+                    is_active BOOLEAN DEFAULT 1,
+                    FOREIGN KEY (created_by) REFERENCES users(id)
+                )
+            """))
+    
+    if 'notification_recipients' not in inspector.get_table_names():
+        logger.info("Creating notification_recipients table")
+        with db.engine.begin() as connection:
+            connection.execute(text("""
+                CREATE TABLE notification_recipients (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    notification_id INTEGER NOT NULL,
+                    user_id INTEGER NOT NULL,
+                    is_read BOOLEAN DEFAULT 0,
+                    read_at TIMESTAMP,
+                    telegram_delivered BOOLEAN DEFAULT 0,
+                    telegram_delivered_at TIMESTAMP,
+                    web_delivered BOOLEAN DEFAULT 0,
+                    web_delivered_at TIMESTAMP,
+                    telegram_message_id INTEGER,
+                    FOREIGN KEY (notification_id) REFERENCES notifications(id) ON DELETE CASCADE,
+                    FOREIGN KEY (user_id) REFERENCES users(id)
+                )
+            """))
+            connection.execute(text("CREATE INDEX IF NOT EXISTS ix_notification_recipients_user_id ON notification_recipients (user_id)"))
+            connection.execute(text("CREATE INDEX IF NOT EXISTS ix_notification_recipients_notification_id ON notification_recipients (notification_id)"))
+    
     logger.info("Database initialization completed successfully")

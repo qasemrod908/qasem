@@ -1136,3 +1136,100 @@ def download_lesson(lesson_id):
         flash('لا يوجد ملف مرفق لهذا الدرس', 'warning')
     
     return redirect(url_for('admin.lessons'))
+
+@bp.route('/notifications')
+@role_required('admin', 'assistant')
+def notifications():
+    all_notifications = Notification.query.order_by(Notification.created_at.desc()).all()
+    return render_template('admin/notifications.html', notifications=all_notifications)
+
+@bp.route('/notifications/create', methods=['GET', 'POST'])
+@role_required('admin', 'assistant')
+def create_notification():
+    if request.method == 'POST':
+        title = request.form.get('title')
+        message = request.form.get('message')
+        notification_type = request.form.get('notification_type', 'general')
+        target_type = request.form.get('target_type', 'all')
+        target_id = request.form.get('target_id')
+        send_telegram = request.form.get('send_telegram') == 'on'
+        send_web = request.form.get('send_web') == 'on'
+        
+        if not title or not message:
+            flash('يرجى إدخال العنوان والرسالة', 'danger')
+            return redirect(url_for('admin.create_notification'))
+        
+        try:
+            from app.utils.notifications import create_notification
+            
+            notification = create_notification(
+                title=title,
+                message=message,
+                notification_type=notification_type,
+                created_by_id=current_user.id,
+                target_type=target_type,
+                target_id=int(target_id) if target_id else None,
+                send_telegram=send_telegram,
+                send_web=send_web
+            )
+            
+            flash(f'تم إرسال الإشعار بنجاح إلى {len(notification.recipients)} مستخدم', 'success')
+            return redirect(url_for('admin.notifications'))
+        except Exception as e:
+            flash(f'حدث خطأ: {str(e)}', 'danger')
+    
+    students = Student.query.all()
+    teachers = Teacher.query.all()
+    courses = Course.query.all()
+    return render_template('admin/create_notification.html', 
+                          students=students, 
+                          teachers=teachers, 
+                          courses=courses)
+
+@bp.route('/notifications/view/<int:notification_id>')
+@role_required('admin', 'assistant')
+def view_notification(notification_id):
+    notification = Notification.query.get_or_404(notification_id)
+    stats = notification.get_delivery_stats()
+    return render_template('admin/view_notification.html', 
+                          notification=notification, 
+                          stats=stats)
+
+@bp.route('/notifications/delete/<int:notification_id>', methods=['POST'])
+@role_required('admin')
+def delete_notification(notification_id):
+    notification = Notification.query.get_or_404(notification_id)
+    db.session.delete(notification)
+    db.session.commit()
+    flash('تم حذف الإشعار بنجاح', 'success')
+    return redirect(url_for('admin.notifications'))
+
+@bp.route('/notifications/stats')
+@role_required('admin', 'assistant')
+def notifications_stats():
+    total_notifications = Notification.query.count()
+    active_notifications = Notification.query.filter_by(is_active=True).count()
+    total_recipients = NotificationRecipient.query.count()
+    total_read = NotificationRecipient.query.filter_by(is_read=True).count()
+    total_unread = NotificationRecipient.query.filter_by(is_read=False).count()
+    telegram_delivered = NotificationRecipient.query.filter_by(telegram_delivered=True).count()
+    web_delivered = NotificationRecipient.query.filter_by(web_delivered=True).count()
+    
+    stats = {
+        'total_notifications': total_notifications,
+        'active_notifications': active_notifications,
+        'total_recipients': total_recipients,
+        'total_read': total_read,
+        'total_unread': total_unread,
+        'telegram_delivered': telegram_delivered,
+        'web_delivered': web_delivered,
+        'read_rate': (total_read / total_recipients * 100) if total_recipients > 0 else 0,
+        'telegram_delivery_rate': (telegram_delivered / total_recipients * 100) if total_recipients > 0 else 0,
+        'web_delivery_rate': (web_delivered / total_recipients * 100) if total_recipients > 0 else 0
+    }
+    
+    recent_notifications = Notification.query.order_by(Notification.created_at.desc()).limit(10).all()
+    
+    return render_template('admin/notifications_stats.html', 
+                          stats=stats, 
+                          recent_notifications=recent_notifications)

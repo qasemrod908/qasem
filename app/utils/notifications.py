@@ -1,179 +1,272 @@
 import asyncio
 import logging
+from flask import current_app
 from telegram import Bot
 from telegram.constants import ParseMode
-from app.models import BotSession, Student, Enrollment, SiteSettings
 from app import db
+from app.models import (Notification, NotificationRecipient, User, Student, Teacher, 
+                       Enrollment, BotSession, SiteSettings)
+from app.utils.helpers import damascus_now
 
 logger = logging.getLogger(__name__)
 
-async def send_telegram_notification(telegram_id: int, message: str, bot_token: str):
+async def send_telegram_notification_async(telegram_id: int, message: str, bot_token: str):
     try:
         bot = Bot(token=bot_token)
-        await bot.send_message(
+        result = await bot.send_message(
             chat_id=telegram_id,
             text=message,
             parse_mode=ParseMode.MARKDOWN
         )
-        return True
+        return result.message_id
     except Exception as e:
         logger.error(f"Error sending notification to {telegram_id}: {e}")
-        return False
+        return None
 
-def notify_new_lesson(lesson_id: int, course_id: int):
+def create_notification(title, message, notification_type, created_by_id, 
+                       target_type='all', target_id=None, 
+                       send_telegram=True, send_web=True):
+    notification = Notification(
+        title=title,
+        message=message,
+        notification_type=notification_type,
+        target_type=target_type,
+        target_id=target_id,
+        created_by=created_by_id,
+        send_telegram=send_telegram,
+        send_web=send_web
+    )
+    db.session.add(notification)
+    db.session.commit()
+    
+    recipients = get_notification_recipients(target_type, target_id)
+    
+    for user in recipients:
+        recipient = NotificationRecipient(
+            notification_id=notification.id,
+            user_id=user.id
+        )
+        db.session.add(recipient)
+    
+    db.session.commit()
+    
+    if send_telegram:
+        send_telegram_notifications(notification.id)
+    
+    return notification
+
+
+def get_notification_recipients(target_type, target_id=None):
+    if target_type == 'all':
+        return User.query.filter_by(is_active=True).all()
+    
+    elif target_type == 'all_students':
+        student_ids = db.session.query(Student.user_id).all()
+        user_ids = [sid[0] for sid in student_ids]
+        return User.query.filter(User.id.in_(user_ids), User.is_active == True).all()
+    
+    elif target_type == 'all_teachers':
+        teacher_ids = db.session.query(Teacher.user_id).all()
+        user_ids = [tid[0] for tid in teacher_ids]
+        return User.query.filter(User.id.in_(user_ids), User.is_active == True).all()
+    
+    elif target_type == 'student' and target_id:
+        student = Student.query.get(target_id)
+        if student and student.user.is_active:
+            return [student.user]
+        return []
+    
+    elif target_type == 'teacher' and target_id:
+        teacher = Teacher.query.get(target_id)
+        if teacher and teacher.user.is_active:
+            return [teacher.user]
+        return []
+    
+    elif target_type == 'course' and target_id:
+        enrollments = Enrollment.query.filter_by(course_id=target_id).all()
+        user_ids = [e.student.user_id for e in enrollments if e.student.user.is_active]
+        return User.query.filter(User.id.in_(user_ids)).all()
+    
+    elif target_type == 'user' and target_id:
+        user = User.query.get(target_id)
+        if user and user.is_active:
+            return [user]
+        return []
+    
+    return []
+
+
+def send_telegram_notifications(notification_id):
     from app import create_app
     app = create_app()
     
     with app.app_context():
+        notification = Notification.query.get(notification_id)
+        if not notification or not notification.send_telegram:
+            return
+        
         settings = SiteSettings.query.first()
-        
-        if not settings or not settings.telegram_bot_enabled or not settings.telegram_bot_notifications_enabled:
+        if not settings or not settings.telegram_bot_token:
             return
         
-        if not settings.telegram_bot_token:
-            return
+        recipients = NotificationRecipient.query.filter_by(
+            notification_id=notification_id,
+            telegram_delivered=False
+        ).all()
         
-        from app.models import Lesson, Course
-        
-        lesson = Lesson.query.get(lesson_id)
-        course = Course.query.get(course_id)
-        
-        if not lesson or not course:
-            return
-        
-        enrollments = Enrollment.query.filter_by(course_id=course_id).all()
-        
-        for enrollment in enrollments:
-            student = enrollment.student
-            if not student or not student.user:
+        for recipient in recipients:
+            bot_session = BotSession.query.filter_by(
+                user_id=recipient.user_id,
+                is_authenticated=True
+            ).first()
+            
+            if not bot_session:
                 continue
             
-            bot_session = BotSession.query.filter_by(user_id=student.user_id).first()
-            if not bot_session or not bot_session.is_authenticated:
-                continue
-            
-            message = f"""
-🆕 *درس جديد متاح!*
-
-📚 الدورة: {course.name}
-📖 الدرس: {lesson.title}
-
-{lesson.description if lesson.description else ''}
-
-يمكنك الوصول إليه من خلال /mycourses
-"""
+            message = f"🔔 *{notification.title}*\n\n{notification.message}"
             
             try:
-                asyncio.run(send_telegram_notification(
+                message_id = asyncio.run(send_telegram_notification_async(
                     bot_session.telegram_id,
                     message,
                     settings.telegram_bot_token
                 ))
+                
+                if message_id:
+                    recipient.mark_telegram_delivered(message_id)
             except Exception as e:
-                logger.error(f"Error notifying student {student.id}: {e}")
+                logger.error(f"Error sending telegram notification to user {recipient.user_id}: {e}")
 
-def notify_new_grade(grade_id: int):
-    from app import create_app
-    app = create_app()
+
+def send_new_lesson_notification(lesson_id):
+    from app.models import Lesson, Course
     
-    with app.app_context():
-        settings = SiteSettings.query.first()
-        
-        if not settings or not settings.telegram_bot_enabled or not settings.telegram_bot_notifications_enabled:
-            return
-        
-        if not settings.telegram_bot_token:
-            return
-        
-        from app.models import Grade, Course
-        
-        grade = Grade.query.get(grade_id)
-        
-        if not grade:
-            return
-        
-        student = grade.student
-        course = grade.course
-        
-        if not student or not student.user or not course:
-            return
-        
-        bot_session = BotSession.query.filter_by(user_id=student.user_id).first()
-        if not bot_session or not bot_session.is_authenticated:
-            return
-        
-        message = f"""
-📝 *تم إضافة درجة جديدة!*
-
-📚 الدورة: {course.name}
-📋 الامتحان: {grade.exam_name}
-✅ الدرجة: {grade.score}/{grade.max_score}
-
-يمكنك الاطلاع على جميع درجاتك من خلال /mygrades
-"""
-        
-        try:
-            asyncio.run(send_telegram_notification(
-                bot_session.telegram_id,
-                message,
-                settings.telegram_bot_token
-            ))
-        except Exception as e:
-            logger.error(f"Error notifying student {student.id} about grade: {e}")
-
-def notify_enrollment(enrollment_id: int):
-    from app import create_app
-    app = create_app()
+    lesson = Lesson.query.get(lesson_id)
+    if not lesson:
+        return
     
-    with app.app_context():
-        settings = SiteSettings.query.first()
-        
-        if not settings or not settings.telegram_bot_enabled or not settings.telegram_bot_notifications_enabled:
-            return
-        
-        if not settings.telegram_bot_token:
-            return
-        
-        from app.models import Enrollment, Course
-        
-        enrollment = Enrollment.query.get(enrollment_id)
-        
-        if not enrollment:
-            return
-        
-        student = enrollment.student
-        course = enrollment.course
-        teacher = enrollment.teacher
-        
-        if not student or not student.user or not course:
-            return
-        
-        bot_session = BotSession.query.filter_by(user_id=student.user_id).first()
-        if not bot_session or not bot_session.is_authenticated:
-            return
-        
-        teacher_name = teacher.full_name if teacher else 'غير محدد'
-        
-        message = f"""
-🎉 *تم تسجيلك في دورة جديدة!*
+    course = Course.query.get(lesson.course_id)
+    if not course:
+        return
+    
+    title = f"درس جديد: {lesson.title}"
+    message = f"تم إضافة درس جديد في دورة {course.title}\n\n"
+    message += f"📖 عنوان الدرس: {lesson.title}\n"
+    if lesson.description:
+        message += f"📝 الوصف: {lesson.description}\n"
+    if lesson.file_path:
+        message += f"\n📎 يوجد ملف مرفق"
+    
+    create_notification(
+        title=title,
+        message=message,
+        notification_type='new_lesson',
+        created_by_id=lesson.teacher.user_id if lesson.teacher else 1,
+        target_type='course',
+        target_id=lesson.course_id,
+        send_telegram=True,
+        send_web=True
+    )
 
-📚 اسم الدورة: {course.name}
-👨‍🏫 المعلم: {teacher_name}
-⏱️ المدة: {course.duration}
 
-يمكنك الوصول إلى الدورة من خلال /mycourses
+def send_new_grade_notification(grade_id):
+    from app.models import Grade
+    
+    grade = Grade.query.get(grade_id)
+    if not grade:
+        return
+    
+    student = grade.student
+    if not student:
+        return
+    
+    title = "علامة جديدة"
+    message = f"تم إضافة علامة جديدة لك\n\n"
+    message += f"📚 المادة: {grade.course.title if grade.course else 'غير محدد'}\n"
+    message += f"📊 العلامة: {grade.grade} من {grade.max_grade}\n"
+    if grade.remarks:
+        message += f"💬 ملاحظات: {grade.remarks}\n"
+    
+    create_notification(
+        title=title,
+        message=message,
+        notification_type='new_grade',
+        created_by_id=grade.teacher.user_id if grade.teacher else 1,
+        target_type='student',
+        target_id=student.id,
+        send_telegram=True,
+        send_web=True
+    )
 
-نتمنى لك التوفيق! 🌟
-"""
-        
-        try:
-            asyncio.run(send_telegram_notification(
-                bot_session.telegram_id,
-                message,
-                settings.telegram_bot_token
-            ))
-        except Exception as e:
-            logger.error(f"Error notifying student {student.id} about enrollment: {e}")
+
+def send_updated_grade_notification(grade_id):
+    from app.models import Grade
+    
+    grade = Grade.query.get(grade_id)
+    if not grade:
+        return
+    
+    student = grade.student
+    if not student:
+        return
+    
+    title = "تحديث علامة"
+    message = f"تم تحديث علامتك\n\n"
+    message += f"📚 المادة: {grade.course.title if grade.course else 'غير محدد'}\n"
+    message += f"📊 العلامة الجديدة: {grade.grade} من {grade.max_grade}\n"
+    if grade.remarks:
+        message += f"💬 ملاحظات: {grade.remarks}\n"
+    
+    create_notification(
+        title=title,
+        message=message,
+        notification_type='updated_grade',
+        created_by_id=grade.teacher.user_id if grade.teacher else 1,
+        target_type='student',
+        target_id=student.id,
+        send_telegram=True,
+        send_web=True
+    )
+
+
+def get_user_notifications(user_id, unread_only=False, limit=50):
+    query = NotificationRecipient.query.filter_by(user_id=user_id)
+    
+    if unread_only:
+        query = query.filter_by(is_read=False)
+    
+    query = query.join(Notification).filter(Notification.is_active == True)
+    query = query.order_by(NotificationRecipient.id.desc()).limit(limit)
+    
+    return query.all()
+
+
+def get_unread_count(user_id):
+    return NotificationRecipient.query.filter_by(
+        user_id=user_id,
+        is_read=False
+    ).join(Notification).filter(Notification.is_active == True).count()
+
+
+def mark_notification_as_read(recipient_id):
+    recipient = NotificationRecipient.query.get(recipient_id)
+    if recipient:
+        recipient.mark_as_read()
+        return True
+    return False
+
+
+def mark_all_as_read(user_id):
+    recipients = NotificationRecipient.query.filter_by(
+        user_id=user_id,
+        is_read=False
+    ).all()
+    
+    for recipient in recipients:
+        recipient.mark_as_read()
+    
+    return len(recipients)
+
 
 def broadcast_message(message: str, role=None):
     from app import create_app
@@ -183,12 +276,10 @@ def broadcast_message(message: str, role=None):
         settings = SiteSettings.query.first()
         
         if not settings or not settings.telegram_bot_enabled:
-            return
+            return 0
         
         if not settings.telegram_bot_token:
-            return
-        
-        from app.models import User
+            return 0
         
         query = BotSession.query.filter_by(is_authenticated=True)
         
@@ -200,7 +291,7 @@ def broadcast_message(message: str, role=None):
         success_count = 0
         for session in sessions:
             try:
-                asyncio.run(send_telegram_notification(
+                asyncio.run(send_telegram_notification_async(
                     session.telegram_id,
                     message,
                     settings.telegram_bot_token

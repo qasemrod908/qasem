@@ -12,10 +12,11 @@ from app.models.contact import Contact
 from app.models.settings import SiteSettings
 from app.models.class_grade import ClassGrade, Section
 from app.models.bot_session import BotSession, BotStatistics
+from app.models.notification import Notification, NotificationRecipient
 
 __all__ = [
     'User', 'Course', 'Teacher', 'Student', 'Enrollment',
     'Lesson', 'Grade', 'News', 'Testimonial', 'Certificate',
     'Contact', 'SiteSettings', 'ClassGrade', 'Section',
-    'BotSession', 'BotStatistics'
+    'BotSession', 'BotStatistics', 'Notification', 'NotificationRecipient'
 ]
