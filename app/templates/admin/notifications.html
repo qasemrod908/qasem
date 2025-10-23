@@ -99,6 +99,13 @@
                                    class="btn btn-sm btn-info" title="عرض">
                                     <i class="fas fa-eye"></i>
                                 </a>
+                                <form method="POST" action="{{ url_for('admin.toggle_notification', notification_id=notif.id) }}" 
+                                      style="display: inline;">
+                                    <button type="submit" class="btn btn-sm btn-{{ 'warning' if notif.is_active else 'success' }}" 
+                                            title="{{ 'تعطيل' if notif.is_active else 'تفعيل' }}">
+                                        <i class="fas fa-{{ 'pause' if notif.is_active else 'play' }}"></i>
+                                    </button>
+                                </form>
                                 <form method="POST" action="{{ url_for('admin.delete_notification', notification_id=notif.id) }}" 
                                       style="display: inline;">
                                     <button type="submit" class="btn btn-sm btn-danger" 

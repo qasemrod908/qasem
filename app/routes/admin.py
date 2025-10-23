@@ -1216,6 +1216,16 @@ def view_notification(notification_id):
                           notification=notification, 
                           stats=stats)
 
+@bp.route('/notifications/toggle/<int:notification_id>', methods=['POST'])
+@role_required('admin', 'assistant')
+def toggle_notification(notification_id):
+    notification = Notification.query.get_or_404(notification_id)
+    notification.is_active = not notification.is_active
+    db.session.commit()
+    status = 'تم تفعيل الإشعار بنجاح' if notification.is_active else 'تم تعطيل الإشعار بنجاح'
+    flash(status, 'success')
+    return redirect(url_for('admin.notifications'))
+
 @bp.route('/notifications/delete/<int:notification_id>', methods=['POST'])
 @role_required('admin')
 def delete_notification(notification_id):

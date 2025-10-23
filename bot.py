@@ -17,7 +17,8 @@ from telegram.constants import ParseMode
 from app import create_app, db
 from app.models import (
     User, Student, Teacher, Course, Lesson, Grade, News, 
-    Enrollment, SiteSettings, BotSession, BotStatistics
+    Enrollment, SiteSettings, BotSession, BotStatistics,
+    Notification, NotificationRecipient
 )
 from app.utils.helpers import damascus_now
 
