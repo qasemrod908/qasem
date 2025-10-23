@@ -728,6 +728,10 @@ def add_student_grade(student_id):
         
         db.session.add(grade)
         db.session.commit()
+        
+        from app.utils.notifications import send_grade_notification
+        send_grade_notification(grade, is_new=True)
+        
         flash('تم إضافة العلامة بنجاح', 'success')
         return redirect(url_for('admin.view_student', student_id=student_id))
     
@@ -765,6 +769,10 @@ def edit_student_grade(student_id, grade_id):
         grade.exam_date = exam_date_obj
         
         db.session.commit()
+        
+        from app.utils.notifications import send_grade_notification
+        send_grade_notification(grade, is_new=False)
+        
         flash('تم تحديث العلامة بنجاح', 'success')
         return redirect(url_for('admin.view_student', student_id=student_id))
     
