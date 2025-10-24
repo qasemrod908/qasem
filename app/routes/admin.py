@@ -1264,3 +1264,144 @@ def notifications_stats():
     return render_template('admin/notifications_stats.html', 
                           stats=stats, 
                           recent_notifications=recent_notifications)
+
+@bp.route('/students/<int:student_id>/payments')
+@role_required('admin', 'assistant')
+def student_payments(student_id):
+    student = Student.query.get_or_404(student_id)
+    payments = Payment.query.filter_by(student_id=student_id).order_by(Payment.created_at.desc()).all()
+    return render_template('admin/student_payments.html', student=student, payments=payments)
+
+@bp.route('/students/<int:student_id>/payments/add', methods=['GET', 'POST'])
+@role_required('admin', 'assistant')
+def add_payment(student_id):
+    student = Student.query.get_or_404(student_id)
+    
+    if request.method == 'POST':
+        from datetime import datetime
+        
+        due_date_str = request.form.get('due_date')
+        due_date_obj = None
+        if due_date_str:
+            try:
+                due_date_obj = datetime.strptime(due_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                pass
+        
+        payment = Payment(
+            student_id=student_id,
+            title=request.form.get('title'),
+            description=request.form.get('description'),
+            total_amount=float(request.form.get('total_amount')),
+            due_date=due_date_obj,
+            created_by_id=current_user.id
+        )
+        
+        db.session.add(payment)
+        db.session.commit()
+        
+        from app.utils.notifications import send_new_payment_notification
+        send_new_payment_notification(payment.id)
+        
+        flash('تم إضافة القسط بنجاح وإرسال إشعار للطالب', 'success')
+        return redirect(url_for('admin.student_payments', student_id=student_id))
+    
+    return render_template('admin/add_payment.html', student=student)
+
+@bp.route('/payments/<int:payment_id>/installments/add', methods=['GET', 'POST'])
+@role_required('admin', 'assistant')
+def add_installment(payment_id):
+    payment = Payment.query.get_or_404(payment_id)
+    
+    if request.method == 'POST':
+        from datetime import datetime
+        
+        payment_date_str = request.form.get('payment_date')
+        payment_date_obj = None
+        if payment_date_str:
+            try:
+                payment_date_obj = datetime.strptime(payment_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                payment_date_obj = datetime.now().date()
+        else:
+            payment_date_obj = datetime.now().date()
+        
+        amount = float(request.form.get('amount'))
+        
+        if amount > payment.remaining_amount:
+            flash('المبلغ المدفوع أكبر من المبلغ المتبقي', 'danger')
+            return redirect(url_for('admin.add_installment', payment_id=payment_id))
+        
+        installment = InstallmentPayment(
+            payment_id=payment_id,
+            amount=amount,
+            payment_date=payment_date_obj,
+            payment_method=request.form.get('payment_method'),
+            notes=request.form.get('notes'),
+            receipt_number=request.form.get('receipt_number'),
+            created_by_id=current_user.id
+        )
+        
+        payment.paid_amount += amount
+        payment.update_status()
+        
+        db.session.add(installment)
+        db.session.commit()
+        
+        from app.utils.notifications import send_payment_received_notification
+        send_payment_received_notification(installment.id)
+        
+        flash('تم تسجيل الدفعة بنجاح وإرسال إشعار للطالب', 'success')
+        return redirect(url_for('admin.student_payments', student_id=payment.student_id))
+    
+    return render_template('admin/add_installment.html', payment=payment)
+
+@bp.route('/payments/<int:payment_id>/view')
+@role_required('admin', 'assistant')
+def view_payment(payment_id):
+    payment = Payment.query.get_or_404(payment_id)
+    installments = InstallmentPayment.query.filter_by(payment_id=payment_id).order_by(InstallmentPayment.payment_date.desc()).all()
+    return render_template('admin/view_payment.html', payment=payment, installments=installments)
+
+@bp.route('/payments/<int:payment_id>/delete', methods=['POST'])
+@role_required('admin')
+def delete_payment(payment_id):
+    payment = Payment.query.get_or_404(payment_id)
+    student_id = payment.student_id
+    db.session.delete(payment)
+    db.session.commit()
+    flash('تم حذف القسط بنجاح', 'success')
+    return redirect(url_for('admin.student_payments', student_id=student_id))
+
+@bp.route('/settings/payment-reminders', methods=['GET', 'POST'])
+@role_required('admin')
+def payment_reminder_settings():
+    settings = SiteSettings.query.first()
+    
+    if request.method == 'POST':
+        settings.payment_reminder_enabled = request.form.get('payment_reminder_enabled') == 'on'
+        settings.payment_reminder_days_before = int(request.form.get('payment_reminder_days_before', 3))
+        settings.payment_reminder_time = request.form.get('payment_reminder_time', '09:00')
+        
+        db.session.commit()
+        
+        from app.utils.scheduler import update_reminder_schedule
+        if settings.payment_reminder_enabled:
+            update_reminder_schedule(settings.payment_reminder_time)
+        
+        flash('تم حفظ إعدادات التذكير بالأقساط بنجاح', 'success')
+        return redirect(url_for('admin.payment_reminder_settings'))
+    
+    return render_template('admin/payment_reminder_settings.html', settings=settings)
+
+@bp.route('/payments/all')
+@role_required('admin', 'assistant')
+def all_payments():
+    status_filter = request.args.get('status', 'all')
+    
+    query = Payment.query
+    if status_filter != 'all':
+        query = query.filter_by(status=status_filter)
+    
+    payments = query.order_by(Payment.created_at.desc()).all()
+    return render_template('admin/all_payments.html', payments=payments, status_filter=status_filter)
