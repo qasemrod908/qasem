@@ -39,6 +39,7 @@ class SiteSettings(db.Model):
     payment_reminder_enabled = db.Column(db.Boolean, default=True)
     payment_reminder_days_before = db.Column(db.Integer, default=3)
     payment_reminder_time = db.Column(db.String(5), default='09:00')
+    payment_reminder_message = db.Column(db.Text, default='تذكير: لديك قسط مستحق\n\n📋 العنوان: {title}\n💰 المبلغ الإجمالي: {total_amount} ل.س\n💳 المبلغ المدفوع: {paid_amount} ل.س\n📊 المبلغ المتبقي: {remaining_amount} ل.س\n📅 تاريخ الاستحقاق: {due_date}\n\nيرجى تسديد المبلغ المتبقي في أقرب وقت ممكن.')
     
     updated_at = db.Column(db.DateTime, default=damascus_now, onupdate=damascus_now)
     

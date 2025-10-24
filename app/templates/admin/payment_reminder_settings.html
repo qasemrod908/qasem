@@ -58,6 +58,25 @@
                     </div>
                 </div>
 
+                <div class="mb-3">
+                    <label for="payment_reminder_message" class="form-label">نص رسالة التذكير</label>
+                    <textarea class="form-control" id="payment_reminder_message" 
+                              name="payment_reminder_message" 
+                              rows="8" 
+                              required>{{ settings.payment_reminder_message or 'تذكير: لديك قسط مستحق\n\n📋 العنوان: {title}\n💰 المبلغ الإجمالي: {total_amount} ل.س\n💳 المبلغ المدفوع: {paid_amount} ل.س\n📊 المبلغ المتبقي: {remaining_amount} ل.س\n📅 تاريخ الاستحقاق: {due_date}\n\nيرجى تسديد المبلغ المتبقي في أقرب وقت ممكن.' }}</textarea>
+                    <div class="form-text">
+                        <strong>المتغيرات المتاحة:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li><code>{title}</code> - عنوان القسط</li>
+                            <li><code>{total_amount}</code> - المبلغ الإجمالي</li>
+                            <li><code>{paid_amount}</code> - المبلغ المدفوع</li>
+                            <li><code>{remaining_amount}</code> - المبلغ المتبقي</li>
+                            <li><code>{due_date}</code> - تاريخ الاستحقاق</li>
+                            <li><code>{student_name}</code> - اسم الطالب</li>
+                        </ul>
+                    </div>
+                </div>
+
                 <div class="alert alert-info">
                     <i class="fas fa-info-circle ms-2"></i>
                     <strong>ملاحظة:</strong> سيتم إرسال التذكيرات عبر الموقع وTelegram (إذا كان متاحاً) للطلاب الذين لديهم أقساط مستحقة.

@@ -1392,6 +1392,7 @@ def payment_reminder_settings():
         settings.payment_reminder_enabled = request.form.get('payment_reminder_enabled') == 'on'
         settings.payment_reminder_days_before = int(request.form.get('payment_reminder_days_before', 3))
         settings.payment_reminder_time = request.form.get('payment_reminder_time', '09:00')
+        settings.payment_reminder_message = request.form.get('payment_reminder_message', settings.payment_reminder_message)
         
         db.session.commit()
         
@@ -1448,10 +1449,18 @@ def payment_reports():
     ).group_by(InstallmentPayment.payment_method).all()
     
     last_30_days = datetime.now() - timedelta(days=30)
-    monthly_collections = db.session.query(
+    monthly_collections_raw = db.session.query(
         func.date(InstallmentPayment.created_at).label('date'),
         func.sum(InstallmentPayment.amount).label('total')
     ).filter(InstallmentPayment.created_at >= last_30_days).group_by(func.date(InstallmentPayment.created_at)).all()
+    
+    monthly_collections = []
+    for item in monthly_collections_raw:
+        date_obj = datetime.strptime(str(item.date), '%Y-%m-%d').date() if item.date else None
+        monthly_collections.append({
+            'date': date_obj,
+            'total': float(item.total) if item.total else 0
+        })
     
     top_payments = Payment.query.order_by(Payment.total_amount.desc()).limit(5).all()
     

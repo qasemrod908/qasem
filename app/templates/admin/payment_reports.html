@@ -422,10 +422,10 @@
     new Chart(dailyCtx, {
         type: 'line',
         data: {
-            labels: [{% for item in monthly_collections %}'{{ item.date.strftime('%m/%d') if item.date else "" }}'{{ ", " if not loop.last else "" }}{% endfor %}],
+            labels: [{% for item in monthly_collections %}'{{ item['date'].strftime('%m/%d') if item['date'] else "" }}'{{ ", " if not loop.last else "" }}{% endfor %}],
             datasets: [{
                 label: 'التحصيل اليومي (ل.س)',
-                data: [{% for item in monthly_collections %}{{ item.total or 0 }}{{ ", " if not loop.last else "" }}{% endfor %}],
+                data: [{% for item in monthly_collections %}{{ item['total'] or 0 }}{{ ", " if not loop.last else "" }}{% endfor %}],
                 borderColor: '#28a745',
                 backgroundColor: 'rgba(40, 167, 69, 0.1)',
                 tension: 0.4,

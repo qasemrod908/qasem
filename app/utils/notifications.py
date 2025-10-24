@@ -347,6 +347,7 @@ def send_payment_received_notification(installment_id):
 
 def send_payment_reminder_notification(payment_id):
     from app.models import Payment
+    from app.models.settings import SiteSettings
     
     payment = Payment.query.get(payment_id)
     if not payment:
@@ -359,17 +360,31 @@ def send_payment_reminder_notification(payment_id):
     if not student:
         return
     
+    settings = SiteSettings.query.first()
+    
     title = "تذكير بالقسط المستحق"
-    message = f"تذكير: لديك قسط مستحق\n\n"
-    message += f"📋 العنوان: {payment.title}\n"
-    message += f"💰 المبلغ الإجمالي: {payment.total_amount} ل.س\n"
-    message += f"💳 المبلغ المدفوع: {payment.paid_amount} ل.س\n"
-    message += f"📊 المبلغ المتبقي: {payment.remaining_amount} ل.س\n"
     
-    if payment.due_date:
-        message += f"📅 تاريخ الاستحقاق: {payment.due_date.strftime('%Y-%m-%d')}\n"
-    
-    message += f"\nيرجى تسديد المبلغ المتبقي في أقرب وقت ممكن."
+    if settings and settings.payment_reminder_message:
+        message_template = settings.payment_reminder_message
+        message = message_template.format(
+            title=payment.title or '',
+            total_amount=payment.total_amount or 0,
+            paid_amount=payment.paid_amount or 0,
+            remaining_amount=payment.remaining_amount or 0,
+            due_date=payment.due_date.strftime('%Y-%m-%d') if payment.due_date else 'غير محدد',
+            student_name=student.name or ''
+        )
+    else:
+        message = f"تذكير: لديك قسط مستحق\n\n"
+        message += f"📋 العنوان: {payment.title}\n"
+        message += f"💰 المبلغ الإجمالي: {payment.total_amount} ل.س\n"
+        message += f"💳 المبلغ المدفوع: {payment.paid_amount} ل.س\n"
+        message += f"📊 المبلغ المتبقي: {payment.remaining_amount} ل.س\n"
+        
+        if payment.due_date:
+            message += f"📅 تاريخ الاستحقاق: {payment.due_date.strftime('%Y-%m-%d')}\n"
+        
+        message += f"\nيرجى تسديد المبلغ المتبقي في أقرب وقت ممكن."
     
     create_notification(
         title=title,
