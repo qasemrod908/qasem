@@ -382,7 +382,7 @@ def send_payment_reminder_notification(payment_id):
         status_text = ""
         if is_overdue:
             status_text = f"\n⚠️ تأخر {abs(days_until_due)} يوم\n"
-        elif days_until_due is not None and days_until_due <= 3:
+        elif days_until_due is not None:
             status_text = f"\n⏰ باقي {days_until_due} يوم على الاستحقاق\n"
         
         message = message_template.format(
