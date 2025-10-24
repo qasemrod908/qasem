@@ -77,6 +77,9 @@
                     <a href="{{ url_for('admin.enroll_student', student_id=student.id) }}" class="btn btn-outline-success">
                         <i class="fas fa-plus-circle ms-2"></i>تسجيل في دورة
                     </a>
+                    <a href="{{ url_for('admin.student_payments', student_id=student.id) }}" class="btn btn-outline-warning">
+                        <i class="fas fa-money-bill-wave ms-2"></i>إدارة الأقساط
+                    </a>
                 </div>
             </div>
         </div>

@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}أقساطي - معهد القاسم{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>
+                <i class="fas fa-money-bill-wave ms-2"></i>
+                أقساطي
+            </h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('student.dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right ms-2"></i>العودة
+            </a>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        {% set total_payments = payments|length %}
+        {% set paid_payments = payments|selectattr('status', 'equalto', 'paid')|list|length %}
+        {% set partial_payments = payments|selectattr('status', 'equalto', 'partial')|list|length %}
+        {% set pending_payments = payments|selectattr('status', 'equalto', 'pending')|list|length %}
+        
+        <div class="col-md-3">
+            <div class="card text-center bg-info text-white">
+                <div class="card-body">
+                    <i class="fas fa-file-invoice-dollar fa-3x mb-3"></i>
+                    <h3>{{ total_payments }}</h3>
+                    <p>إجمالي الأقساط</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-success text-white">
+                <div class="card-body">
+                    <i class="fas fa-check-circle fa-3x mb-3"></i>
+                    <h3>{{ paid_payments }}</h3>
+                    <p>مدفوعة</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-warning text-white">
+                <div class="card-body">
+                    <i class="fas fa-hourglass-half fa-3x mb-3"></i>
+                    <h3>{{ partial_payments }}</h3>
+                    <p>دفع جزئي</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-danger text-white">
+                <div class="card-body">
+                    <i class="fas fa-clock fa-3x mb-3"></i>
+                    <h3>{{ pending_payments }}</h3>
+                    <p>معلقة</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-list ms-2"></i>
+                قائمة أقساطي
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if payments %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>العنوان</th>
+                            <th>المبلغ الإجمالي</th>
+                            <th>المبلغ المدفوع</th>
+                            <th>المبلغ المتبقي</th>
+                            <th>الحالة</th>
+                            <th>تاريخ الاستحقاق</th>
+                            <th class="text-center">تفاصيل</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for payment in payments %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <strong>{{ payment.title }}</strong>
+                                {% if payment.description %}
+                                <br><small class="text-muted">{{ payment.description[:50] }}{% if payment.description|length > 50 %}...{% endif %}</small>
+                                {% endif %}
+                            </td>
+                            <td><strong>{{ "{:,.0f}".format(payment.total_amount) }}</strong> ل.س</td>
+                            <td><span class="text-success">{{ "{:,.0f}".format(payment.paid_amount) }}</span> ل.س</td>
+                            <td><span class="text-danger">{{ "{:,.0f}".format(payment.remaining_amount) }}</span> ل.س</td>
+                            <td>
+                                {% if payment.status == 'paid' %}
+                                <span class="badge bg-success">مدفوع</span>
+                                {% elif payment.status == 'partial' %}
+                                <span class="badge bg-warning">دفع جزئي</span>
+                                {% else %}
+                                <span class="badge bg-danger">معلق</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if payment.due_date %}
+                                {{ payment.due_date.strftime('%Y-%m-%d') }}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <a href="{{ url_for('student.view_payment', payment_id=payment.id) }}" 
+                                   class="btn btn-sm btn-outline-info">
+                                    <i class="fas fa-eye"></i> عرض
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <th colspan="2">المجموع:</th>
+                            {% set total_amount_sum = payments|sum(attribute='total_amount') %}
+                            {% set paid_amount_sum = payments|sum(attribute='paid_amount') %}
+                            {% set remaining_amount = total_amount_sum - paid_amount_sum %}
+                            <th>{{ "{:,.0f}".format(total_amount_sum) }} ل.س</th>
+                            <th class="text-success">{{ "{:,.0f}".format(paid_amount_sum) }} ل.س</th>
+                            <th class="text-danger">{{ "{:,.0f}".format(remaining_amount) }} ل.س</th>
+                            <th colspan="3"></th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info mb-0">
+                <i class="fas fa-info-circle ms-2"></i>
+                لا توجد أقساط مسجلة لك حتى الآن
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if payments %}
+    <div class="card shadow-sm mt-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-info-circle ms-2"></i>
+                نصائح وملاحظات
+            </h5>
+        </div>
+        <div class="card-body">
+            <ul class="mb-0">
+                <li class="mb-2">يمكنك الضغط على "عرض" لمشاهدة تفاصيل القسط وسجل الدفعات</li>
+                <li class="mb-2">في حال وجود أقساط معلقة، يرجى التواصل مع الإدارة لتسديدها</li>
+                <li class="mb-2">سيتم إرسال تذكير لك عند اقتراب موعد استحقاق القسط</li>
+                <li>يمكنك طلب إيصال دفع من الإدارة عند تسديد أي مبلغ</li>
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

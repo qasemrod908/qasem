@@ -26,12 +26,22 @@ def dashboard():
         'total_unread': NotificationRecipient.query.filter_by(is_read=False).count()
     }
     
+    payment_stats = {
+        'total_payments': Payment.query.count(),
+        'paid_count': Payment.query.filter_by(status='paid').count(),
+        'pending_count': Payment.query.filter_by(status='pending').count() + Payment.query.filter_by(status='partial').count(),
+        'total_collected': sum(p.paid_amount for p in Payment.query.all()),
+        'total_expected': sum(p.total_amount for p in Payment.query.all())
+    }
+    payment_stats['total_remaining'] = payment_stats['total_expected'] - payment_stats['total_collected']
+    
     recent_contacts = Contact.query.order_by(Contact.created_at.desc()).limit(5).all()
     recent_notifications = Notification.query.order_by(Notification.created_at.desc()).limit(5).all()
     
     return render_template('admin/dashboard.html', 
                           stats=stats, 
                           notification_stats=notification_stats,
+                          payment_stats=payment_stats,
                           recent_contacts=recent_contacts,
                           recent_notifications=recent_notifications)
 
@@ -1404,3 +1414,66 @@ def all_payments():
     
     payments = query.order_by(Payment.created_at.desc()).all()
     return render_template('admin/all_payments.html', payments=payments, status_filter=status_filter)
+
+@bp.route('/payments/reports')
+@role_required('admin', 'assistant')
+def payment_reports():
+    from sqlalchemy import func
+    from datetime import datetime, timedelta
+    
+    all_payments = Payment.query.all()
+    total_expected = sum(p.total_amount for p in all_payments)
+    total_collected = sum(p.paid_amount for p in all_payments)
+    total_remaining = total_expected - total_collected
+    
+    paid_count = Payment.query.filter_by(status='paid').count()
+    partial_count = Payment.query.filter_by(status='partial').count()
+    pending_count = Payment.query.filter_by(status='pending').count()
+    total_count = Payment.query.count()
+    
+    students_with_payments = db.session.query(Student).join(Payment).distinct().count()
+    students_with_pending = db.session.query(Student).join(Payment).filter(Payment.status.in_(['pending', 'partial'])).distinct().count()
+    
+    overdue_payments = Payment.query.filter(
+        Payment.status.in_(['pending', 'partial']),
+        Payment.due_date < datetime.now().date()
+    ).all() if datetime.now().date() else []
+    
+    recent_payments = InstallmentPayment.query.order_by(InstallmentPayment.created_at.desc()).limit(10).all()
+    
+    payment_methods_stats = db.session.query(
+        InstallmentPayment.payment_method,
+        func.count(InstallmentPayment.id).label('count'),
+        func.sum(InstallmentPayment.amount).label('total')
+    ).group_by(InstallmentPayment.payment_method).all()
+    
+    last_30_days = datetime.now() - timedelta(days=30)
+    monthly_collections = db.session.query(
+        func.date(InstallmentPayment.created_at).label('date'),
+        func.sum(InstallmentPayment.amount).label('total')
+    ).filter(InstallmentPayment.created_at >= last_30_days).group_by(func.date(InstallmentPayment.created_at)).all()
+    
+    top_payments = Payment.query.order_by(Payment.total_amount.desc()).limit(5).all()
+    
+    stats = {
+        'total_expected': total_expected,
+        'total_collected': total_collected,
+        'total_remaining': total_remaining,
+        'collection_rate': (total_collected / total_expected * 100) if total_expected > 0 else 0,
+        'paid_count': paid_count,
+        'partial_count': partial_count,
+        'pending_count': pending_count,
+        'total_count': total_count,
+        'students_with_payments': students_with_payments,
+        'students_with_pending': students_with_pending,
+        'overdue_count': len(overdue_payments),
+        'overdue_amount': sum(p.remaining_amount for p in overdue_payments)
+    }
+    
+    return render_template('admin/payment_reports.html',
+                         stats=stats,
+                         recent_payments=recent_payments,
+                         payment_methods_stats=payment_methods_stats,
+                         monthly_collections=monthly_collections,
+                         top_payments=top_payments,
+                         overdue_payments=overdue_payments)

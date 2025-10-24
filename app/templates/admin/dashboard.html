@@ -49,7 +49,7 @@
     </div>
 
     <div class="row mb-4">
-        <div class="col-md-12">
+        <div class="col-md-6">
             <div class="card">
                 <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
@@ -84,6 +84,53 @@
                 </div>
             </div>
         </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-money-bill-wave ms-2"></i>
+                        إحصائيات الأقساط
+                    </h5>
+                    <a href="{{ url_for('admin.payment_reports') }}" class="btn btn-light btn-sm">
+                        <i class="fas fa-chart-line"></i> التقارير المالية
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h4 class="text-primary">{{ payment_stats.total_payments }}</h4>
+                                <p class="mb-0">إجمالي الأقساط</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h4 class="text-success">{{ payment_stats.paid_count }}</h4>
+                                <p class="mb-0">مدفوعة</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h4 class="text-danger">{{ payment_stats.pending_count }}</h4>
+                                <p class="mb-0">معلقة</p>
+                            </div>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6 text-center">
+                            <small class="text-muted">المحصل</small>
+                            <h5 class="text-success">{{ "{:,.0f}".format(payment_stats.total_collected) }} ل.س</h5>
+                        </div>
+                        <div class="col-md-6 text-center">
+                            <small class="text-muted">المتبقي</small>
+                            <h5 class="text-danger">{{ "{:,.0f}".format(payment_stats.total_remaining) }} ل.س</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="row">
@@ -110,6 +157,12 @@
                     </a>
                     <a href="{{ url_for('admin.lessons') }}" class="list-group-item list-group-item-action">
                         <i class="fas fa-book-open ms-2"></i> إدارة الدروس
+                    </a>
+                    <a href="{{ url_for('admin.all_payments') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-money-bill-wave ms-2"></i> إدارة الأقساط
+                    </a>
+                    <a href="{{ url_for('admin.payment_reports') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-chart-line ms-2"></i> التقارير المالية
                     </a>
                     <a href="{{ url_for('admin.news') }}" class="list-group-item list-group-item-action">
                         <i class="fas fa-newspaper ms-2"></i> إدارة الأخبار

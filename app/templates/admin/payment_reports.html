@@ -1,0 +1,452 @@
+{% extends "base.html" %}
+
+{% block title %}التقارير المالية - معهد القاسم{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        transition: transform 0.2s;
+    }
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>
+                <i class="fas fa-chart-line ms-2"></i>
+                التقارير المالية والإحصائيات
+            </h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('admin.all_payments') }}" class="btn btn-primary">
+                <i class="fas fa-list ms-2"></i>جميع الأقساط
+            </a>
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right ms-2"></i>العودة
+            </a>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center bg-primary text-white stat-card shadow">
+                <div class="card-body">
+                    <i class="fas fa-hand-holding-usd fa-3x mb-3"></i>
+                    <h4>{{ "{:,.0f}".format(stats.total_expected) }} ل.س</h4>
+                    <p class="mb-0">إجمالي المبالغ المتوقعة</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-success text-white stat-card shadow">
+                <div class="card-body">
+                    <i class="fas fa-money-bill-wave fa-3x mb-3"></i>
+                    <h4>{{ "{:,.0f}".format(stats.total_collected) }} ل.س</h4>
+                    <p class="mb-0">إجمالي المبالغ المحصلة</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-danger text-white stat-card shadow">
+                <div class="card-body">
+                    <i class="fas fa-exclamation-circle fa-3x mb-3"></i>
+                    <h4>{{ "{:,.0f}".format(stats.total_remaining) }} ل.س</h4>
+                    <p class="mb-0">إجمالي المبالغ المتبقية</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-info text-white stat-card shadow">
+                <div class="card-body">
+                    <i class="fas fa-percentage fa-3x mb-3"></i>
+                    <h4>{{ "%.1f"|format(stats.collection_rate) }}%</h4>
+                    <p class="mb-0">نسبة التحصيل</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center border-primary stat-card">
+                <div class="card-body">
+                    <i class="fas fa-file-invoice-dollar text-primary fa-2x mb-2"></i>
+                    <h3 class="text-primary">{{ stats.total_count }}</h3>
+                    <p class="mb-0 text-muted">إجمالي الأقساط</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-success stat-card">
+                <div class="card-body">
+                    <i class="fas fa-check-circle text-success fa-2x mb-2"></i>
+                    <h3 class="text-success">{{ stats.paid_count }}</h3>
+                    <p class="mb-0 text-muted">مدفوعة بالكامل</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-warning stat-card">
+                <div class="card-body">
+                    <i class="fas fa-hourglass-half text-warning fa-2x mb-2"></i>
+                    <h3 class="text-warning">{{ stats.partial_count }}</h3>
+                    <p class="mb-0 text-muted">دفع جزئي</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-danger stat-card">
+                <div class="card-body">
+                    <i class="fas fa-clock text-danger fa-2x mb-2"></i>
+                    <h3 class="text-danger">{{ stats.pending_count }}</h3>
+                    <p class="mb-0 text-muted">معلقة</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-pie ms-2"></i>
+                        توزيع الأقساط حسب الحالة
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="statusChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar ms-2"></i>
+                        المبالغ حسب الحالة
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="amountChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line ms-2"></i>
+                        التحصيلات اليومية - آخر 30 يوم
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="dailyCollectionChart" height="80"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="fas fa-users ms-2"></i>
+                        إحصائيات الطلاب
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-6 text-center mb-3">
+                            <h3 class="text-primary">{{ stats.students_with_payments }}</h3>
+                            <p class="text-muted">طلاب لديهم أقساط</p>
+                        </div>
+                        <div class="col-6 text-center mb-3">
+                            <h3 class="text-danger">{{ stats.students_with_pending }}</h3>
+                            <p class="text-muted">طلاب لديهم مستحقات</p>
+                        </div>
+                    </div>
+                    <div class="progress" style="height: 25px;">
+                        {% set student_payment_rate = (stats.students_with_pending / stats.students_with_payments * 100) if stats.students_with_payments > 0 else 0 %}
+                        <div class="progress-bar bg-danger" role="progressbar" 
+                             style="width: {{ student_payment_rate }}%" 
+                             aria-valuenow="{{ student_payment_rate }}" aria-valuemin="0" aria-valuemax="100">
+                            {{ "%.1f"|format(student_payment_rate) }}% لديهم مستحقات
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle ms-2"></i>
+                        الأقساط المتأخرة
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6 mb-3">
+                            <h3 class="text-danger">{{ stats.overdue_count }}</h3>
+                            <p class="text-muted">عدد الأقساط المتأخرة</p>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <h3 class="text-danger">{{ "{:,.0f}".format(stats.overdue_amount) }} ل.س</h3>
+                            <p class="text-muted">قيمة المبالغ المتأخرة</p>
+                        </div>
+                    </div>
+                    {% if stats.overdue_count > 0 %}
+                    <div class="alert alert-danger mb-0">
+                        <i class="fas fa-info-circle ms-2"></i>
+                        يوجد {{ stats.overdue_count }} قسط/أقساط متأخرة تحتاج للمتابعة
+                    </div>
+                    {% else %}
+                    <div class="alert alert-success mb-0">
+                        <i class="fas fa-check-circle ms-2"></i>
+                        لا توجد أقساط متأخرة
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if payment_methods_stats %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-wallet ms-2"></i>
+                        طرق الدفع المستخدمة
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>طريقة الدفع</th>
+                                    <th>عدد المعاملات</th>
+                                    <th>إجمالي المبلغ</th>
+                                    <th>النسبة</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% set total_methods_amount = payment_methods_stats|sum(attribute='total') or 1 %}
+                                {% for method_stat in payment_methods_stats %}
+                                <tr>
+                                    <td><strong>{{ method_stat.payment_method or 'غير محدد' }}</strong></td>
+                                    <td>{{ method_stat.count }}</td>
+                                    <td>{{ "{:,.0f}".format(method_stat.total or 0) }} ل.س</td>
+                                    <td>
+                                        <div class="progress" style="height: 20px;">
+                                            {% set method_percentage = (method_stat.total / total_methods_amount * 100) if method_stat.total else 0 %}
+                                            <div class="progress-bar bg-info" role="progressbar" 
+                                                 style="width: {{ method_percentage }}%" 
+                                                 aria-valuenow="{{ method_percentage }}" aria-valuemin="0" aria-valuemax="100">
+                                                {{ "%.1f"|format(method_percentage) }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if top_payments %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-trophy ms-2"></i>
+                        أعلى 5 أقساط قيمة
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>الطالب</th>
+                                    <th>العنوان</th>
+                                    <th>المبلغ الإجمالي</th>
+                                    <th>المدفوع</th>
+                                    <th>المتبقي</th>
+                                    <th>الحالة</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for payment in top_payments %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td>{{ payment.student.user.full_name }}</td>
+                                    <td>{{ payment.title }}</td>
+                                    <td><strong>{{ "{:,.0f}".format(payment.total_amount) }} ل.س</strong></td>
+                                    <td class="text-success">{{ "{:,.0f}".format(payment.paid_amount) }} ل.س</td>
+                                    <td class="text-danger">{{ "{:,.0f}".format(payment.remaining_amount) }} ل.س</td>
+                                    <td>
+                                        {% if payment.status == 'paid' %}
+                                        <span class="badge bg-success">مدفوع</span>
+                                        {% elif payment.status == 'partial' %}
+                                        <span class="badge bg-warning">جزئي</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">معلق</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if recent_payments %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history ms-2"></i>
+                        آخر 10 دفعات
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>الطالب</th>
+                                    <th>القسط</th>
+                                    <th>المبلغ</th>
+                                    <th>تاريخ الدفع</th>
+                                    <th>طريقة الدفع</th>
+                                    <th>رقم الإيصال</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for installment in recent_payments %}
+                                <tr>
+                                    <td>{{ installment.payment.student.user.full_name }}</td>
+                                    <td>{{ installment.payment.title }}</td>
+                                    <td><strong class="text-success">{{ "{:,.0f}".format(installment.amount) }} ل.س</strong></td>
+                                    <td>{{ installment.payment_date.strftime('%Y-%m-%d') if installment.payment_date else '-' }}</td>
+                                    <td>{{ installment.payment_method or '-' }}</td>
+                                    <td>{{ installment.receipt_number or '-' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+    const statusCtx = document.getElementById('statusChart').getContext('2d');
+    new Chart(statusCtx, {
+        type: 'pie',
+        data: {
+            labels: ['مدفوعة', 'دفع جزئي', 'معلقة'],
+            datasets: [{
+                data: [{{ stats.paid_count }}, {{ stats.partial_count }}, {{ stats.pending_count }}],
+                backgroundColor: ['#28a745', '#ffc107', '#dc3545']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+
+    const amountCtx = document.getElementById('amountChart').getContext('2d');
+    new Chart(amountCtx, {
+        type: 'bar',
+        data: {
+            labels: ['المتوقع', 'المحصل', 'المتبقي'],
+            datasets: [{
+                label: 'المبلغ (ل.س)',
+                data: [{{ stats.total_expected }}, {{ stats.total_collected }}, {{ stats.total_remaining }}],
+                backgroundColor: ['#007bff', '#28a745', '#dc3545']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    const dailyCtx = document.getElementById('dailyCollectionChart').getContext('2d');
+    new Chart(dailyCtx, {
+        type: 'line',
+        data: {
+            labels: [{% for item in monthly_collections %}'{{ item.date.strftime('%m/%d') if item.date else "" }}'{{ ", " if not loop.last else "" }}{% endfor %}],
+            datasets: [{
+                label: 'التحصيل اليومي (ل.س)',
+                data: [{% for item in monthly_collections %}{{ item.total or 0 }}{{ ", " if not loop.last else "" }}{% endfor %}],
+                borderColor: '#28a745',
+                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

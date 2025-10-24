@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify
 from flask_login import login_required, current_user
 from app import db
-from app.models import Student, Enrollment, Lesson, Grade, Course, NotificationRecipient, Notification
+from app.models import Student, Enrollment, Lesson, Grade, Course, NotificationRecipient, Notification, Payment, InstallmentPayment
 from app.utils.decorators import role_required
 from app.utils.notifications import get_user_notifications, get_unread_count, mark_notification_as_read
 
@@ -175,3 +175,35 @@ def api_mark_notification_read(recipient_id):
             'success': False,
             'error': str(e)
         }), 500
+
+@bp.route('/payments')
+@role_required('student')
+def payments():
+    student = Student.query.filter_by(user_id=current_user.id).first()
+    if not student:
+        flash('الملف الشخصي للطالب غير موجود', 'danger')
+        return redirect(url_for('public.index'))
+    
+    my_payments = Payment.query.filter_by(student_id=student.id).order_by(Payment.created_at.desc()).all()
+    
+    return render_template('student/payments.html', payments=my_payments, student=student)
+
+@bp.route('/payments/<int:payment_id>')
+@role_required('student')
+def view_payment(payment_id):
+    from datetime import date
+    
+    student = Student.query.filter_by(user_id=current_user.id).first()
+    if not student:
+        flash('الملف الشخصي للطالب غير موجود', 'danger')
+        return redirect(url_for('public.index'))
+    
+    payment = Payment.query.get_or_404(payment_id)
+    
+    if payment.student_id != student.id:
+        flash('ليس لديك صلاحية لعرض هذا القسط', 'danger')
+        return redirect(url_for('student.payments'))
+    
+    installments = InstallmentPayment.query.filter_by(payment_id=payment_id).order_by(InstallmentPayment.payment_date.desc()).all()
+    
+    return render_template('student/view_payment.html', payment=payment, installments=installments, today=date.today())

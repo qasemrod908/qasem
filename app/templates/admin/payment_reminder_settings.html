@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}إعدادات تذكير الأقساط - معهد القاسم{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>
+                <i class="fas fa-bell ms-2"></i>
+                إعدادات تذكير الأقساط
+            </h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('admin.settings') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right ms-2"></i>العودة
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-cog ms-2"></i>
+                إعدادات التذكير التلقائي
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('admin.payment_reminder_settings') }}">
+                <div class="mb-4">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="payment_reminder_enabled" 
+                               name="payment_reminder_enabled" 
+                               {% if settings.payment_reminder_enabled %}checked{% endif %}>
+                        <label class="form-check-label" for="payment_reminder_enabled">
+                            <strong>تفعيل التذكير التلقائي بالأقساط</strong>
+                        </label>
+                    </div>
+                    <small class="text-muted">عند التفعيل، سيتم إرسال تذكير تلقائي للطلاب بالأقساط المستحقة قبل تاريخ الاستحقاق</small>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="payment_reminder_days_before" class="form-label">عدد الأيام قبل تاريخ الاستحقاق</label>
+                        <input type="number" class="form-control" id="payment_reminder_days_before" 
+                               name="payment_reminder_days_before" 
+                               value="{{ settings.payment_reminder_days_before or 3 }}" 
+                               min="1" max="30" required>
+                        <div class="form-text">سيتم إرسال التذكير قبل هذا العدد من الأيام من تاريخ الاستحقاق</div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="payment_reminder_time" class="form-label">وقت إرسال التذكير</label>
+                        <input type="time" class="form-control" id="payment_reminder_time" 
+                               name="payment_reminder_time" 
+                               value="{{ settings.payment_reminder_time or '09:00' }}" required>
+                        <div class="form-text">الوقت اليومي الذي سيتم فيه فحص وإرسال التذكيرات</div>
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle ms-2"></i>
+                    <strong>ملاحظة:</strong> سيتم إرسال التذكيرات عبر الموقع وTelegram (إذا كان متاحاً) للطلاب الذين لديهم أقساط مستحقة.
+                </div>
+
+                <hr>
+
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <a href="{{ url_for('admin.settings') }}" class="btn btn-secondary">
+                        <i class="fas fa-times ms-2"></i>إلغاء
+                    </a>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save ms-2"></i>حفظ الإعدادات
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mt-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-question-circle ms-2"></i>
+                كيف يعمل نظام التذكير؟
+            </h5>
+        </div>
+        <div class="card-body">
+            <ol class="mb-0">
+                <li class="mb-2">يتم فحص الأقساط يومياً في الوقت المحدد</li>
+                <li class="mb-2">يتم البحث عن الأقساط التي تاريخ استحقاقها يقع ضمن عدد الأيام المحدد</li>
+                <li class="mb-2">يتم إرسال إشعار تذكير للطلاب الذين لديهم أقساط معلقة أو مدفوعة جزئياً</li>
+                <li class="mb-2">يتم إرسال الإشعار عبر الموقع وTelegram (إذا كان الطالب مسجل في البوت)</li>
+                <li>لن يتم إرسال تذكيرات للأقساط المدفوعة بالكامل</li>
+            </ol>
+        </div>
+    </div>
+</div>
+{% endblock %}

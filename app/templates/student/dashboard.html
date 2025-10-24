@@ -52,6 +52,9 @@
                     <a href="{{ url_for('student.grades') }}" class="list-group-item list-group-item-action">
                         <i class="fas fa-star ms-2"></i> علاماتي
                     </a>
+                    <a href="{{ url_for('student.payments') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-money-bill-wave ms-2"></i> أقساطي
+                    </a>
                     <a href="{{ url_for('student.notifications') }}" class="list-group-item list-group-item-action">
                         <i class="fas fa-bell ms-2"></i> الإشعارات
                         {% if stats.notifications > 0 %}

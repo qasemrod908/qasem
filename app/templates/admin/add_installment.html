@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}تسجيل دفعة - معهد القاسم{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>
+                <i class="fas fa-money-check-alt ms-2"></i>
+                تسجيل دفعة جديدة
+            </h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('admin.student_payments', student_id=payment.student_id) }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right ms-2"></i>العودة
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle ms-2"></i>
+                        معلومات القسط
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>الطالب:</strong><br>{{ payment.student.user.full_name }}</p>
+                    <p><strong>العنوان:</strong><br>{{ payment.title }}</p>
+                    <p><strong>المبلغ الإجمالي:</strong><br>
+                        <span class="fs-5">{{ "{:,.0f}".format(payment.total_amount) }} ل.س</span>
+                    </p>
+                    <p><strong>المبلغ المدفوع:</strong><br>
+                        <span class="text-success fs-5">{{ "{:,.0f}".format(payment.paid_amount) }} ل.س</span>
+                    </p>
+                    <p><strong>المبلغ المتبقي:</strong><br>
+                        <span class="text-danger fs-5">{{ "{:,.0f}".format(payment.remaining_amount) }} ل.س</span>
+                    </p>
+                    <p><strong>الحالة:</strong><br>
+                        {% if payment.status == 'paid' %}
+                        <span class="badge bg-success">مدفوع</span>
+                        {% elif payment.status == 'partial' %}
+                        <span class="badge bg-warning">دفع جزئي</span>
+                        {% else %}
+                        <span class="badge bg-danger">معلق</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-cash-register ms-2"></i>
+                        معلومات الدفعة
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin.add_installment', payment_id=payment.id) }}">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="amount" class="form-label">المبلغ المدفوع (ل.س) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="amount" name="amount" required 
+                                       min="0" max="{{ payment.remaining_amount }}" step="1000"
+                                       placeholder="0">
+                                <div class="form-text">الحد الأقصى: {{ "{:,.0f}".format(payment.remaining_amount) }} ل.س</div>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="payment_date" class="form-label">تاريخ الدفع <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="payment_date" name="payment_date" 
+                                       value="{{ today }}" required>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="payment_method" class="form-label">طريقة الدفع</label>
+                                <select class="form-select" id="payment_method" name="payment_method">
+                                    <option value="">-- اختر طريقة الدفع --</option>
+                                    <option value="نقداً">نقداً</option>
+                                    <option value="تحويل بنكي">تحويل بنكي</option>
+                                    <option value="بطاقة ائتمان">بطاقة ائتمان</option>
+                                    <option value="شيك">شيك</option>
+                                    <option value="أخرى">أخرى</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="receipt_number" class="form-label">رقم الإيصال</label>
+                                <input type="text" class="form-control" id="receipt_number" name="receipt_number" 
+                                       placeholder="رقم الإيصال (اختياري)">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">ملاحظات</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                      placeholder="أدخل أي ملاحظات إضافية (اختياري)"></textarea>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle ms-2"></i>
+                            <strong>ملاحظة:</strong> سيتم إرسال إشعار تلقائي للطالب عند تسجيل الدفعة.
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{{ url_for('admin.student_payments', student_id=payment.student_id) }}" 
+                               class="btn btn-secondary">
+                                <i class="fas fa-times ms-2"></i>إلغاء
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save ms-2"></i>تسجيل الدفعة
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('amount').addEventListener('input', function() {
+    const maxAmount = {{ payment.remaining_amount }};
+    const value = parseFloat(this.value);
+    if (value > maxAmount) {
+        this.value = maxAmount;
+    }
+});
+</script>
+{% endblock %}
