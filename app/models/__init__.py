@@ -13,10 +13,12 @@ from app.models.settings import SiteSettings
 from app.models.class_grade import ClassGrade, Section
 from app.models.bot_session import BotSession, BotStatistics
 from app.models.notification import Notification, NotificationRecipient
+from app.models.payment import Payment, InstallmentPayment
 
 __all__ = [
     'User', 'Course', 'Teacher', 'Student', 'Enrollment',
     'Lesson', 'Grade', 'News', 'Testimonial', 'Certificate',
     'Contact', 'SiteSettings', 'ClassGrade', 'Section',
-    'BotSession', 'BotStatistics', 'Notification', 'NotificationRecipient'
+    'BotSession', 'BotStatistics', 'Notification', 'NotificationRecipient',
+    'Payment', 'InstallmentPayment'
 ]

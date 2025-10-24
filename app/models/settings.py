@@ -36,6 +36,10 @@ class SiteSettings(db.Model):
     teachers_slider_auto_play = db.Column(db.Boolean, default=True)
     teachers_slider_transition = db.Column(db.String(20), default='slide')
     
+    payment_reminder_enabled = db.Column(db.Boolean, default=True)
+    payment_reminder_days_before = db.Column(db.Integer, default=3)
+    payment_reminder_time = db.Column(db.String(5), default='09:00')
+    
     updated_at = db.Column(db.DateTime, default=damascus_now, onupdate=damascus_now)
     
     def __repr__(self):
