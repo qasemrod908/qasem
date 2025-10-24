@@ -270,6 +270,119 @@ def mark_all_as_read(user_id):
     return len(recipients)
 
 
+def send_new_payment_notification(payment_id):
+    from app.models import Payment
+    
+    payment = Payment.query.get(payment_id)
+    if not payment:
+        return
+    
+    student = payment.student
+    if not student:
+        return
+    
+    title = "قسط جديد"
+    message = f"تم إضافة قسط جديد لك\n\n"
+    message += f"📋 العنوان: {payment.title}\n"
+    message += f"💰 المبلغ الإجمالي: {payment.total_amount} ل.س\n"
+    message += f"💳 المبلغ المدفوع: {payment.paid_amount} ل.س\n"
+    message += f"📊 المبلغ المتبقي: {payment.remaining_amount} ل.س\n"
+    if payment.due_date:
+        message += f"📅 تاريخ الاستحقاق: {payment.due_date.strftime('%Y-%m-%d')}\n"
+    if payment.description:
+        message += f"📝 التفاصيل: {payment.description}\n"
+    
+    create_notification(
+        title=title,
+        message=message,
+        notification_type='new_payment',
+        created_by_id=payment.created_by_id if payment.created_by_id else 1,
+        target_type='student',
+        target_id=student.id,
+        send_telegram=True,
+        send_web=True
+    )
+
+
+def send_payment_received_notification(installment_id):
+    from app.models import InstallmentPayment
+    
+    installment = InstallmentPayment.query.get(installment_id)
+    if not installment:
+        return
+    
+    payment = installment.payment
+    if not payment:
+        return
+    
+    student = payment.student
+    if not student:
+        return
+    
+    title = "تم استلام دفعة"
+    message = f"تم تسجيل دفعة جديدة لحسابك\n\n"
+    message += f"📋 القسط: {payment.title}\n"
+    message += f"💵 المبلغ المدفوع: {installment.amount} ل.س\n"
+    message += f"📅 تاريخ الدفع: {installment.payment_date.strftime('%Y-%m-%d')}\n"
+    message += f"💳 المبلغ المدفوع الإجمالي: {payment.paid_amount} ل.س\n"
+    message += f"📊 المبلغ المتبقي: {payment.remaining_amount} ل.س\n"
+    
+    if payment.is_paid:
+        message += f"\n✅ تم تسديد القسط بالكامل"
+    
+    if installment.receipt_number:
+        message += f"\n🧾 رقم الوصل: {installment.receipt_number}"
+    
+    create_notification(
+        title=title,
+        message=message,
+        notification_type='payment_received',
+        created_by_id=installment.created_by_id if installment.created_by_id else 1,
+        target_type='student',
+        target_id=student.id,
+        send_telegram=True,
+        send_web=True
+    )
+
+
+def send_payment_reminder_notification(payment_id):
+    from app.models import Payment
+    
+    payment = Payment.query.get(payment_id)
+    if not payment:
+        return
+    
+    if payment.is_paid:
+        return
+    
+    student = payment.student
+    if not student:
+        return
+    
+    title = "تذكير بالقسط المستحق"
+    message = f"تذكير: لديك قسط مستحق\n\n"
+    message += f"📋 العنوان: {payment.title}\n"
+    message += f"💰 المبلغ الإجمالي: {payment.total_amount} ل.س\n"
+    message += f"💳 المبلغ المدفوع: {payment.paid_amount} ل.س\n"
+    message += f"📊 المبلغ المتبقي: {payment.remaining_amount} ل.س\n"
+    
+    if payment.due_date:
+        message += f"📅 تاريخ الاستحقاق: {payment.due_date.strftime('%Y-%m-%d')}\n"
+    
+    message += f"\nيرجى تسديد المبلغ المتبقي في أقرب وقت ممكن."
+    
+    create_notification(
+        title=title,
+        message=message,
+        notification_type='payment_reminder',
+        created_by_id=1,
+        target_type='student',
+        target_id=student.id,
+        send_telegram=True,
+        send_web=True
+    )
+
+
 def broadcast_message(message: str, role=None):
     from app import create_app
     app = create_app()
