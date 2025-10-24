@@ -348,6 +348,7 @@ def send_payment_received_notification(installment_id):
 def send_payment_reminder_notification(payment_id):
     from app.models import Payment
     from app.models.settings import SiteSettings
+    from datetime import datetime
     
     payment = Payment.query.get(payment_id)
     if not payment:
@@ -362,10 +363,28 @@ def send_payment_reminder_notification(payment_id):
     
     settings = SiteSettings.query.first()
     
-    title = "تذكير بالقسط المستحق"
+    is_overdue = False
+    days_until_due = None
+    if payment.due_date:
+        from app.utils.helpers import damascus_now
+        today = damascus_now().date()
+        days_until_due = (payment.due_date - today).days
+        is_overdue = days_until_due < 0
+    
+    if is_overdue:
+        title = "⚠️ تنبيه: قسط متأخر"
+    else:
+        title = "تذكير بالقسط المستحق"
     
     if settings and settings.payment_reminder_message:
         message_template = settings.payment_reminder_message
+        
+        status_text = ""
+        if is_overdue:
+            status_text = f"\n⚠️ تأخر {abs(days_until_due)} يوم\n"
+        elif days_until_due is not None and days_until_due <= 3:
+            status_text = f"\n⏰ باقي {days_until_due} يوم على الاستحقاق\n"
+        
         message = message_template.format(
             title=payment.title or '',
             total_amount=payment.total_amount or 0,
@@ -374,8 +393,16 @@ def send_payment_reminder_notification(payment_id):
             due_date=payment.due_date.strftime('%Y-%m-%d') if payment.due_date else 'غير محدد',
             student_name=student.name or ''
         )
+        message += status_text
     else:
-        message = f"تذكير: لديك قسط مستحق\n\n"
+        if is_overdue:
+            message = f"⚠️ تنبيه هام: لديك قسط متأخر\n\n"
+            message += f"⏱️ متأخر منذ: {abs(days_until_due)} يوم\n\n"
+        else:
+            message = f"تذكير: لديك قسط مستحق\n\n"
+            if days_until_due is not None:
+                message += f"⏰ المتبقي على الاستحقاق: {days_until_due} يوم\n\n"
+        
         message += f"📋 العنوان: {payment.title}\n"
         message += f"💰 المبلغ الإجمالي: {payment.total_amount} ل.س\n"
         message += f"💳 المبلغ المدفوع: {payment.paid_amount} ل.س\n"
@@ -384,7 +411,10 @@ def send_payment_reminder_notification(payment_id):
         if payment.due_date:
             message += f"📅 تاريخ الاستحقاق: {payment.due_date.strftime('%Y-%m-%d')}\n"
         
-        message += f"\nيرجى تسديد المبلغ المتبقي في أقرب وقت ممكن."
+        if is_overdue:
+            message += f"\n⚠️ يرجى التسديد فوراً لتجنب المزيد من التأخير!"
+        else:
+            message += f"\nيرجى تسديد المبلغ المتبقي في أقرب وقت ممكن."
     
     create_notification(
         title=title,

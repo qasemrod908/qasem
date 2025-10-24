@@ -100,17 +100,70 @@
         <div class="card-header bg-info text-white">
             <h5 class="mb-0">
                 <i class="fas fa-question-circle ms-2"></i>
-                كيف يعمل نظام التذكير؟
+                كيف يعمل نظام التذكير اليومي التلقائي؟
             </h5>
         </div>
         <div class="card-body">
-            <ol class="mb-0">
-                <li class="mb-2">يتم فحص الأقساط يومياً في الوقت المحدد</li>
-                <li class="mb-2">يتم البحث عن الأقساط التي تاريخ استحقاقها يقع ضمن عدد الأيام المحدد</li>
-                <li class="mb-2">يتم إرسال إشعار تذكير للطلاب الذين لديهم أقساط معلقة أو مدفوعة جزئياً</li>
-                <li class="mb-2">يتم إرسال الإشعار عبر الموقع وTelegram (إذا كان الطالب مسجل في البوت)</li>
-                <li>لن يتم إرسال تذكيرات للأقساط المدفوعة بالكامل</li>
+            <div class="alert alert-success mb-3">
+                <i class="fas fa-check-circle ms-2"></i>
+                <strong>التذكير اليومي المستمر:</strong> سيتم إرسال تذكير يومي للطلاب بدءاً من عدد الأيام المحدد قبل تاريخ الاستحقاق ويستمر حتى يتم التسديد كاملاً!
+            </div>
+            
+            <h6 class="text-primary mb-3">
+                <i class="fas fa-calendar-alt ms-2"></i>
+                مثال عملي:
+            </h6>
+            <div class="card bg-light mb-3">
+                <div class="card-body">
+                    <ul class="mb-0">
+                        <li class="mb-2">
+                            <strong>إذا حددت "10 أيام قبل الاستحقاق":</strong>
+                            <ul class="mt-2">
+                                <li>قسط استحقاقه 1 نوفمبر ← سيبدأ التذكير من 22 أكتوبر يومياً</li>
+                                <li>سيستمر التذكير اليومي حتى تاريخ الاستحقاق</li>
+                                <li><strong class="text-danger">حتى بعد تاريخ الاستحقاق، سيستمر التذكير اليومي حتى يتم التسديد!</strong></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <h6 class="text-primary mb-3">
+                <i class="fas fa-cogs ms-2"></i>
+                آلية العمل:
+            </h6>
+            <ol class="mb-3">
+                <li class="mb-2">
+                    <i class="fas fa-clock text-info"></i> 
+                    يتم فحص الأقساط يومياً في الوقت المحدد
+                </li>
+                <li class="mb-2">
+                    <i class="fas fa-search text-warning"></i> 
+                    يتم البحث عن جميع الأقساط المعلقة أو المدفوعة جزئياً التي:
+                    <ul class="mt-1">
+                        <li>تاريخ استحقاقها خلال عدد الأيام المحدد</li>
+                        <li><strong>أو تاريخ استحقاقها قد مضى (متأخرة)</strong></li>
+                    </ul>
+                </li>
+                <li class="mb-2">
+                    <i class="fas fa-paper-plane text-success"></i> 
+                    يتم إرسال تذكير يومي عبر الموقع وTelegram
+                </li>
+                <li class="mb-2">
+                    <i class="fas fa-bell-slash text-danger"></i> 
+                    يتوقف التذكير فقط عند التسديد الكامل
+                </li>
             </ol>
+
+            <div class="alert alert-warning mb-0">
+                <i class="fas fa-info-circle ms-2"></i>
+                <strong>ملاحظة هامة:</strong>
+                <ul class="mb-0 mt-2">
+                    <li>الأقساط المتأخرة ستحصل على رسالة تنبيه خاصة "⚠️ قسط متأخر"</li>
+                    <li>الأقساط القريبة من الاستحقاق ستظهر عدد الأيام المتبقية</li>
+                    <li>لن يتم إرسال تذكيرات للأقساط المدفوعة بالكامل</li>
+                </ul>
+            </div>
         </div>
     </div>
 </div>
