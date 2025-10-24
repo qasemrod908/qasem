@@ -1386,8 +1386,7 @@ def payment_reminder_settings():
         db.session.commit()
         
         from app.utils.scheduler import update_reminder_schedule
-        if settings.payment_reminder_enabled:
-            update_reminder_schedule(settings.payment_reminder_time)
+        update_reminder_schedule(settings.payment_reminder_time, settings.payment_reminder_enabled)
         
         flash('تم حفظ إعدادات التذكير بالأقساط بنجاح', 'success')
         return redirect(url_for('admin.payment_reminder_settings'))

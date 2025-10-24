@@ -70,21 +70,39 @@ def init_scheduler(app):
         logger.info("Scheduler started successfully")
 
 
-def update_reminder_schedule(reminder_time):
+def update_reminder_schedule(reminder_time, enabled=True):
     global scheduler
     
     if scheduler is None:
         return False
     
     try:
+        if not enabled:
+            try:
+                scheduler.remove_job('payment_reminder_job')
+                logger.info("Payment reminder job removed")
+            except:
+                pass
+            return True
+        
         hour, minute = map(int, reminder_time.split(':'))
         
-        scheduler.reschedule_job(
-            job_id='payment_reminder_job',
-            trigger=CronTrigger(hour=hour, minute=minute)
-        )
+        try:
+            scheduler.reschedule_job(
+                job_id='payment_reminder_job',
+                trigger=CronTrigger(hour=hour, minute=minute)
+            )
+            logger.info(f"Payment reminder schedule updated to {reminder_time}")
+        except:
+            scheduler.add_job(
+                func=check_payment_reminders,
+                trigger=CronTrigger(hour=hour, minute=minute),
+                id='payment_reminder_job',
+                name='Daily Payment Reminder',
+                replace_existing=True
+            )
+            logger.info(f"Payment reminder job created at {reminder_time}")
         
-        logger.info(f"Payment reminder schedule updated to {reminder_time}")
         return True
         
     except Exception as e:
