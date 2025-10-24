@@ -107,4 +107,7 @@ def create_app(config_class=Config):
     
     setup_auto_backup()
     
+    from app.utils.scheduler import init_scheduler
+    init_scheduler(app)
+    
     return app
