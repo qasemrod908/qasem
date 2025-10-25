@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}تعديل سجل الحضور - معهد القاسم{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0">
+                        <i class="fas fa-edit ms-2"></i>
+                        تعديل سجل الحضور
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle ms-2"></i>
+                        <strong>المستخدم:</strong> {{ record.user.full_name }}
+                        <span class="badge {% if record.user_type == 'student' %}bg-info{% else %}bg-secondary{% endif %} me-2">
+                            {% if record.user_type == 'student' %}طالب{% else %}أستاذ{% endif %}
+                        </span>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('admin.edit_attendance', id=record.id) }}">
+                        <div class="mb-3">
+                            <label for="date" class="form-label">التاريخ <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="date" name="date" 
+                                   value="{{ record.date.strftime('%Y-%m-%d') }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="status" class="form-label">الحالة <span class="text-danger">*</span></label>
+                            <select class="form-select" id="status" name="status" required>
+                                <option value="present" {% if record.status == 'present' %}selected{% endif %}>حضور</option>
+                                <option value="absent" {% if record.status == 'absent' %}selected{% endif %}>غياب</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">ملاحظات (اختياري)</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                      placeholder="يمكنك إضافة ملاحظات مثل سبب الغياب أو معلومات إضافية...">{{ record.notes if record.notes }}</textarea>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-save ms-2"></i>حفظ التعديلات
+                            </button>
+                            <a href="{{ url_for('admin.attendance_list') }}" class="btn btn-secondary">
+                                <i class="fas fa-times ms-2"></i>إلغاء
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

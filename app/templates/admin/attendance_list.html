@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}سجلات الحضور والغياب - معهد القاسم{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>
+                <i class="fas fa-calendar-check ms-2"></i>
+                إدارة الحضور والغياب
+            </h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('admin.add_attendance') }}" class="btn btn-success me-2">
+                <i class="fas fa-plus ms-2"></i>تسجيل حضور/غياب
+            </a>
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right ms-2"></i>العودة
+            </a>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <form method="GET" action="{{ url_for('admin.attendance_list') }}" class="row g-3">
+                        <div class="col-md-3">
+                            <label for="user_type" class="form-label">نوع المستخدم:</label>
+                            <select class="form-select" id="user_type" name="user_type">
+                                <option value="">الكل</option>
+                                <option value="student" {% if user_type == 'student' %}selected{% endif %}>طالب</option>
+                                <option value="teacher" {% if user_type == 'teacher' %}selected{% endif %}>أستاذ</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="status" class="form-label">الحالة:</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="">الكل</option>
+                                <option value="present" {% if status == 'present' %}selected{% endif %}>حضور</option>
+                                <option value="absent" {% if status == 'absent' %}selected{% endif %}>غياب</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="date_from" class="form-label">من تاريخ:</label>
+                            <input type="date" class="form-control" id="date_from" name="date_from" value="{{ date_from }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="date_to" class="form-label">إلى تاريخ:</label>
+                            <input type="date" class="form-control" id="date_to" name="date_to" value="{{ date_to }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label d-block">&nbsp;</label>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-filter ms-2"></i>تصفية
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if attendance_records.items %}
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-list ms-2"></i>
+                سجلات الحضور والغياب ({{ attendance_records.total }} سجل)
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>الاسم</th>
+                            <th>النوع</th>
+                            <th>التاريخ</th>
+                            <th>الحالة</th>
+                            <th>الملاحظات</th>
+                            <th class="text-center">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in attendance_records.items %}
+                        <tr>
+                            <td>{{ loop.index + (attendance_records.page - 1) * attendance_records.per_page }}</td>
+                            <td>
+                                <strong>{{ record.user.full_name }}</strong>
+                            </td>
+                            <td>
+                                {% if record.user_type == 'student' %}
+                                <span class="badge bg-info">طالب</span>
+                                {% else %}
+                                <span class="badge bg-secondary">أستاذ</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ record.date.strftime('%Y-%m-%d') }}</td>
+                            <td>
+                                {% if record.status == 'present' %}
+                                <span class="badge bg-success"><i class="fas fa-check"></i> حضور</span>
+                                {% else %}
+                                <span class="badge bg-danger"><i class="fas fa-times"></i> غياب</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if record.notes %}
+                                {{ record.notes[:30] }}{% if record.notes|length > 30 %}...{% endif %}
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <a href="{{ url_for('admin.edit_attendance', id=record.id) }}" 
+                                   class="btn btn-sm btn-outline-warning" title="تعديل">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <form method="POST" action="{{ url_for('admin.delete_attendance', id=record.id) }}" 
+                                      class="d-inline" 
+                                      onsubmit="return confirm('هل أنت متأكد من حذف هذا السجل؟');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if attendance_records.pages > 1 %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if attendance_records.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin.attendance_list', page=attendance_records.prev_num, user_type=user_type, status=status, date_from=date_from, date_to=date_to) }}">السابق</a>
+                    </li>
+                    {% endif %}
+
+                    {% for page_num in attendance_records.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                        {% if page_num %}
+                            <li class="page-item {% if page_num == attendance_records.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('admin.attendance_list', page=page_num, user_type=user_type, status=status, date_from=date_from, date_to=date_to) }}">{{ page_num }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if attendance_records.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin.attendance_list', page=attendance_records.next_num, user_type=user_type, status=status, date_from=date_from, date_to=date_to) }}">التالي</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle ms-2"></i>
+        لا توجد سجلات حضور وغياب بالمعايير المحددة
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

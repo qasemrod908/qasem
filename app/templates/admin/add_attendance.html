@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}تسجيل حضور/غياب - معهد القاسم{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-user-check ms-2"></i>
+                        تسجيل حضور/غياب جديد
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin.add_attendance') }}">
+                        <div class="mb-3">
+                            <label for="user_type" class="form-label">نوع المستخدم <span class="text-danger">*</span></label>
+                            <select class="form-select" id="user_type" name="user_type" required onchange="updateUserList()">
+                                <option value="">اختر النوع...</option>
+                                <option value="student">طالب</option>
+                                <option value="teacher">أستاذ</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="user_id" class="form-label">اختر المستخدم <span class="text-danger">*</span></label>
+                            <select class="form-select" id="user_id" name="user_id" required>
+                                <option value="">اختر المستخدم...</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="date" class="form-label">التاريخ <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="date" name="date" value="{{ today }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="status" class="form-label">الحالة <span class="text-danger">*</span></label>
+                            <select class="form-select" id="status" name="status" required>
+                                <option value="">اختر الحالة...</option>
+                                <option value="present">حضور</option>
+                                <option value="absent">غياب</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">ملاحظات (اختياري)</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                      placeholder="يمكنك إضافة ملاحظات مثل سبب الغياب أو معلومات إضافية..."></textarea>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save ms-2"></i>حفظ السجل
+                            </button>
+                            <a href="{{ url_for('admin.attendance_list') }}" class="btn btn-secondary">
+                                <i class="fas fa-times ms-2"></i>إلغاء
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const students = {{ students|tojson }};
+    const teachers = {{ teachers|tojson }};
+
+    function updateUserList() {
+        const userType = document.getElementById('user_type').value;
+        const userSelect = document.getElementById('user_id');
+        
+        userSelect.innerHTML = '<option value="">اختر المستخدم...</option>';
+        
+        if (userType === 'student') {
+            students.forEach(student => {
+                const option = document.createElement('option');
+                option.value = student.user_id;
+                option.textContent = student.user.full_name;
+                userSelect.appendChild(option);
+            });
+        } else if (userType === 'teacher') {
+            teachers.forEach(teacher => {
+                const option = document.createElement('option');
+                option.value = teacher.user_id;
+                option.textContent = teacher.user.full_name;
+                userSelect.appendChild(option);
+            });
+        }
+    }
+</script>
+{% endblock %}
