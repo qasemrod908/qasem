@@ -428,6 +428,24 @@ def send_payment_reminder_notification(payment_id):
     )
 
 
+def send_notification(title, message, user_ids, notification_type, 
+                     send_telegram=True, send_web=True, created_by_id=1):
+    """
+    Send notification to specific users by their user_ids
+    """
+    for user_id in user_ids:
+        create_notification(
+            title=title,
+            message=message,
+            notification_type=notification_type,
+            created_by_id=created_by_id,
+            target_type='user',
+            target_id=user_id,
+            send_telegram=send_telegram,
+            send_web=send_web
+        )
+
+
 def broadcast_message(message: str, role=None):
     from app import create_app
     app = create_app()

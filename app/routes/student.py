@@ -235,7 +235,7 @@ def attendance():
     
     stats = Attendance.get_user_stats(current_user.id)
     
-    thirty_days_ago = date.today() - timedelta(days=30)
+    thirty_days_ago = date.today() - timedelta(days=365)
     recent_stats = Attendance.get_user_stats(
         current_user.id, 
         start_date=thirty_days_ago
