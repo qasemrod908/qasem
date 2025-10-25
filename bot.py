@@ -338,7 +338,8 @@ async def dashboard(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 keyboard = [
                     [InlineKeyboardButton("📚 دوراتي", callback_data="my_courses")],
                     [InlineKeyboardButton("📖 دروسي", callback_data="my_lessons")],
-                    [InlineKeyboardButton("📝 درجاتي", callback_data="my_grades")]
+                    [InlineKeyboardButton("📝 درجاتي", callback_data="my_grades")],
+                    [InlineKeyboardButton("📅 سجل الحضور", callback_data="my_attendance")]
                 ]
                 reply_markup = InlineKeyboardMarkup(keyboard)
                 
@@ -372,7 +373,8 @@ async def dashboard(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 keyboard = [
                     [InlineKeyboardButton("📚 دوراتي", callback_data="teacher_courses")],
                     [InlineKeyboardButton("📖 دروسي", callback_data="teacher_lessons")],
-                    [InlineKeyboardButton("👥 طلابي", callback_data="teacher_students")]
+                    [InlineKeyboardButton("👥 طلابي", callback_data="teacher_students")],
+                    [InlineKeyboardButton("📅 سجل الحضور", callback_data="my_attendance")]
                 ]
                 reply_markup = InlineKeyboardMarkup(keyboard)
                 
@@ -860,6 +862,73 @@ async def teacher_students(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                     update_statistics(increment_sent=True)
                     await asyncio.sleep(0.5)
 
+async def my_attendance(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user = update.effective_user
+    update_statistics()
+    
+    with flask_app.app_context():
+        session = BotSession.query.filter_by(telegram_id=user.id).first()
+        if not session or not session.is_authenticated:
+            await update.message.reply_text(
+                "🔒 يجب تسجيل الدخول أولاً!\n\nاستخدم /login"
+            )
+            update_statistics(increment_sent=True)
+            return
+        
+        user_obj = User.query.get(session.user_id)
+        
+        from datetime import timedelta, date
+        from app.models import Attendance
+        
+        stats = Attendance.get_user_stats(user_obj.id)
+        
+        thirty_days_ago = date.today() - timedelta(days=365)
+        recent_stats = Attendance.get_user_stats(
+            user_obj.id, 
+            start_date=thirty_days_ago
+        )
+        
+        recent_records = Attendance.query.filter_by(user_id=user_obj.id).order_by(
+            Attendance.date.desc()
+        ).limit(10).all()
+        
+        attendance_text = f"""
+📅 *سجل الحضور والغياب*
+
+👤 {user_obj.full_name}
+{'👨‍🎓 طالب' if user_obj.role == 'student' else '👨‍🏫 معلم'}
+
+📊 *الإحصائيات الإجمالية:*
+✅ أيام الحضور: {stats.get('present', 0)}
+❌ أيام الغياب: {stats.get('absent', 0)}
+📈 المجموع: {stats.get('total', 0)}
+
+📊 *إحصائيات آخر 365 يوم:*
+✅ حضور: {recent_stats.get('present', 0)}
+❌ غياب: {recent_stats.get('absent', 0)}
+
+━━━━━━━━━━━━━━━
+
+📋 *آخر 10 سجلات:*
+"""
+        
+        if recent_records:
+            for record in recent_records:
+                status_emoji = "✅" if record.status == 'present' else "❌"
+                status_text = "حضور" if record.status == 'present' else "غياب"
+                date_str = record.date.strftime('%Y-%m-%d')
+                notes_text = f"\n   📝 {record.notes}" if record.notes else ""
+                
+                attendance_text += f"\n{status_emoji} {date_str} - {status_text}{notes_text}\n"
+        else:
+            attendance_text += "\nلا توجد سجلات حضور حتى الآن"
+        
+        await update.message.reply_text(
+            attendance_text,
+            parse_mode=ParseMode.MARKDOWN
+        )
+        update_statistics(increment_sent=True)
+
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     await query.answer()
@@ -1225,6 +1294,69 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         )
         update_statistics(increment_sent=True)
     
+    elif data == 'my_attendance':
+        user = query.from_user
+        
+        with flask_app.app_context():
+            session = BotSession.query.filter_by(telegram_id=user.id).first()
+            if not session or not session.is_authenticated:
+                await query.edit_message_text("🔒 يجب تسجيل الدخول أولاً!")
+                update_statistics(increment_sent=True)
+                return
+            
+            user_obj = User.query.get(session.user_id)
+            
+            from datetime import timedelta, date
+            from app.models import Attendance
+            
+            stats = Attendance.get_user_stats(user_obj.id)
+            
+            thirty_days_ago = date.today() - timedelta(days=365)
+            recent_stats = Attendance.get_user_stats(
+                user_obj.id, 
+                start_date=thirty_days_ago
+            )
+            
+            recent_records = Attendance.query.filter_by(user_id=user_obj.id).order_by(
+                Attendance.date.desc()
+            ).limit(10).all()
+            
+            attendance_text = f"""
+📅 *سجل الحضور والغياب*
+
+👤 {user_obj.full_name}
+{'👨‍🎓 طالب' if user_obj.role == 'student' else '👨‍🏫 معلم'}
+
+📊 *الإحصائيات الإجمالية:*
+✅ حضور: {stats.get('present', 0)}
+❌ غياب: {stats.get('absent', 0)}
+📈 المجموع: {stats.get('total', 0)}
+
+📊 *آخر 365 يوم:*
+✅ حضور: {recent_stats.get('present', 0)}
+❌ غياب: {recent_stats.get('absent', 0)}
+
+━━━━━━━━━━━━━━━
+
+📋 *آخر 10 سجلات:*
+"""
+            
+            if recent_records:
+                for record in recent_records[:5]:
+                    status_emoji = "✅" if record.status == 'present' else "❌"
+                    status_text = "حضور" if record.status == 'present' else "غياب"
+                    date_str = record.date.strftime('%Y-%m-%d')
+                    
+                    attendance_text += f"{status_emoji} {date_str} - {status_text}\n"
+            else:
+                attendance_text += "لا توجد سجلات"
+            
+            await query.edit_message_text(
+                attendance_text,
+                parse_mode=ParseMode.MARKDOWN
+            )
+            update_statistics(increment_sent=True)
+    
     elif data.startswith('read_notif_'):
         notif_recipient_id = int(data.split('_')[2])
         user = query.from_user
@@ -1432,6 +1564,7 @@ def main() -> None:
     application.add_handler(CommandHandler("teachers", view_teachers))
     application.add_handler(CommandHandler("mycourses", my_courses))
     application.add_handler(CommandHandler("mygrades", my_grades))
+    application.add_handler(CommandHandler("attendance", my_attendance))
     
     application.add_handler(CallbackQueryHandler(button_callback))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
