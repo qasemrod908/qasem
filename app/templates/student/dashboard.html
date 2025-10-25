@@ -55,6 +55,9 @@
                     <a href="{{ url_for('student.payments') }}" class="list-group-item list-group-item-action">
                         <i class="fas fa-money-bill-wave ms-2"></i> أقساطي
                     </a>
+                    <a href="{{ url_for('student.attendance') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-calendar-check ms-2"></i> سجل الحضور والغياب
+                    </a>
                     <a href="{{ url_for('student.notifications') }}" class="list-group-item list-group-item-action">
                         <i class="fas fa-bell ms-2"></i> الإشعارات
                         {% if stats.notifications > 0 %}

@@ -64,6 +64,9 @@
                     <a href="{{ url_for('teacher.students') }}" class="list-group-item list-group-item-action">
                         <i class="fas fa-users ms-2"></i> طلابي
                     </a>
+                    <a href="{{ url_for('teacher.attendance') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-calendar-check ms-2"></i> سجل الحضور والغياب
+                    </a>
                     <a href="{{ url_for('teacher.notifications') }}" class="list-group-item list-group-item-action">
                         <i class="fas fa-bell ms-2"></i> الإشعارات
                         {% if stats.notifications > 0 %}
