@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, jsonify
 from flask_login import login_required, current_user
 from app import db
-from app.models import Teacher, Student, Course, Enrollment, Lesson, Grade, NotificationRecipient, Notification
+from app.models import Teacher, Student, Course, Enrollment, Lesson, Grade, NotificationRecipient, Notification, Attendance
 from app.utils.decorators import role_required
 from app.utils.notifications import get_user_notifications, get_unread_count, mark_notification_as_read
 from werkzeug.utils import secure_filename
@@ -454,3 +454,43 @@ def api_mark_notification_read(recipient_id):
             'success': False,
             'error': str(e)
         }), 500
+
+@bp.route('/attendance')
+@role_required('teacher')
+def attendance():
+    from datetime import date, timedelta
+    
+    teacher = Teacher.query.filter_by(user_id=current_user.id).first()
+    if not teacher:
+        flash('الملف الشخصي للمعلم غير موجود', 'danger')
+        return redirect(url_for('public.index'))
+    
+    page = request.args.get('page', 1, type=int)
+    date_from = request.args.get('date_from', '')
+    date_to = request.args.get('date_to', '')
+    
+    query = Attendance.query.filter_by(user_id=current_user.id)
+    
+    if date_from:
+        query = query.filter(Attendance.date >= date_from)
+    if date_to:
+        query = query.filter(Attendance.date <= date_to)
+    
+    attendance_records = query.order_by(Attendance.date.desc()).paginate(
+        page=page, per_page=20, error_out=False
+    )
+    
+    stats = Attendance.get_user_stats(current_user.id)
+    
+    thirty_days_ago = date.today() - timedelta(days=30)
+    recent_stats = Attendance.get_user_stats(
+        current_user.id, 
+        start_date=thirty_days_ago
+    )
+    
+    return render_template('teacher/attendance.html',
+                         attendance_records=attendance_records,
+                         stats=stats,
+                         recent_stats=recent_stats,
+                         date_from=date_from,
+                         date_to=date_to)

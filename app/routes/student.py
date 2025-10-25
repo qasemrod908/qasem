@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify
 from flask_login import login_required, current_user
 from app import db
-from app.models import Student, Enrollment, Lesson, Grade, Course, NotificationRecipient, Notification, Payment, InstallmentPayment
+from app.models import Student, Enrollment, Lesson, Grade, Course, NotificationRecipient, Notification, Payment, InstallmentPayment, Attendance
 from app.utils.decorators import role_required
 from app.utils.notifications import get_user_notifications, get_unread_count, mark_notification_as_read
 
@@ -207,3 +207,43 @@ def view_payment(payment_id):
     installments = InstallmentPayment.query.filter_by(payment_id=payment_id).order_by(InstallmentPayment.payment_date.desc()).all()
     
     return render_template('student/view_payment.html', payment=payment, installments=installments, today=date.today())
+
+@bp.route('/attendance')
+@role_required('student')
+def attendance():
+    from datetime import date, timedelta
+    
+    student = Student.query.filter_by(user_id=current_user.id).first()
+    if not student:
+        flash('الملف الشخصي للطالب غير موجود', 'danger')
+        return redirect(url_for('public.index'))
+    
+    page = request.args.get('page', 1, type=int)
+    date_from = request.args.get('date_from', '')
+    date_to = request.args.get('date_to', '')
+    
+    query = Attendance.query.filter_by(user_id=current_user.id)
+    
+    if date_from:
+        query = query.filter(Attendance.date >= date_from)
+    if date_to:
+        query = query.filter(Attendance.date <= date_to)
+    
+    attendance_records = query.order_by(Attendance.date.desc()).paginate(
+        page=page, per_page=20, error_out=False
+    )
+    
+    stats = Attendance.get_user_stats(current_user.id)
+    
+    thirty_days_ago = date.today() - timedelta(days=30)
+    recent_stats = Attendance.get_user_stats(
+        current_user.id, 
+        start_date=thirty_days_ago
+    )
+    
+    return render_template('student/attendance.html',
+                         attendance_records=attendance_records,
+                         stats=stats,
+                         recent_stats=recent_stats,
+                         date_from=date_from,
+                         date_to=date_to)
