@@ -135,6 +135,87 @@
                 </div>
             </div>
             
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-calendar-check ms-2"></i>سجل الحضور والغياب</h5>
+                    <button class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#addAttendanceModal">
+                        <i class="fas fa-plus ms-2"></i>إضافة سجل
+                    </button>
+                </div>
+                <div class="card-body">
+                    {% if stats %}
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <div class="text-center p-3 bg-success bg-opacity-10 rounded">
+                                <h3 class="text-success mb-0">{{ stats.present }}</h3>
+                                <small class="text-muted">أيام الحضور</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center p-3 bg-danger bg-opacity-10 rounded">
+                                <h3 class="text-danger mb-0">{{ stats.absent }}</h3>
+                                <small class="text-muted">أيام الغياب</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center p-3 bg-primary bg-opacity-10 rounded">
+                                <h3 class="text-primary mb-0">{{ stats.total }}</h3>
+                                <small class="text-muted">المجموع</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if attendance_records %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>التاريخ</th>
+                                    <th>الحالة</th>
+                                    <th>ملاحظات</th>
+                                    <th class="text-center">الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in attendance_records %}
+                                <tr>
+                                    <td>{{ record.date.strftime('%Y-%m-%d') }}</td>
+                                    <td>
+                                        <span class="badge {% if record.status == 'present' %}bg-success{% else %}bg-danger{% endif %}">
+                                            {{ 'حضور' if record.status == 'present' else 'غياب' }}
+                                        </span>
+                                    </td>
+                                    <td>{{ record.notes or '-' }}</td>
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-outline-primary" onclick="editAttendance({{ record.id }}, '{{ record.date.strftime('%Y-%m-%d') }}', '{{ record.status }}', '{{ record.notes or '' }}')">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <form method="POST" action="{{ url_for('admin.delete_attendance', id=record.id) }}" style="display:inline;" onsubmit="return confirm('هل أنت متأكد من حذف هذا السجل؟')">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('admin.attendance_list', user_id=student.user_id, user_type='student') }}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-list ms-2"></i>عرض جميع السجلات
+                        </a>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle ms-2"></i>
+                        لا توجد سجلات حضور للطالب حتى الآن
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
             <div class="card shadow-sm">
                 <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="fas fa-chart-line ms-2"></i>الدرجات والتقييمات ({{ grades|length }})</h5>
@@ -231,4 +312,98 @@
         </div>
     </div>
 </div>
+
+<!-- Modal لإضافة سجل حضور -->
+<div class="modal fade" id="addAttendanceModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('admin.add_attendance') }}">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">إضافة سجل حضور</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="user_id" value="{{ student.user_id }}">
+                    <input type="hidden" name="user_type" value="student">
+                    
+                    <div class="mb-3">
+                        <label for="add_date" class="form-label">التاريخ <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="add_date" name="date" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="add_status" class="form-label">الحالة <span class="text-danger">*</span></label>
+                        <select class="form-select" id="add_status" name="status" required>
+                            <option value="">اختر الحالة...</option>
+                            <option value="present">حضور</option>
+                            <option value="absent">غياب</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="add_notes" class="form-label">ملاحظات (اختياري)</label>
+                        <textarea class="form-control" id="add_notes" name="notes" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-success">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal لتعديل سجل حضور -->
+<div class="modal fade" id="editAttendanceModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" id="editAttendanceForm">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">تعديل سجل حضور</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="edit_date" class="form-label">التاريخ <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="edit_date" name="date" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit_status" class="form-label">الحالة <span class="text-danger">*</span></label>
+                        <select class="form-select" id="edit_status" name="status" required>
+                            <option value="present">حضور</option>
+                            <option value="absent">غياب</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit_notes" class="form-label">ملاحظات (اختياري)</label>
+                        <textarea class="form-control" id="edit_notes" name="notes" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // تعيين تاريخ اليوم كقيمة افتراضية لنموذج الإضافة
+    document.getElementById('add_date').valueAsDate = new Date();
+    
+    // دالة لتعديل سجل الحضور
+    function editAttendance(id, date, status, notes) {
+        document.getElementById('editAttendanceForm').action = "{{ url_for('admin.edit_attendance', id=0) }}".replace('0', id);
+        document.getElementById('edit_date').value = date;
+        document.getElementById('edit_status').value = status;
+        document.getElementById('edit_notes').value = notes;
+        
+        var modal = new bootstrap.Modal(document.getElementById('editAttendanceModal'));
+        modal.show();
+    }
+</script>
 {% endblock %}

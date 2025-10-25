@@ -720,7 +720,10 @@ def view_student(student_id):
     student = Student.query.get_or_404(student_id)
     enrollments = student.enrollments.all()
     grades = Grade.query.filter_by(student_id=student_id).order_by(Grade.created_at.desc()).all()
-    return render_template('admin/view_student.html', student=student, enrollments=enrollments, grades=grades)
+    attendance_records = Attendance.query.filter_by(user_id=student.user_id).order_by(Attendance.date.desc()).limit(10).all()
+    stats = Attendance.get_user_stats(student.user_id)
+    return render_template('admin/view_student.html', student=student, enrollments=enrollments, grades=grades, 
+                         attendance_records=attendance_records, stats=stats)
 
 @bp.route('/students/<int:student_id>/grades/add', methods=['GET', 'POST'])
 @role_required('admin', 'assistant')
