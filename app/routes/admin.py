@@ -581,6 +581,17 @@ def teachers():
     all_teachers = Teacher.query.all()
     return render_template('admin/teachers.html', teachers=all_teachers)
 
+@bp.route('/teachers/view/<int:teacher_id>')
+@role_required('admin', 'assistant')
+def view_teacher(teacher_id):
+    teacher = Teacher.query.get_or_404(teacher_id)
+    enrollments = Enrollment.query.filter_by(teacher_id=teacher_id).all()
+    lessons = Lesson.query.filter_by(teacher_id=teacher_id).order_by(Lesson.created_at.desc()).limit(10).all()
+    attendance_records = Attendance.query.filter_by(user_id=teacher.user_id).order_by(Attendance.date.desc()).limit(10).all()
+    stats = Attendance.get_user_stats(teacher.user_id)
+    return render_template('admin/view_teacher.html', teacher=teacher, enrollments=enrollments, lessons=lessons,
+                         attendance_records=attendance_records, stats=stats)
+
 @bp.route('/teachers/edit/<int:teacher_id>', methods=['GET', 'POST'])
 @role_required('admin', 'assistant')
 def edit_teacher(teacher_id):

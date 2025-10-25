@@ -1,0 +1,316 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2><i class="fas fa-chalkboard-teacher ms-2"></i>تفاصيل المعلم: {{ teacher.user.full_name }}</h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('admin.teachers') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right ms-2"></i>العودة
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-id-card ms-2"></i>المعلومات الشخصية</h5>
+                </div>
+                <div class="card-body text-center">
+                    {% if teacher.photo %}
+                    <img src="{{ url_for('static', filename='uploads/' + teacher.photo) }}" 
+                         class="img-fluid rounded-circle mb-3" 
+                         style="width: 150px; height: 150px; object-fit: cover;" 
+                         alt="{{ teacher.user.full_name }}">
+                    {% else %}
+                    <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
+                         style="width: 150px; height: 150px;">
+                        <i class="fas fa-chalkboard-teacher fa-5x text-primary"></i>
+                    </div>
+                    {% endif %}
+                    
+                    <h4>{{ teacher.user.full_name }}</h4>
+                    <p class="text-muted mb-0">{{ teacher.specialization or 'التخصص غير محدد' }}</p>
+                </div>
+                <div class="card-body">
+                    <p><strong><i class="fas fa-envelope ms-2"></i>البريد:</strong><br>{{ teacher.user.email }}</p>
+                    <p><strong><i class="fas fa-phone ms-2"></i>الهاتف:</strong><br>{{ teacher.phone or 'غير محدد' }}</p>
+                    <p><strong><i class="fas fa-briefcase ms-2"></i>سنوات الخبرة:</strong><br>{{ teacher.experience_years or 0 }} سنة</p>
+                    {% if teacher.qualifications %}
+                    <p><strong><i class="fas fa-graduation-cap ms-2"></i>المؤهلات:</strong><br>{{ teacher.qualifications }}</p>
+                    {% endif %}
+                    {% if teacher.bio %}
+                    <p><strong><i class="fas fa-info-circle ms-2"></i>نبذة:</strong><br>{{ teacher.bio }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-cog ms-2"></i>إجراءات</h5>
+                </div>
+                <div class="card-body d-grid gap-2">
+                    <a href="{{ url_for('admin.edit_teacher', teacher_id=teacher.id) }}" class="btn btn-outline-primary">
+                        <i class="fas fa-edit ms-2"></i>تعديل البيانات
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-calendar-check ms-2"></i>سجل الحضور والغياب</h5>
+                    <button class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#addAttendanceModal">
+                        <i class="fas fa-plus ms-2"></i>إضافة سجل
+                    </button>
+                </div>
+                <div class="card-body">
+                    {% if stats %}
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <div class="text-center p-3 bg-success bg-opacity-10 rounded">
+                                <h3 class="text-success mb-0">{{ stats.present }}</h3>
+                                <small class="text-muted">أيام الحضور</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center p-3 bg-danger bg-opacity-10 rounded">
+                                <h3 class="text-danger mb-0">{{ stats.absent }}</h3>
+                                <small class="text-muted">أيام الغياب</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center p-3 bg-primary bg-opacity-10 rounded">
+                                <h3 class="text-primary mb-0">{{ stats.total }}</h3>
+                                <small class="text-muted">المجموع</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if attendance_records %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>التاريخ</th>
+                                    <th>الحالة</th>
+                                    <th>ملاحظات</th>
+                                    <th class="text-center">الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in attendance_records %}
+                                <tr>
+                                    <td>{{ record.date.strftime('%Y-%m-%d') }}</td>
+                                    <td>
+                                        <span class="badge {% if record.status == 'present' %}bg-success{% else %}bg-danger{% endif %}">
+                                            {{ 'حضور' if record.status == 'present' else 'غياب' }}
+                                        </span>
+                                    </td>
+                                    <td>{{ record.notes or '-' }}</td>
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-outline-primary" onclick="editAttendance({{ record.id }}, '{{ record.date.strftime('%Y-%m-%d') }}', '{{ record.status }}', '{{ record.notes or '' }}')">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <form method="POST" action="{{ url_for('admin.delete_attendance', id=record.id) }}" style="display:inline;" onsubmit="return confirm('هل أنت متأكد من حذف هذا السجل؟')">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('admin.attendance_list', user_id=teacher.user_id, user_type='teacher') }}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-list ms-2"></i>عرض جميع السجلات
+                        </a>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle ms-2"></i>
+                        لا توجد سجلات حضور للمعلم حتى الآن
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-book ms-2"></i>الدورات المُدَرَّسة ({{ enrollments|length }})</h5>
+                </div>
+                <div class="card-body">
+                    {% if enrollments %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>الدورة</th>
+                                    <th>الطالب</th>
+                                    <th>الحالة</th>
+                                    <th>تاريخ التسجيل</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for enrollment in enrollments %}
+                                <tr>
+                                    <td>{{ enrollment.course.title }}</td>
+                                    <td>{{ enrollment.student.user.full_name }}</td>
+                                    <td>
+                                        <span class="badge {% if enrollment.status == 'active' %}bg-success{% else %}bg-secondary{% endif %}">
+                                            {{ 'نشط' if enrollment.status == 'active' else enrollment.status }}
+                                        </span>
+                                    </td>
+                                    <td>{{ enrollment.enrollment_date.strftime('%Y-%m-%d') if enrollment.enrollment_date else '-' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle ms-2"></i>
+                        لا توجد دورات مُدَرَّسة حالياً
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="fas fa-book-reader ms-2"></i>آخر الدروس ({{ lessons|length }})</h5>
+                </div>
+                <div class="card-body">
+                    {% if lessons %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>العنوان</th>
+                                    <th>الدورة</th>
+                                    <th>التاريخ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for lesson in lessons %}
+                                <tr>
+                                    <td>{{ lesson.title }}</td>
+                                    <td>{{ lesson.course.title if lesson.course else '-' }}</td>
+                                    <td>{{ lesson.created_at.strftime('%Y-%m-%d') if lesson.created_at else '-' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle ms-2"></i>
+                        لا توجد دروس مسجلة للمعلم حتى الآن
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal لإضافة سجل حضور -->
+<div class="modal fade" id="addAttendanceModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('admin.add_attendance') }}">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">إضافة سجل حضور</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="user_id" value="{{ teacher.user_id }}">
+                    <input type="hidden" name="user_type" value="teacher">
+                    
+                    <div class="mb-3">
+                        <label for="add_date" class="form-label">التاريخ <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="add_date" name="date" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="add_status" class="form-label">الحالة <span class="text-danger">*</span></label>
+                        <select class="form-select" id="add_status" name="status" required>
+                            <option value="">اختر الحالة...</option>
+                            <option value="present">حضور</option>
+                            <option value="absent">غياب</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="add_notes" class="form-label">ملاحظات (اختياري)</label>
+                        <textarea class="form-control" id="add_notes" name="notes" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-success">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal لتعديل سجل حضور -->
+<div class="modal fade" id="editAttendanceModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" id="editAttendanceForm">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">تعديل سجل حضور</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="edit_date" class="form-label">التاريخ <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="edit_date" name="date" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit_status" class="form-label">الحالة <span class="text-danger">*</span></label>
+                        <select class="form-select" id="edit_status" name="status" required>
+                            <option value="present">حضور</option>
+                            <option value="absent">غياب</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit_notes" class="form-label">ملاحظات (اختياري)</label>
+                        <textarea class="form-control" id="edit_notes" name="notes" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // تعيين تاريخ اليوم كقيمة افتراضية لنموذج الإضافة
+    document.getElementById('add_date').valueAsDate = new Date();
+    
+    // دالة لتعديل سجل الحضور
+    function editAttendance(id, date, status, notes) {
+        document.getElementById('editAttendanceForm').action = "{{ url_for('admin.edit_attendance', id=0) }}".replace('0', id);
+        document.getElementById('edit_date').value = date;
+        document.getElementById('edit_status').value = status;
+        document.getElementById('edit_notes').value = notes;
+        
+        var modal = new bootstrap.Modal(document.getElementById('editAttendanceModal'));
+        modal.show();
+    }
+</script>
+{% endblock %}
