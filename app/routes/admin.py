@@ -1675,3 +1675,178 @@ def payment_reports():
                          monthly_collections=monthly_collections,
                          top_payments=top_payments,
                          overdue_payments=overdue_payments)
+
+@bp.route('/attendance')
+@role_required('admin', 'assistant')
+def attendance_list():
+    from datetime import date, timedelta
+    
+    page = request.args.get('page', 1, type=int)
+    user_type = request.args.get('user_type', '')
+    status = request.args.get('status', '')
+    date_from = request.args.get('date_from', '')
+    date_to = request.args.get('date_to', '')
+    user_id = request.args.get('user_id', type=int)
+    
+    query = Attendance.query
+    
+    if user_type:
+        query = query.filter_by(user_type=user_type)
+    if status:
+        query = query.filter_by(status=status)
+    if date_from:
+        query = query.filter(Attendance.date >= date_from)
+    if date_to:
+        query = query.filter(Attendance.date <= date_to)
+    if user_id:
+        query = query.filter_by(user_id=user_id)
+    
+    attendance_records = query.order_by(Attendance.date.desc()).paginate(
+        page=page, per_page=20, error_out=False
+    )
+    
+    students = Student.query.all()
+    teachers = Teacher.query.all()
+    
+    return render_template('admin/attendance_list.html',
+                         attendance_records=attendance_records,
+                         students=students,
+                         teachers=teachers,
+                         user_type=user_type,
+                         status=status,
+                         date_from=date_from,
+                         date_to=date_to,
+                         user_id=user_id)
+
+@bp.route('/attendance/add', methods=['GET', 'POST'])
+@role_required('admin', 'assistant')
+def add_attendance():
+    from datetime import date
+    from app.utils.notifications import send_notification
+    
+    if request.method == 'POST':
+        user_id = request.form.get('user_id')
+        user_type = request.form.get('user_type')
+        attendance_date = request.form.get('date')
+        status = request.form.get('status')
+        notes = request.form.get('notes', '').strip()
+        
+        if not all([user_id, user_type, attendance_date, status]):
+            flash('جميع الحقول المطلوبة يجب أن تكون معبأة', 'danger')
+            return redirect(url_for('admin.add_attendance'))
+        
+        existing = Attendance.query.filter_by(
+            user_id=user_id,
+            date=attendance_date
+        ).first()
+        
+        if existing:
+            flash('يوجد سجل حضور لنفس المستخدم في هذا التاريخ', 'warning')
+            return redirect(url_for('admin.add_attendance'))
+        
+        new_record = Attendance(
+            user_id=user_id,
+            user_type=user_type,
+            date=attendance_date,
+            status=status,
+            notes=notes if notes else None
+        )
+        
+        db.session.add(new_record)
+        db.session.commit()
+        
+        if status == 'absent':
+            user = User.query.get(user_id)
+            if user:
+                absent_count = Attendance.query.filter_by(
+                    user_id=user_id,
+                    status='absent'
+                ).count()
+                
+                title = "⚠️ تنبيه غياب"
+                message = f"تم تسجيل غيابك بتاريخ {attendance_date}\nعدد أيام الغياب: {absent_count} يوم"
+                if notes:
+                    message += f"\nملاحظات: {notes}"
+                
+                send_notification(
+                    title=title,
+                    message=message,
+                    user_ids=[user_id],
+                    notification_type='absence_alert',
+                    send_telegram=True,
+                    send_web=True
+                )
+        
+        flash('تم إضافة سجل الحضور بنجاح', 'success')
+        return redirect(url_for('admin.attendance_list'))
+    
+    students = Student.query.all()
+    teachers = Teacher.query.all()
+    today = date.today().strftime('%Y-%m-%d')
+    
+    return render_template('admin/add_attendance.html',
+                         students=students,
+                         teachers=teachers,
+                         today=today)
+
+@bp.route('/attendance/edit/<int:id>', methods=['GET', 'POST'])
+@role_required('admin', 'assistant')
+def edit_attendance(id):
+    from app.utils.notifications import send_notification
+    
+    record = Attendance.query.get_or_404(id)
+    
+    if request.method == 'POST':
+        attendance_date = request.form.get('date')
+        status = request.form.get('status')
+        notes = request.form.get('notes', '').strip()
+        
+        if not all([attendance_date, status]):
+            flash('جميع الحقول المطلوبة يجب أن تكون معبأة', 'danger')
+            return redirect(url_for('admin.edit_attendance', id=id))
+        
+        old_status = record.status
+        
+        record.date = attendance_date
+        record.status = status
+        record.notes = notes if notes else None
+        
+        db.session.commit()
+        
+        if old_status != 'absent' and status == 'absent':
+            user = User.query.get(record.user_id)
+            if user:
+                absent_count = Attendance.query.filter_by(
+                    user_id=record.user_id,
+                    status='absent'
+                ).count()
+                
+                title = "⚠️ تنبيه غياب"
+                message = f"تم تسجيل غيابك بتاريخ {attendance_date}\nعدد أيام الغياب: {absent_count} يوم"
+                if notes:
+                    message += f"\nملاحظات: {notes}"
+                
+                send_notification(
+                    title=title,
+                    message=message,
+                    user_ids=[record.user_id],
+                    notification_type='absence_alert',
+                    send_telegram=True,
+                    send_web=True
+                )
+        
+        flash('تم تحديث سجل الحضور بنجاح', 'success')
+        return redirect(url_for('admin.attendance_list'))
+    
+    return render_template('admin/edit_attendance.html', record=record)
+
+@bp.route('/attendance/delete/<int:id>', methods=['POST'])
+@role_required('admin', 'assistant')
+def delete_attendance(id):
+    record = Attendance.query.get_or_404(id)
+    
+    db.session.delete(record)
+    db.session.commit()
+    
+    flash('تم حذف سجل الحضور بنجاح', 'success')
+    return redirect(url_for('admin.attendance_list'))
