@@ -1790,9 +1790,12 @@ def add_attendance():
     teachers = Teacher.query.all()
     today = date.today().strftime('%Y-%m-%d')
     
+    students_data = [{'id': s.id, 'user_id': s.user_id, 'full_name': s.user.full_name, 'student_number': s.student_number or ''} for s in students]
+    teachers_data = [{'id': t.id, 'user_id': t.user_id, 'full_name': t.user.full_name, 'specialization': t.specialization or ''} for t in teachers]
+    
     return render_template('admin/add_attendance.html',
-                         students=students,
-                         teachers=teachers,
+                         students=students_data,
+                         teachers=teachers_data,
                          today=today)
 
 @bp.route('/attendance/edit/<int:id>', methods=['GET', 'POST'])

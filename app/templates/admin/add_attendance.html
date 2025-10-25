@@ -80,14 +80,14 @@
             students.forEach(student => {
                 const option = document.createElement('option');
                 option.value = student.user_id;
-                option.textContent = student.user.full_name;
+                option.textContent = student.full_name + (student.student_number ? ' (' + student.student_number + ')' : '');
                 userSelect.appendChild(option);
             });
         } else if (userType === 'teacher') {
             teachers.forEach(teacher => {
                 const option = document.createElement('option');
                 option.value = teacher.user_id;
-                option.textContent = teacher.user.full_name;
+                option.textContent = teacher.full_name + (teacher.specialization ? ' - ' + teacher.specialization : '');
                 userSelect.appendChild(option);
             });
         }
