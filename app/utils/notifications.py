@@ -253,7 +253,7 @@ def get_unread_count(user_id):
 def mark_notification_as_read(recipient_id):
     recipient = NotificationRecipient.query.get(recipient_id)
     if recipient:
-        recipient.mark_as_read()
+        recipient.mark_as_read(source='web')
         return True
     return False
 
@@ -265,7 +265,7 @@ def mark_all_as_read(user_id):
     ).all()
     
     for recipient in recipients:
-        recipient.mark_as_read()
+        recipient.mark_as_read(source='web')
     
     return len(recipients)
 

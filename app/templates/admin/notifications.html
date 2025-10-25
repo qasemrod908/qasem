@@ -3,12 +3,12 @@
 {% block title %}إدارة الإشعارات{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
+<div class="container-fluid mt-4">
     <div class="row mb-4">
-        <div class="col-md-8">
+        <div class="col-md-6">
             <h2><i class="fas fa-bell"></i> إدارة الإشعارات</h2>
         </div>
-        <div class="col-md-4 text-end">
+        <div class="col-md-6 text-end">
             <a href="{{ url_for('admin.create_notification') }}" class="btn btn-primary">
                 <i class="fas fa-plus"></i> إرسال إشعار جديد
             </a>
@@ -18,119 +18,248 @@
         </div>
     </div>
 
+    <div class="card mb-4">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0"><i class="fas fa-filter"></i> فلترة الإشعارات</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('admin.notifications') }}" id="filterForm">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label for="notification_type" class="form-label">نوع الإشعار</label>
+                        <select class="form-select" id="notification_type" name="notification_type" onchange="this.form.submit()">
+                            <option value="all" {{ 'selected' if filters.notification_type == 'all' else '' }}>الكل</option>
+                            <option value="manual" {{ 'selected' if filters.notification_type == 'manual' else '' }}>يدوي</option>
+                            <option value="automatic" {{ 'selected' if filters.notification_type == 'automatic' else '' }}>تلقائي</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <label for="target_type" class="form-label">نوع الهدف</label>
+                        <select class="form-select" id="target_type" name="target_type" onchange="this.form.submit()">
+                            <option value="all" {{ 'selected' if filters.target_type == 'all' else '' }}>الكل</option>
+                            <option value="individual" {{ 'selected' if filters.target_type == 'individual' else '' }}>فردي</option>
+                            <option value="group" {{ 'selected' if filters.target_type == 'group' else '' }}>جماعي</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-2 mb-3">
+                        <label for="status" class="form-label">الحالة</label>
+                        <select class="form-select" id="status" name="status" onchange="this.form.submit()">
+                            <option value="all" {{ 'selected' if filters.status == 'all' else '' }}>الكل</option>
+                            <option value="active" {{ 'selected' if filters.status == 'active' else '' }}>نشط</option>
+                            <option value="inactive" {{ 'selected' if filters.status == 'inactive' else '' }}>معطل</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-2 mb-3">
+                        <label for="read_status" class="form-label">حالة القراءة</label>
+                        <select class="form-select" id="read_status" name="read_status" onchange="this.form.submit()">
+                            <option value="all" {{ 'selected' if filters.read_status == 'all' else '' }}>الكل</option>
+                            <option value="read" {{ 'selected' if filters.read_status == 'read' else '' }}>مقروء</option>
+                            <option value="unread" {{ 'selected' if filters.read_status == 'unread' else '' }}>غير مقروء</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-2 mb-3">
+                        <label for="delivery_status" class="form-label">حالة التسليم</label>
+                        <select class="form-select" id="delivery_status" name="delivery_status" onchange="this.form.submit()">
+                            <option value="all" {{ 'selected' if filters.delivery_status == 'all' else '' }}>الكل</option>
+                            <option value="telegram" {{ 'selected' if filters.delivery_status == 'telegram' else '' }}>Telegram</option>
+                            <option value="web" {{ 'selected' if filters.delivery_status == 'web' else '' }}>الموقع</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-12">
+                        <a href="{{ url_for('admin.notifications') }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-undo"></i> إعادة تعيين الفلاتر
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
     {% if notifications %}
     <div class="card">
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>العنوان</th>
-                            <th>النوع</th>
-                            <th>الهدف</th>
-                            <th>عدد المستلمين</th>
-                            <th>معدل القراءة</th>
-                            <th>التاريخ</th>
-                            <th>الحالة</th>
-                            <th>الإجراءات</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for notif in notifications %}
-                        <tr>
-                            <td>{{ notif.id }}</td>
-                            <td>
-                                <strong>{{ notif.title }}</strong>
-                                {% if notif.send_telegram %}
-                                <i class="fab fa-telegram text-info" title="إرسال على التيليجرام"></i>
-                                {% endif %}
-                                {% if notif.send_web %}
-                                <i class="fas fa-globe text-success" title="إرسال على الموقع"></i>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if notif.notification_type == 'new_lesson' %}
-                                <span class="badge bg-primary">درس جديد</span>
-                                {% elif notif.notification_type == 'new_grade' %}
-                                <span class="badge bg-success">علامة جديدة</span>
-                                {% elif notif.notification_type == 'updated_grade' %}
-                                <span class="badge bg-warning">تحديث علامة</span>
-                                {% else %}
-                                <span class="badge bg-secondary">عام</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if notif.target_type == 'all' %}
-                                <span class="badge bg-dark">الجميع</span>
-                                {% elif notif.target_type == 'all_students' %}
-                                <span class="badge bg-info">كل الطلاب</span>
-                                {% elif notif.target_type == 'all_teachers' %}
-                                <span class="badge bg-warning">كل المدرسين</span>
-                                {% elif notif.target_type == 'course' %}
-                                <span class="badge bg-primary">دورة محددة</span>
-                                {% elif notif.target_type == 'student' %}
-                                <span class="badge bg-success">طالب محدد</span>
-                                {% elif notif.target_type == 'teacher' %}
-                                <span class="badge bg-danger">مدرس محدد</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ notif.recipients|length }}</td>
-                            <td>
-                                {% set stats = notif.get_delivery_stats() %}
-                                <div class="progress" style="height: 20px;">
-                                    <div class="progress-bar bg-success" role="progressbar" 
-                                         style="width: {{ stats.read_rate }}%"
-                                         aria-valuenow="{{ stats.read_rate }}" aria-valuemin="0" aria-valuemax="100">
-                                        {{ "%.1f"|format(stats.read_rate) }}%
-                                    </div>
-                                </div>
-                            </td>
-                            <td>{{ notif.created_at.strftime('%Y-%m-%d %H:%M') if notif.created_at else 'N/A' }}</td>
-                            <td>
-                                {% if notif.is_active %}
-                                <span class="badge bg-success">نشط</span>
-                                {% else %}
-                                <span class="badge bg-secondary">معطل</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <a href="{{ url_for('admin.view_notification', notification_id=notif.id) }}" 
-                                   class="btn btn-sm btn-info" title="عرض">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                <form method="POST" action="{{ url_for('admin.toggle_notification', notification_id=notif.id) }}" 
-                                      style="display: inline;">
-                                    <button type="submit" class="btn btn-sm btn-{{ 'warning' if notif.is_active else 'success' }}" 
-                                            title="{{ 'تعطيل' if notif.is_active else 'تفعيل' }}">
-                                        <i class="fas fa-{{ 'pause' if notif.is_active else 'play' }}"></i>
-                                    </button>
-                                </form>
-                                <form method="POST" action="{{ url_for('admin.delete_notification', notification_id=notif.id) }}" 
-                                      style="display: inline;">
-                                    <button type="submit" class="btn btn-sm btn-danger" 
-                                            onclick="return confirm('هل أنت متأكد من حذف هذا الإشعار؟')" 
-                                            title="حذف">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <div>
+                <input type="checkbox" id="selectAll" class="form-check-input me-2" style="cursor: pointer;">
+                <label for="selectAll" style="cursor: pointer;">تحديد الكل ({{ notifications|length }} إشعار)</label>
             </div>
+            <div>
+                <button type="button" class="btn btn-sm btn-success" onclick="bulkAction('activate')">
+                    <i class="fas fa-check"></i> تفعيل المحدد
+                </button>
+                <button type="button" class="btn btn-sm btn-warning" onclick="bulkAction('deactivate')">
+                    <i class="fas fa-pause"></i> تعطيل المحدد
+                </button>
+                <button type="button" class="btn btn-sm btn-danger" onclick="bulkAction('delete')">
+                    <i class="fas fa-trash"></i> حذف المحدد
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <form id="bulkForm" method="POST" action="{{ url_for('admin.bulk_notification_action') }}">
+                <input type="hidden" name="action" id="bulkAction">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px;"></th>
+                                <th>ID</th>
+                                <th>العنوان</th>
+                                <th>النوع</th>
+                                <th>الهدف</th>
+                                <th>المستلمين</th>
+                                <th>معدل القراءة</th>
+                                <th>التاريخ</th>
+                                <th>الحالة</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for notif in notifications %}
+                            <tr>
+                                <td>
+                                    <input type="checkbox" name="notification_ids[]" value="{{ notif.id }}" class="notification-checkbox form-check-input">
+                                </td>
+                                <td>{{ notif.id }}</td>
+                                <td>
+                                    <strong>{{ notif.title }}</strong><br>
+                                    <small>
+                                        {% if notif.send_telegram %}
+                                        <i class="fab fa-telegram text-info" title="إرسال على التيليجرام"></i>
+                                        {% endif %}
+                                        {% if notif.send_web %}
+                                        <i class="fas fa-globe text-success" title="إرسال على الموقع"></i>
+                                        {% endif %}
+                                    </small>
+                                </td>
+                                <td>
+                                    {% if notif.notification_type == 'general' %}
+                                    <span class="badge bg-secondary">يدوي</span>
+                                    {% elif notif.notification_type == 'new_lesson' %}
+                                    <span class="badge bg-primary">درس جديد</span>
+                                    {% elif notif.notification_type == 'new_grade' %}
+                                    <span class="badge bg-success">علامة جديدة</span>
+                                    {% elif notif.notification_type == 'new_payment' %}
+                                    <span class="badge bg-warning text-dark">قسط جديد</span>
+                                    {% elif notif.notification_type == 'payment_received' %}
+                                    <span class="badge bg-info">دفعة مستلمة</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">{{ notif.notification_type }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if notif.target_type == 'all' %}
+                                    <span class="badge bg-dark">الجميع</span>
+                                    {% elif notif.target_type == 'all_students' %}
+                                    <span class="badge bg-info">كل الطلاب</span>
+                                    {% elif notif.target_type == 'all_teachers' %}
+                                    <span class="badge bg-warning">كل المدرسين</span>
+                                    {% elif notif.target_type == 'course' %}
+                                    <span class="badge bg-primary">دورة</span>
+                                    {% elif notif.target_type == 'student' %}
+                                    <span class="badge bg-success">طالب</span>
+                                    {% elif notif.target_type == 'teacher' %}
+                                    <span class="badge bg-danger">مدرس</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ notif.recipients|length }}</td>
+                                <td>
+                                    {% set stats = notif.get_delivery_stats() %}
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar bg-success" role="progressbar" 
+                                             style="width: {{ stats.read_rate }}%"
+                                             aria-valuenow="{{ stats.read_rate }}" aria-valuemin="0" aria-valuemax="100">
+                                            {{ "%.1f"|format(stats.read_rate) }}%
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>{{ notif.created_at.strftime('%Y-%m-%d %H:%M') if notif.created_at else 'N/A' }}</td>
+                                <td>
+                                    {% if notif.is_active %}
+                                    <span class="badge bg-success">نشط</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">معطل</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('admin.view_notification', notification_id=notif.id) }}" 
+                                       class="btn btn-sm btn-info" title="عرض">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <form method="POST" action="{{ url_for('admin.toggle_notification', notification_id=notif.id) }}" 
+                                          style="display: inline;">
+                                        <button type="submit" class="btn btn-sm btn-{{ 'warning' if notif.is_active else 'success' }}" 
+                                                title="{{ 'تعطيل' if notif.is_active else 'تفعيل' }}">
+                                            <i class="fas fa-{{ 'pause' if notif.is_active else 'play' }}"></i>
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{{ url_for('admin.delete_notification', notification_id=notif.id) }}" 
+                                          style="display: inline;">
+                                        <button type="submit" class="btn btn-sm btn-danger" 
+                                                onclick="return confirm('هل أنت متأكد من حذف هذا الإشعار؟')" 
+                                                title="حذف">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </form>
         </div>
     </div>
     {% else %}
     <div class="alert alert-info text-center">
         <i class="fas fa-info-circle fa-3x mb-3"></i>
-        <h4>لا توجد إشعارات حتى الآن</h4>
-        <p>ابدأ بإنشاء إشعار جديد للمستخدمين</p>
+        <h4>لا توجد إشعارات تطابق الفلاتر المحددة</h4>
+        <p>جرب تغيير الفلاتر أو</p>
+        <a href="{{ url_for('admin.notifications') }}" class="btn btn-secondary mt-2">
+            <i class="fas fa-undo"></i> إعادة تعيين الفلاتر
+        </a>
         <a href="{{ url_for('admin.create_notification') }}" class="btn btn-primary mt-2">
             <i class="fas fa-plus"></i> إرسال إشعار جديد
         </a>
     </div>
     {% endif %}
 </div>
+
+<script>
+document.getElementById('selectAll').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.notification-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = this.checked;
+    });
+});
+
+function bulkAction(action) {
+    const checkboxes = document.querySelectorAll('.notification-checkbox:checked');
+    
+    if (checkboxes.length === 0) {
+        alert('يرجى تحديد إشعار واحد على الأقل');
+        return;
+    }
+    
+    let message = '';
+    if (action === 'delete') {
+        message = `هل أنت متأكد من حذف ${checkboxes.length} إشعار؟`;
+    } else if (action === 'activate') {
+        message = `هل تريد تفعيل ${checkboxes.length} إشعار؟`;
+    } else if (action === 'deactivate') {
+        message = `هل تريد تعطيل ${checkboxes.length} إشعار؟`;
+    }
+    
+    if (confirm(message)) {
+        document.getElementById('bulkAction').value = action;
+        document.getElementById('bulkForm').submit();
+    }
+}
+</script>
 {% endblock %}

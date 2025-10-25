@@ -1171,8 +1171,70 @@ def download_lesson(lesson_id):
 @bp.route('/notifications')
 @role_required('admin', 'assistant')
 def notifications():
-    all_notifications = Notification.query.order_by(Notification.created_at.desc()).all()
-    return render_template('admin/notifications.html', notifications=all_notifications)
+    notification_type = request.args.get('notification_type', 'all')
+    target_type = request.args.get('target_type', 'all')
+    status = request.args.get('status', 'all')
+    read_status = request.args.get('read_status', 'all')
+    delivery_status = request.args.get('delivery_status', 'all')
+    
+    query = Notification.query
+    
+    if notification_type != 'all':
+        if notification_type == 'manual':
+            query = query.filter(Notification.notification_type == 'general')
+        elif notification_type == 'automatic':
+            query = query.filter(Notification.notification_type.in_(['new_lesson', 'new_grade', 'updated_grade', 'new_payment', 'payment_received', 'payment_reminder']))
+        else:
+            query = query.filter(Notification.notification_type == notification_type)
+    
+    if target_type != 'all':
+        if target_type == 'individual':
+            query = query.filter(Notification.target_type.in_(['student', 'teacher', 'user']))
+        elif target_type == 'group':
+            query = query.filter(Notification.target_type.in_(['all', 'all_students', 'all_teachers', 'course']))
+        else:
+            query = query.filter(Notification.target_type == target_type)
+    
+    if status != 'all':
+        if status == 'active':
+            query = query.filter(Notification.is_active == True)
+        elif status == 'inactive':
+            query = query.filter(Notification.is_active == False)
+    
+    all_notifications = query.order_by(Notification.created_at.desc()).all()
+    
+    if read_status != 'all' or delivery_status != 'all':
+        filtered_notifications = []
+        for notif in all_notifications:
+            stats = notif.get_delivery_stats()
+            include = True
+            
+            if read_status == 'read' and stats['read'] == 0:
+                include = False
+            elif read_status == 'unread' and stats['unread'] == 0:
+                include = False
+            
+            if delivery_status == 'telegram' and stats['delivered_telegram'] == 0:
+                include = False
+            elif delivery_status == 'web' and stats['delivered_web'] == 0:
+                include = False
+            
+            if include:
+                filtered_notifications.append(notif)
+        
+        all_notifications = filtered_notifications
+    
+    filters = {
+        'notification_type': notification_type,
+        'target_type': target_type,
+        'status': status,
+        'read_status': read_status,
+        'delivery_status': delivery_status
+    }
+    
+    return render_template('admin/notifications.html', 
+                          notifications=all_notifications,
+                          filters=filters)
 
 @bp.route('/notifications/create', methods=['GET', 'POST'])
 @role_required('admin', 'assistant')
@@ -1243,6 +1305,46 @@ def delete_notification(notification_id):
     db.session.delete(notification)
     db.session.commit()
     flash('تم حذف الإشعار بنجاح', 'success')
+    return redirect(url_for('admin.notifications'))
+
+@bp.route('/notifications/bulk-action', methods=['POST'])
+@role_required('admin')
+def bulk_notification_action():
+    action = request.form.get('action')
+    notification_ids = request.form.getlist('notification_ids[]')
+    
+    if not notification_ids:
+        flash('يرجى تحديد إشعار واحد على الأقل', 'warning')
+        return redirect(url_for('admin.notifications'))
+    
+    notification_ids = [int(nid) for nid in notification_ids]
+    notifications = Notification.query.filter(Notification.id.in_(notification_ids)).all()
+    
+    if action == 'delete':
+        count = len(notifications)
+        for notif in notifications:
+            db.session.delete(notif)
+        db.session.commit()
+        flash(f'تم حذف {count} إشعار بنجاح', 'success')
+    
+    elif action == 'activate':
+        count = 0
+        for notif in notifications:
+            if not notif.is_active:
+                notif.is_active = True
+                count += 1
+        db.session.commit()
+        flash(f'تم تفعيل {count} إشعار', 'success')
+    
+    elif action == 'deactivate':
+        count = 0
+        for notif in notifications:
+            if notif.is_active:
+                notif.is_active = False
+                count += 1
+        db.session.commit()
+        flash(f'تم تعطيل {count} إشعار', 'success')
+    
     return redirect(url_for('admin.notifications'))
 
 @bp.route('/notifications/stats')
@@ -1373,6 +1475,35 @@ def view_payment(payment_id):
     installments = InstallmentPayment.query.filter_by(payment_id=payment_id).order_by(InstallmentPayment.payment_date.desc()).all()
     return render_template('admin/view_payment.html', payment=payment, installments=installments)
 
+@bp.route('/payments/<int:payment_id>/edit', methods=['GET', 'POST'])
+@role_required('admin', 'assistant')
+def edit_payment(payment_id):
+    payment = Payment.query.get_or_404(payment_id)
+    
+    if request.method == 'POST':
+        from datetime import datetime
+        
+        due_date_str = request.form.get('due_date')
+        due_date_obj = None
+        if due_date_str:
+            try:
+                due_date_obj = datetime.strptime(due_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                pass
+        
+        payment.title = request.form.get('title')
+        payment.description = request.form.get('description')
+        payment.total_amount = float(request.form.get('total_amount'))
+        payment.due_date = due_date_obj
+        
+        payment.update_status()
+        db.session.commit()
+        
+        flash('تم تعديل القسط بنجاح', 'success')
+        return redirect(url_for('admin.view_payment', payment_id=payment_id))
+    
+    return render_template('admin/edit_payment.html', payment=payment)
+
 @bp.route('/payments/<int:payment_id>/delete', methods=['POST'])
 @role_required('admin')
 def delete_payment(payment_id):
@@ -1382,6 +1513,64 @@ def delete_payment(payment_id):
     db.session.commit()
     flash('تم حذف القسط بنجاح', 'success')
     return redirect(url_for('admin.student_payments', student_id=student_id))
+
+@bp.route('/installments/<int:installment_id>/edit', methods=['GET', 'POST'])
+@role_required('admin', 'assistant')
+def edit_installment(installment_id):
+    installment = InstallmentPayment.query.get_or_404(installment_id)
+    payment = installment.payment
+    
+    if request.method == 'POST':
+        from datetime import datetime
+        
+        old_amount = installment.amount
+        new_amount = float(request.form.get('amount'))
+        
+        payment_date_str = request.form.get('payment_date')
+        payment_date_obj = None
+        if payment_date_str:
+            try:
+                payment_date_obj = datetime.strptime(payment_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                payment_date_obj = datetime.now().date()
+        else:
+            payment_date_obj = datetime.now().date()
+        
+        available_amount = payment.remaining_amount + old_amount
+        if new_amount > available_amount:
+            flash(f'المبلغ المدفوع أكبر من المبلغ المتاح ({available_amount:,.0f} ل.س)', 'danger')
+            return redirect(url_for('admin.edit_installment', installment_id=installment_id))
+        
+        payment.paid_amount = payment.paid_amount - old_amount + new_amount
+        
+        installment.amount = new_amount
+        installment.payment_date = payment_date_obj
+        installment.payment_method = request.form.get('payment_method')
+        installment.notes = request.form.get('notes')
+        installment.receipt_number = request.form.get('receipt_number')
+        
+        payment.update_status()
+        db.session.commit()
+        
+        flash('تم تعديل الدفعة بنجاح', 'success')
+        return redirect(url_for('admin.view_payment', payment_id=payment.id))
+    
+    return render_template('admin/edit_installment.html', installment=installment, payment=payment)
+
+@bp.route('/installments/<int:installment_id>/delete', methods=['POST'])
+@role_required('admin')
+def delete_installment(installment_id):
+    installment = InstallmentPayment.query.get_or_404(installment_id)
+    payment = installment.payment
+    
+    payment.paid_amount -= installment.amount
+    payment.update_status()
+    
+    db.session.delete(installment)
+    db.session.commit()
+    
+    flash('تم حذف الدفعة بنجاح', 'success')
+    return redirect(url_for('admin.view_payment', payment_id=payment.id))
 
 @bp.route('/settings/payment-reminders', methods=['GET', 'POST'])
 @role_required('admin')

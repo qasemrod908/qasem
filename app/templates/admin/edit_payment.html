@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}تعديل القسط - معهد القاسم{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>
+                <i class="fas fa-edit ms-2"></i>
+                تعديل القسط
+            </h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('admin.view_payment', payment_id=payment.id) }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right ms-2"></i>العودة
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-file-invoice-dollar ms-2"></i>
+                تعديل معلومات القسط
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('admin.edit_payment', payment_id=payment.id) }}">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle ms-2"></i>
+                    <strong>الطالب:</strong> {{ payment.student.user.full_name }}
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="title" class="form-label">عنوان القسط <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="title" name="title" required 
+                               value="{{ payment.title }}" placeholder="مثال: رسوم دورة الإنجليزية">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label for="total_amount" class="form-label">المبلغ الإجمالي (ل.س) <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="total_amount" name="total_amount" required 
+                               min="0" step="1000" value="{{ payment.total_amount }}" placeholder="0">
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="due_date" class="form-label">تاريخ الاستحقاق</label>
+                        <input type="date" class="form-control" id="due_date" name="due_date" 
+                               value="{{ payment.due_date.strftime('%Y-%m-%d') if payment.due_date else '' }}">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="description" class="form-label">الوصف</label>
+                    <textarea class="form-control" id="description" name="description" rows="3" 
+                              placeholder="أدخل وصف للقسط (اختياري)">{{ payment.description or '' }}</textarea>
+                </div>
+
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle ms-2"></i>
+                    <strong>تنبيه:</strong> المبلغ المدفوع حالياً: {{ "{:,.0f}".format(payment.paid_amount) }} ل.س. تأكد من أن المبلغ الإجمالي الجديد أكبر من أو يساوي المبلغ المدفوع.
+                </div>
+
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <a href="{{ url_for('admin.view_payment', payment_id=payment.id) }}" 
+                       class="btn btn-secondary">
+                        <i class="fas fa-times ms-2"></i>إلغاء
+                    </a>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save ms-2"></i>حفظ التعديلات
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.querySelector('form').addEventListener('submit', function(e) {
+    const totalAmount = parseFloat(document.getElementById('total_amount').value);
+    const paidAmount = {{ payment.paid_amount }};
+    
+    if (totalAmount < paidAmount) {
+        e.preventDefault();
+        alert('المبلغ الإجمالي لا يمكن أن يكون أقل من المبلغ المدفوع (' + paidAmount.toLocaleString() + ' ل.س)');
+    }
+});
+</script>
+{% endblock %}

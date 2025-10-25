@@ -64,6 +64,7 @@ class NotificationRecipient(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     is_read = db.Column(db.Boolean, default=False)
     read_at = db.Column(db.DateTime, nullable=True)
+    read_source = db.Column(db.String(20), nullable=True)
     telegram_delivered = db.Column(db.Boolean, default=False)
     telegram_delivered_at = db.Column(db.DateTime, nullable=True)
     web_delivered = db.Column(db.Boolean, default=False)
@@ -75,10 +76,11 @@ class NotificationRecipient(db.Model):
     def __repr__(self):
         return f'<NotificationRecipient {self.id}>'
     
-    def mark_as_read(self):
+    def mark_as_read(self, source='web'):
         if not self.is_read:
             self.is_read = True
             self.read_at = damascus_now()
+            self.read_source = source
             db.session.commit()
     
     def mark_telegram_delivered(self, message_id=None):

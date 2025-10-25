@@ -115,6 +115,7 @@
                                         <tr>
                                             <th>المستخدم</th>
                                             <th>الحالة</th>
+                                            <th>مصدر القراءة</th>
                                             <th>تيليجرام</th>
                                             <th>موقع</th>
                                             <th>وقت القراءة</th>
@@ -129,6 +130,15 @@
                                                 <span class="badge bg-success"><i class="fas fa-check"></i> مقروء</span>
                                                 {% else %}
                                                 <span class="badge bg-warning"><i class="fas fa-clock"></i> غير مقروء</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if recipient.read_source == 'web' %}
+                                                <span class="badge bg-success"><i class="fas fa-globe"></i> الموقع</span>
+                                                {% elif recipient.read_source == 'telegram' %}
+                                                <span class="badge bg-info"><i class="fab fa-telegram"></i> Telegram</span>
+                                                {% else %}
+                                                <span class="text-muted">-</span>
                                                 {% endif %}
                                             </td>
                                             <td>

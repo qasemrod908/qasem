@@ -1235,7 +1235,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 session = BotSession.query.filter_by(telegram_id=user.id).first()
                 if session and session.user_id == recipient.user_id:
                     if not recipient.is_read:
-                        recipient.mark_as_read()
+                        recipient.mark_as_read(source='telegram')
                     
                     notification = recipient.notification
                     notif_text = f"""
