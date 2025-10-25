@@ -1740,15 +1740,19 @@ def add_attendance():
     from sqlalchemy.exc import IntegrityError
     
     if request.method == 'POST':
+        from datetime import datetime
+        
         user_id = request.form.get('user_id')
         user_type = request.form.get('user_type')
-        attendance_date = request.form.get('date')
+        attendance_date_str = request.form.get('date')
         status = request.form.get('status')
         notes = request.form.get('notes', '').strip()
         
-        if not all([user_id, user_type, attendance_date, status]):
+        if not all([user_id, user_type, attendance_date_str, status]):
             flash('جميع الحقول المطلوبة يجب أن تكون معبأة', 'danger')
             return redirect(url_for('admin.add_attendance'))
+        
+        attendance_date = datetime.strptime(attendance_date_str, '%Y-%m-%d').date()
         
         existing = Attendance.query.filter_by(
             user_id=user_id,
@@ -1821,14 +1825,17 @@ def edit_attendance(id):
     record = Attendance.query.get_or_404(id)
     
     if request.method == 'POST':
-        attendance_date = request.form.get('date')
+        from datetime import datetime
+        
+        attendance_date_str = request.form.get('date')
         status = request.form.get('status')
         notes = request.form.get('notes', '').strip()
         
-        if not all([attendance_date, status]):
+        if not all([attendance_date_str, status]):
             flash('جميع الحقول المطلوبة يجب أن تكون معبأة', 'danger')
             return redirect(url_for('admin.edit_attendance', id=id))
         
+        attendance_date = datetime.strptime(attendance_date_str, '%Y-%m-%d').date()
         old_status = record.status
         
         record.date = attendance_date
