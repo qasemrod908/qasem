@@ -17,6 +17,7 @@ class Attendance(db.Model):
     user = db.relationship('User', backref='attendance_records', foreign_keys=[user_id])
     
     __table_args__ = (
+        db.UniqueConstraint('user_id', 'date', name='uq_user_date'),
         db.Index('idx_attendance_user_date', 'user_id', 'date'),
         db.Index('idx_attendance_type_date', 'user_type', 'date'),
     )

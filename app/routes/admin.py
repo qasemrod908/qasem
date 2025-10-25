@@ -1723,6 +1723,7 @@ def attendance_list():
 def add_attendance():
     from datetime import date
     from app.utils.notifications import send_notification
+    from sqlalchemy.exc import IntegrityError
     
     if request.method == 'POST':
         user_id = request.form.get('user_id')
@@ -1752,8 +1753,13 @@ def add_attendance():
             notes=notes if notes else None
         )
         
-        db.session.add(new_record)
-        db.session.commit()
+        try:
+            db.session.add(new_record)
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            flash('خطأ: يوجد سجل حضور لنفس المستخدم في هذا التاريخ', 'danger')
+            return redirect(url_for('admin.add_attendance'))
         
         if status == 'absent':
             user = User.query.get(user_id)
@@ -1793,6 +1799,7 @@ def add_attendance():
 @role_required('admin', 'assistant')
 def edit_attendance(id):
     from app.utils.notifications import send_notification
+    from sqlalchemy.exc import IntegrityError
     
     record = Attendance.query.get_or_404(id)
     
@@ -1811,7 +1818,12 @@ def edit_attendance(id):
         record.status = status
         record.notes = notes if notes else None
         
-        db.session.commit()
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            flash('خطأ: يوجد سجل حضور آخر لنفس المستخدم في هذا التاريخ', 'danger')
+            return redirect(url_for('admin.edit_attendance', id=id))
         
         if old_status != 'absent' and status == 'absent':
             user = User.query.get(record.user_id)
