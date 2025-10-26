@@ -1149,7 +1149,7 @@ def view_section(section_id):
         if student_ids:
             attendance_stats = db.session.query(
                 func.count(Attendance.id).label('total'),
-                func.sum(func.case((Attendance.status == 'present', 1), else_=0)).label('present_count')
+                func.sum(db.case((Attendance.status == 'present', 1), else_=0)).label('present_count')
             ).filter(Attendance.user_id.in_(student_ids)).first()
             
             if attendance_stats[0] and attendance_stats[0] > 0:
@@ -1896,8 +1896,8 @@ def attendance_list():
     attendance_dates = db.session.query(
         Attendance.date,
         func.count(Attendance.id).label('total'),
-        func.sum(func.case((Attendance.status == 'present', 1), else_=0)).label('present_count'),
-        func.sum(func.case((Attendance.status == 'absent', 1), else_=0)).label('absent_count')
+        func.sum(db.case((Attendance.status == 'present', 1), else_=0)).label('present_count'),
+        func.sum(db.case((Attendance.status == 'absent', 1), else_=0)).label('absent_count')
     ).group_by(Attendance.date)
     
     if user_type:
