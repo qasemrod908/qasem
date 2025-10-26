@@ -578,15 +578,42 @@ def delete_news(news_id):
 @bp.route('/teachers')
 @role_required('admin', 'assistant')
 def teachers():
-    all_teachers = Teacher.query.all()
-    return render_template('admin/teachers.html', teachers=all_teachers)
+    page = request.args.get('page', 1, type=int)
+    search = request.args.get('search', '')
+    specialization = request.args.get('specialization', '')
+    sort_by = request.args.get('sort_by', 'name')
+    
+    query = Teacher.query.join(User)
+    
+    if search:
+        query = query.filter(User.full_name.contains(search))
+    
+    if specialization:
+        query = query.filter(Teacher.specialization.contains(specialization))
+    
+    if sort_by == 'name':
+        query = query.order_by(User.full_name)
+    elif sort_by == 'experience':
+        query = query.order_by(Teacher.experience_years.desc())
+    
+    teachers_paginated = query.paginate(page=page, per_page=15, error_out=False)
+    
+    all_specializations = db.session.query(Teacher.specialization).distinct().filter(Teacher.specialization.isnot(None)).all()
+    specializations = [s[0] for s in all_specializations if s[0]]
+    
+    return render_template('admin/teachers.html', 
+                         teachers=teachers_paginated,
+                         search=search,
+                         specialization=specialization,
+                         sort_by=sort_by,
+                         specializations=specializations)
 
 @bp.route('/teachers/view/<int:teacher_id>')
 @role_required('admin', 'assistant')
 def view_teacher(teacher_id):
     teacher = Teacher.query.get_or_404(teacher_id)
     enrollments = Enrollment.query.filter_by(teacher_id=teacher_id).all()
-    lessons = Lesson.query.filter_by(teacher_id=teacher_id).order_by(Lesson.created_at.desc()).limit(10).all()
+    lessons = Lesson.query.filter_by(teacher_id=teacher_id).order_by(Lesson.upload_date.desc()).limit(10).all()
     attendance_records = Attendance.query.filter_by(user_id=teacher.user_id).order_by(Attendance.date.desc()).limit(10).all()
     stats = Attendance.get_user_stats(teacher.user_id)
     return render_template('admin/view_teacher.html', teacher=teacher, enrollments=enrollments, lessons=lessons,
@@ -662,10 +689,58 @@ def delete_user(user_id):
 @bp.route('/students')
 @role_required('admin', 'assistant')
 def students():
-    all_students = Student.query.all()
+    page = request.args.get('page', 1, type=int)
+    search = request.args.get('search', '')
+    grade_id = request.args.get('grade_id', type=int)
+    section_id = request.args.get('section_id', type=int)
+    status = request.args.get('status', '')
+    sort_by = request.args.get('sort_by', 'name')
+    
+    query = Student.query.join(User)
+    
+    if search:
+        query = query.filter(
+            db.or_(
+                User.full_name.contains(search),
+                Student.student_number.contains(search)
+            )
+        )
+    
+    if grade_id:
+        query = query.filter(Student.class_grade_id == grade_id)
+    
+    if section_id:
+        query = query.filter(Student.section_id == section_id)
+    
+    if status:
+        if status == 'active':
+            query = query.filter(User.is_active == True)
+        elif status == 'inactive':
+            query = query.filter(User.is_active == False)
+    
+    if sort_by == 'name':
+        query = query.order_by(User.full_name)
+    elif sort_by == 'student_number':
+        query = query.order_by(Student.student_number)
+    
+    students_paginated = query.paginate(page=page, per_page=15, error_out=False)
+    
     teachers = Teacher.query.all()
     courses = Course.query.all()
-    return render_template('admin/students.html', students=all_students, teachers=teachers, courses=courses)
+    grades = ClassGrade.query.order_by(ClassGrade.display_order).all()
+    sections = Section.query.order_by(Section.display_order).all()
+    
+    return render_template('admin/students.html', 
+                         students=students_paginated,
+                         teachers=teachers,
+                         courses=courses,
+                         grades=grades,
+                         sections=sections,
+                         search=search,
+                         grade_id=grade_id,
+                         section_id=section_id,
+                         status=status,
+                         sort_by=sort_by)
 
 @bp.route('/students/edit/<int:student_id>', methods=['GET', 'POST'])
 @role_required('admin', 'assistant')
@@ -1026,6 +1101,77 @@ def edit_section(section_id):
         return redirect(url_for('admin.grades'))
     
     return render_template('admin/edit_section.html', section=section)
+
+@bp.route('/sections/view/<int:section_id>')
+@role_required('admin', 'assistant')
+def view_section(section_id):
+    from sqlalchemy import func
+    
+    section = Section.query.get_or_404(section_id)
+    
+    page = request.args.get('page', 1, type=int)
+    search = request.args.get('search', '')
+    status = request.args.get('status', '')
+    
+    query = section.students.join(User)
+    
+    if search:
+        query = query.filter(
+            db.or_(
+                User.full_name.contains(search),
+                Student.student_number.contains(search)
+            )
+        )
+    
+    if status:
+        if status == 'active':
+            query = query.filter(User.is_active == True)
+        elif status == 'inactive':
+            query = query.filter(User.is_active == False)
+    
+    students_paginated = query.paginate(page=page, per_page=20, error_out=False)
+    
+    total_students = section.students.count()
+    active_students = section.students.join(User).filter(User.is_active == True).count()
+    inactive_students = total_students - active_students
+    
+    total_payments = db.session.query(
+        func.sum(Payment.total_amount),
+        func.sum(Payment.paid_amount)
+    ).join(Student).filter(Student.section_id == section_id).first()
+    
+    total_expected = total_payments[0] or 0
+    total_collected = total_payments[1] or 0
+    
+    average_attendance = 0
+    if total_students > 0:
+        student_ids = [s.user_id for s in section.students.all()]
+        if student_ids:
+            attendance_stats = db.session.query(
+                func.count(Attendance.id).label('total'),
+                func.sum(func.case((Attendance.status == 'present', 1), else_=0)).label('present_count')
+            ).filter(Attendance.user_id.in_(student_ids)).first()
+            
+            if attendance_stats[0] and attendance_stats[0] > 0:
+                average_attendance = (attendance_stats[1] / attendance_stats[0]) * 100
+    
+    stats = {
+        'total_students': total_students,
+        'active_students': active_students,
+        'inactive_students': inactive_students,
+        'max_students': section.max_students,
+        'available_seats': (section.max_students - total_students) if section.max_students else None,
+        'total_expected': total_expected,
+        'total_collected': total_collected,
+        'average_attendance': round(average_attendance, 2)
+    }
+    
+    return render_template('admin/view_section.html',
+                         section=section,
+                         students=students_paginated,
+                         stats=stats,
+                         search=search,
+                         status=status)
 
 @bp.route('/sections/delete/<int:section_id>', methods=['POST'])
 @role_required('admin')
@@ -1610,14 +1756,48 @@ def payment_reminder_settings():
 @bp.route('/payments/all')
 @role_required('admin', 'assistant')
 def all_payments():
-    status_filter = request.args.get('status', 'all')
+    page = request.args.get('page', 1, type=int)
+    status_filter = request.args.get('status', '')
+    search = request.args.get('search', '')
+    date_from = request.args.get('date_from', '')
+    date_to = request.args.get('date_to', '')
+    sort_by = request.args.get('sort_by', 'date')
     
-    query = Payment.query
-    if status_filter != 'all':
-        query = query.filter_by(status=status_filter)
+    query = Payment.query.join(Student).join(User)
     
-    payments = query.order_by(Payment.created_at.desc()).all()
-    return render_template('admin/all_payments.html', payments=payments, status_filter=status_filter)
+    if status_filter:
+        query = query.filter(Payment.status == status_filter)
+    
+    if search:
+        query = query.filter(
+            db.or_(
+                User.full_name.contains(search),
+                Payment.title.contains(search)
+            )
+        )
+    
+    if date_from:
+        query = query.filter(Payment.due_date >= date_from)
+    
+    if date_to:
+        query = query.filter(Payment.due_date <= date_to)
+    
+    if sort_by == 'date':
+        query = query.order_by(Payment.due_date.desc())
+    elif sort_by == 'amount':
+        query = query.order_by(Payment.total_amount.desc())
+    elif sort_by == 'student':
+        query = query.order_by(User.full_name)
+    
+    payments_paginated = query.paginate(page=page, per_page=20, error_out=False)
+    
+    return render_template('admin/all_payments.html', 
+                         payments=payments_paginated,
+                         status_filter=status_filter,
+                         search=search,
+                         date_from=date_from,
+                         date_to=date_to,
+                         sort_by=sort_by)
 
 @bp.route('/payments/reports')
 @role_required('admin', 'assistant')
@@ -1694,13 +1874,13 @@ def payment_reports():
 @role_required('admin', 'assistant')
 def attendance_list():
     from datetime import date, timedelta
+    from sqlalchemy import func
     
-    page = request.args.get('page', 1, type=int)
     user_type = request.args.get('user_type', '')
     status = request.args.get('status', '')
     date_from = request.args.get('date_from', '')
     date_to = request.args.get('date_to', '')
-    user_id = request.args.get('user_id', type=int)
+    selected_date = request.args.get('selected_date', '')
     
     query = Attendance.query
     
@@ -1712,25 +1892,47 @@ def attendance_list():
         query = query.filter(Attendance.date >= date_from)
     if date_to:
         query = query.filter(Attendance.date <= date_to)
-    if user_id:
-        query = query.filter_by(user_id=user_id)
     
-    attendance_records = query.order_by(Attendance.date.desc()).paginate(
-        page=page, per_page=20, error_out=False
-    )
+    attendance_dates = db.session.query(
+        Attendance.date,
+        func.count(Attendance.id).label('total'),
+        func.sum(func.case((Attendance.status == 'present', 1), else_=0)).label('present_count'),
+        func.sum(func.case((Attendance.status == 'absent', 1), else_=0)).label('absent_count')
+    ).group_by(Attendance.date)
+    
+    if user_type:
+        attendance_dates = attendance_dates.filter(Attendance.user_type == user_type)
+    if status:
+        attendance_dates = attendance_dates.filter(Attendance.status == status)
+    if date_from:
+        attendance_dates = attendance_dates.filter(Attendance.date >= date_from)
+    if date_to:
+        attendance_dates = attendance_dates.filter(Attendance.date <= date_to)
+    
+    attendance_dates = attendance_dates.order_by(Attendance.date.desc()).all()
+    
+    selected_date_records = []
+    if selected_date:
+        selected_date_query = Attendance.query.filter_by(date=selected_date)
+        if user_type:
+            selected_date_query = selected_date_query.filter_by(user_type=user_type)
+        if status:
+            selected_date_query = selected_date_query.filter_by(status=status)
+        selected_date_records = selected_date_query.all()
     
     students = Student.query.all()
     teachers = Teacher.query.all()
     
     return render_template('admin/attendance_list.html',
-                         attendance_records=attendance_records,
+                         attendance_dates=attendance_dates,
+                         selected_date=selected_date,
+                         selected_date_records=selected_date_records,
                          students=students,
                          teachers=teachers,
                          user_type=user_type,
                          status=status,
                          date_from=date_from,
-                         date_to=date_to,
-                         user_id=user_id)
+                         date_to=date_to)
 
 @bp.route('/attendance/add', methods=['GET', 'POST'])
 @role_required('admin', 'assistant')
@@ -1742,66 +1944,74 @@ def add_attendance():
     if request.method == 'POST':
         from datetime import datetime
         
-        user_id = request.form.get('user_id')
+        user_ids = request.form.getlist('user_ids[]')
         user_type = request.form.get('user_type')
         attendance_date_str = request.form.get('date')
         status = request.form.get('status')
         notes = request.form.get('notes', '').strip()
         
-        if not all([user_id, user_type, attendance_date_str, status]):
+        if not all([user_ids, user_type, attendance_date_str, status]):
             flash('جميع الحقول المطلوبة يجب أن تكون معبأة', 'danger')
             return redirect(url_for('admin.add_attendance'))
         
         attendance_date = datetime.strptime(attendance_date_str, '%Y-%m-%d').date()
         
-        existing = Attendance.query.filter_by(
-            user_id=user_id,
-            date=attendance_date
-        ).first()
+        added_count = 0
+        skipped_count = 0
         
-        if existing:
-            flash('يوجد سجل حضور لنفس المستخدم في هذا التاريخ', 'warning')
-            return redirect(url_for('admin.add_attendance'))
-        
-        new_record = Attendance(
-            user_id=user_id,
-            user_type=user_type,
-            date=attendance_date,
-            status=status,
-            notes=notes if notes else None
-        )
-        
-        try:
-            db.session.add(new_record)
-            db.session.commit()
-        except IntegrityError:
-            db.session.rollback()
-            flash('خطأ: يوجد سجل حضور لنفس المستخدم في هذا التاريخ', 'danger')
-            return redirect(url_for('admin.add_attendance'))
-        
-        if status == 'absent':
-            user = User.query.get(user_id)
-            if user:
-                absent_count = Attendance.query.filter_by(
-                    user_id=user_id,
-                    status='absent'
-                ).count()
+        for user_id in user_ids:
+            existing = Attendance.query.filter_by(
+                user_id=user_id,
+                date=attendance_date
+            ).first()
+            
+            if existing:
+                skipped_count += 1
+                continue
+            
+            new_record = Attendance(
+                user_id=user_id,
+                user_type=user_type,
+                date=attendance_date,
+                status=status,
+                notes=notes if notes else None
+            )
+            
+            try:
+                db.session.add(new_record)
+                db.session.commit()
+                added_count += 1
                 
-                title = "⚠️ تنبيه غياب"
-                message = f"تم تسجيل غيابك بتاريخ {attendance_date}\nعدد أيام الغياب: {absent_count} يوم"
-                if notes:
-                    message += f"\nملاحظات: {notes}"
-                
-                send_notification(
-                    title=title,
-                    message=message,
-                    user_ids=[user_id],
-                    notification_type='absence_alert',
-                    send_telegram=True,
-                    send_web=True
-                )
+                if status == 'absent':
+                    user = User.query.get(user_id)
+                    if user:
+                        absent_count = Attendance.query.filter_by(
+                            user_id=user_id,
+                            status='absent'
+                        ).count()
+                        
+                        title = "⚠️ تنبيه غياب"
+                        message = f"تم تسجيل غيابك بتاريخ {attendance_date}\nعدد أيام الغياب: {absent_count} يوم"
+                        if notes:
+                            message += f"\nملاحظات: {notes}"
+                        
+                        send_notification(
+                            title=title,
+                            message=message,
+                            user_ids=[user_id],
+                            notification_type='absence_alert',
+                            send_telegram=True,
+                            send_web=True
+                        )
+            except IntegrityError:
+                db.session.rollback()
+                skipped_count += 1
         
-        flash('تم إضافة سجل الحضور بنجاح', 'success')
+        if added_count > 0:
+            flash(f'تم إضافة {added_count} سجل حضور بنجاح', 'success')
+        if skipped_count > 0:
+            flash(f'تم تخطي {skipped_count} مستخدم (يوجد سجل لهم في نفس التاريخ)', 'warning')
+        
         return redirect(url_for('admin.attendance_list'))
     
     students = Student.query.all()

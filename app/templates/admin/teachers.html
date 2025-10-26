@@ -9,14 +9,58 @@
             <i class="fas fa-chalkboard-teacher ms-2"></i>
             إدارة المدرسين
         </h2>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-right ms-2"></i>العودة
+        </a>
     </div>
 
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('admin.teachers') }}" class="row g-3">
+                <div class="col-md-4">
+                    <label for="search" class="form-label">البحث عن مدرس:</label>
+                    <input type="text" class="form-control" id="search" name="search" 
+                           value="{{ search }}" placeholder="ابحث بالاسم...">
+                </div>
+                <div class="col-md-3">
+                    <label for="specialization" class="form-label">التخصص:</label>
+                    <select class="form-select" id="specialization" name="specialization">
+                        <option value="">جميع التخصصات</option>
+                        {% for spec in specializations %}
+                        <option value="{{ spec }}" {% if specialization == spec %}selected{% endif %}>{{ spec }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="sort_by" class="form-label">ترتيب حسب:</label>
+                    <select class="form-select" id="sort_by" name="sort_by">
+                        <option value="name" {% if sort_by == 'name' %}selected{% endif %}>الاسم</option>
+                        <option value="experience" {% if sort_by == 'experience' %}selected{% endif %}>سنوات الخبرة</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search ms-2"></i>بحث
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if teachers.items %}
     <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-list ms-2"></i>
+                قائمة المدرسين ({{ teachers.total }} مدرس)
+            </h5>
+        </div>
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-hover">
                     <thead>
                         <tr>
+                            <th>#</th>
                             <th>الاسم</th>
                             <th>التخصص</th>
                             <th>سنوات الخبرة</th>
@@ -26,27 +70,77 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for teacher in teachers %}
+                        {% for teacher in teachers.items %}
                         <tr>
-                            <td>{{ teacher.user.full_name }}</td>
-                            <td>{{ teacher.specialization or 'غير محدد' }}</td>
+                            <td>{{ loop.index + (teachers.page - 1) * teachers.per_page }}</td>
+                            <td>
+                                <strong>{{ teacher.user.full_name }}</strong>
+                                {% if teacher.user.email %}
+                                <br><small class="text-muted">{{ teacher.user.email }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if teacher.specialization %}
+                                <span class="badge bg-info">{{ teacher.specialization }}</span>
+                                {% else %}
+                                <span class="text-muted">غير محدد</span>
+                                {% endif %}
+                            </td>
                             <td>{{ teacher.experience_years or 0 }} سنة</td>
                             <td>{{ teacher.phone or 'غير محدد' }}</td>
-                            <td>{{ teacher.lessons | length }}</td>
+                            <td><span class="badge bg-secondary">{{ teacher.lessons | length }}</span></td>
                             <td>
-                                <a href="{{ url_for('admin.view_teacher', teacher_id=teacher.id) }}" class="btn btn-sm btn-info">
-                                    <i class="fas fa-eye"></i> عرض
-                                </a>
-                                <a href="{{ url_for('admin.edit_teacher', teacher_id=teacher.id) }}" class="btn btn-sm btn-primary">
-                                    <i class="fas fa-edit"></i> تعديل
-                                </a>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('admin.view_teacher', teacher_id=teacher.id) }}" 
+                                       class="btn btn-info" title="عرض">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('admin.edit_teacher', teacher_id=teacher.id) }}" 
+                                       class="btn btn-primary" title="تعديل">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
+
+            {% if teachers.pages > 1 %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if teachers.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin.teachers', page=teachers.prev_num, search=search, specialization=specialization, sort_by=sort_by) }}">السابق</a>
+                    </li>
+                    {% endif %}
+
+                    {% for page_num in teachers.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                        {% if page_num %}
+                            <li class="page-item {% if page_num == teachers.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('admin.teachers', page=page_num, search=search, specialization=specialization, sort_by=sort_by) }}">{{ page_num }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if teachers.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin.teachers', page=teachers.next_num, search=search, specialization=specialization, sort_by=sort_by) }}">التالي</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
         </div>
     </div>
+    {% else %}
+    <div class="alert alert-info text-center">
+        <i class="fas fa-info-circle ms-2"></i>
+        لا يوجد مدرسين بالمعايير المحددة
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

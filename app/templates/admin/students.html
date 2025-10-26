@@ -9,16 +9,78 @@
             <i class="fas fa-user-graduate ms-2"></i>
             إدارة الطلاب
         </h2>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-right ms-2"></i>العودة
+        </a>
     </div>
 
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('admin.students') }}" class="row g-3">
+                <div class="col-md-3">
+                    <label for="search" class="form-label">البحث:</label>
+                    <input type="text" class="form-control" id="search" name="search" 
+                           value="{{ search }}" placeholder="الاسم أو رقم الطالب...">
+                </div>
+                <div class="col-md-2">
+                    <label for="grade_id" class="form-label">الصف:</label>
+                    <select class="form-select" id="grade_id" name="grade_id">
+                        <option value="">جميع الصفوف</option>
+                        {% for grade in grades %}
+                        <option value="{{ grade.id }}" {% if grade_id == grade.id %}selected{% endif %}>{{ grade.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="section_id" class="form-label">الشعبة:</label>
+                    <select class="form-select" id="section_id" name="section_id">
+                        <option value="">جميع الشعب</option>
+                        {% for section in sections %}
+                        <option value="{{ section.id }}" {% if section_id == section.id %}selected{% endif %}>{{ section.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="status" class="form-label">الحالة:</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="">الكل</option>
+                        <option value="active" {% if status == 'active' %}selected{% endif %}>نشط</option>
+                        <option value="inactive" {% if status == 'inactive' %}selected{% endif %}>غير نشط</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="sort_by" class="form-label">ترتيب حسب:</label>
+                    <select class="form-select" id="sort_by" name="sort_by">
+                        <option value="name" {% if sort_by == 'name' %}selected{% endif %}>الاسم</option>
+                        <option value="student_number" {% if sort_by == 'student_number' %}selected{% endif %}>رقم الطالب</option>
+                    </select>
+                </div>
+                <div class="col-md-1 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if students.items %}
     <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-list ms-2"></i>
+                قائمة الطلاب ({{ students.total }} طالب)
+            </h5>
+        </div>
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-hover">
                     <thead>
                         <tr>
+                            <th>#</th>
                             <th>الاسم</th>
                             <th>رقم الطالب</th>
+                            <th>الصف/الشعبة</th>
                             <th>الهاتف</th>
                             <th>عدد الدورات</th>
                             <th>الحالة</th>
@@ -26,67 +88,105 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for student in students %}
+                        {% for student in students.items %}
                         <tr>
-                            <td>{{ student.user.full_name }}</td>
-                            <td>{{ student.student_number or 'غير محدد' }}</td>
+                            <td>{{ loop.index + (students.page - 1) * students.per_page }}</td>
+                            <td>
+                                <strong>{{ student.user.full_name }}</strong>
+                                {% if student.user.email %}
+                                <br><small class="text-muted">{{ student.user.email }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if student.student_number %}
+                                <span class="badge bg-secondary">{{ student.student_number }}</span>
+                                {% else %}
+                                <span class="text-muted">غير محدد</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if student.class_grade %}
+                                <div>{{ student.class_grade.name }}</div>
+                                {% if student.section %}
+                                <small class="text-muted">{{ student.section.name }}</small>
+                                {% endif %}
+                                {% else %}
+                                <span class="text-muted">غير محدد</span>
+                                {% endif %}
+                            </td>
                             <td>{{ student.phone or 'غير محدد' }}</td>
-                            <td>{{ student.enrollments.count() }}</td>
+                            <td><span class="badge bg-info">{{ student.enrollments.count() }}</span></td>
                             <td>
                                 {% if student.user.is_active %}
-                                    <span class="badge bg-success">نشط</span>
+                                <span class="badge bg-success">نشط</span>
                                 {% else %}
-                                    <span class="badge bg-danger">غير نشط</span>
+                                <span class="badge bg-danger">غير نشط</span>
                                 {% endif %}
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{{ url_for('admin.view_student', student_id=student.id) }}" class="btn btn-outline-info" title="عرض التفاصيل">
+                                    <a href="{{ url_for('admin.view_student', student_id=student.id) }}" 
+                                       class="btn btn-info" title="عرض التفاصيل">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    <a href="{{ url_for('admin.enroll_student', student_id=student.id) }}" class="btn btn-outline-success" title="تسجيل في دورة">
+                                    <a href="{{ url_for('admin.enroll_student', student_id=student.id) }}" 
+                                       class="btn btn-success" title="تسجيل في دورة">
                                         <i class="fas fa-plus"></i>
                                     </a>
-                                    <a href="{{ url_for('admin.edit_student', student_id=student.id) }}" class="btn btn-outline-primary" title="تعديل">
+                                    <a href="{{ url_for('admin.edit_student', student_id=student.id) }}" 
+                                       class="btn btn-primary" title="تعديل">
                                         <i class="fas fa-edit"></i>
                                     </a>
-                                    <form method="POST" action="{{ url_for('admin.delete_student', student_id=student.id) }}" style="display:inline;">
-                                        <button type="submit" class="btn btn-outline-danger" onclick="return confirm('هل أنت متأكد من حذف هذا الطالب؟')" title="حذف">
+                                    <form method="POST" action="{{ url_for('admin.delete_student', student_id=student.id) }}" 
+                                          style="display:inline;">
+                                        <button type="submit" class="btn btn-danger" 
+                                                onclick="return confirm('هل أنت متأكد من حذف هذا الطالب؟')" 
+                                                title="حذف">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </form>
                                 </div>
                             </td>
                         </tr>
-                        {% if student.enrollments.count() > 0 %}
-                        <tr>
-                            <td colspan="6">
-                                <div class="ps-4">
-                                    <strong>الدورات المسجلة:</strong>
-                                    {% for enrollment in student.enrollments %}
-                                        <div class="d-inline-block me-2">
-                                            <span class="badge bg-secondary">
-                                                {{ enrollment.course.title }}
-                                                {% if enrollment.teacher %}
-                                                    - {{ enrollment.teacher.user.full_name }}
-                                                {% endif %}
-                                            </span>
-                                            <form method="POST" action="{{ url_for('admin.unenroll_student', enrollment_id=enrollment.id) }}" style="display:inline;">
-                                                <button type="submit" class="btn btn-sm btn-link text-danger p-0" onclick="return confirm('هل أنت متأكد من إلغاء التسجيل؟')">
-                                                    <i class="fas fa-times"></i>
-                                                </button>
-                                            </form>
-                                        </div>
-                                    {% endfor %}
-                                </div>
-                            </td>
-                        </tr>
-                        {% endif %}
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
+
+            {% if students.pages > 1 %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if students.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin.students', page=students.prev_num, search=search, grade_id=grade_id, section_id=section_id, status=status, sort_by=sort_by) }}">السابق</a>
+                    </li>
+                    {% endif %}
+
+                    {% for page_num in students.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                        {% if page_num %}
+                            <li class="page-item {% if page_num == students.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('admin.students', page=page_num, search=search, grade_id=grade_id, section_id=section_id, status=status, sort_by=sort_by) }}">{{ page_num }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if students.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin.students', page=students.next_num, search=search, grade_id=grade_id, section_id=section_id, status=status, sort_by=sort_by) }}">التالي</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
         </div>
     </div>
+    {% else %}
+    <div class="alert alert-info text-center">
+        <i class="fas fa-info-circle ms-2"></i>
+        لا يوجد طلاب بالمعايير المحددة
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

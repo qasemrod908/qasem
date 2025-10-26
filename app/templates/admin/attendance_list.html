@@ -50,10 +50,9 @@
                             <label for="date_to" class="form-label">إلى تاريخ:</label>
                             <input type="date" class="form-control" id="date_to" name="date_to" value="{{ date_to }}">
                         </div>
-                        <div class="col-md-2">
-                            <label class="form-label d-block">&nbsp;</label>
+                        <div class="col-md-2 d-flex align-items-end">
                             <button type="submit" class="btn btn-primary w-100">
-                                <i class="fas fa-filter ms-2"></i>تصفية
+                                <i class="fas fa-filter ms-2"></i>فلترة
                             </button>
                         </div>
                     </form>
@@ -62,109 +61,154 @@
         </div>
     </div>
 
-    {% if attendance_records.items %}
-    <div class="card shadow-sm">
-        <div class="card-header bg-primary text-white">
-            <h5 class="mb-0">
-                <i class="fas fa-list ms-2"></i>
-                سجلات الحضور والغياب ({{ attendance_records.total }} سجل)
-            </h5>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead class="table-light">
-                        <tr>
-                            <th>#</th>
-                            <th>الاسم</th>
-                            <th>النوع</th>
-                            <th>التاريخ</th>
-                            <th>الحالة</th>
-                            <th>الملاحظات</th>
-                            <th class="text-center">الإجراءات</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for record in attendance_records.items %}
-                        <tr>
-                            <td>{{ loop.index + (attendance_records.page - 1) * attendance_records.per_page }}</td>
-                            <td>
-                                <strong>{{ record.user.full_name }}</strong>
-                            </td>
-                            <td>
-                                {% if record.user_type == 'student' %}
-                                <span class="badge bg-info">طالب</span>
-                                {% else %}
-                                <span class="badge bg-secondary">أستاذ</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ record.date.strftime('%Y-%m-%d') }}</td>
-                            <td>
-                                {% if record.status == 'present' %}
-                                <span class="badge bg-success"><i class="fas fa-check"></i> حضور</span>
-                                {% else %}
-                                <span class="badge bg-danger"><i class="fas fa-times"></i> غياب</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if record.notes %}
-                                {{ record.notes[:30] }}{% if record.notes|length > 30 %}...{% endif %}
-                                {% else %}
-                                <span class="text-muted">-</span>
-                                {% endif %}
-                            </td>
-                            <td class="text-center">
-                                <a href="{{ url_for('admin.edit_attendance', id=record.id) }}" 
-                                   class="btn btn-sm btn-outline-warning" title="تعديل">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <form method="POST" action="{{ url_for('admin.delete_attendance', id=record.id) }}" 
-                                      class="d-inline" 
-                                      onsubmit="return confirm('هل أنت متأكد من حذف هذا السجل؟');">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-alt ms-2"></i>
+                        التواريخ المسجلة
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if attendance_dates %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>التاريخ</th>
+                                    <th>إجمالي السجلات</th>
+                                    <th>الحضور</th>
+                                    <th>الغياب</th>
+                                    <th>نسبة الحضور</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for date_record in attendance_dates %}
+                                <tr {% if selected_date == date_record.date|string %}class="table-active"{% endif %}>
+                                    <td>
+                                        <strong>{{ date_record.date.strftime('%Y-%m-%d') }}</strong>
+                                        <small class="text-muted d-block">{{ date_record.date.strftime('%A') }}</small>
+                                    </td>
+                                    <td><span class="badge bg-info">{{ date_record.total }}</span></td>
+                                    <td><span class="badge bg-success">{{ date_record.present_count }}</span></td>
+                                    <td><span class="badge bg-danger">{{ date_record.absent_count }}</span></td>
+                                    <td>
+                                        {% set rate = (date_record.present_count / date_record.total * 100) if date_record.total > 0 else 0 %}
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar {% if rate >= 80 %}bg-success{% elif rate >= 60 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                                 role="progressbar" 
+                                                 style="width: {{ rate }}%;" 
+                                                 aria-valuenow="{{ rate }}" 
+                                                 aria-valuemin="0" 
+                                                 aria-valuemax="100">
+                                                {{ "%.1f"|format(rate) }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('admin.attendance_list', selected_date=date_record.date, user_type=user_type, status=status, date_from=date_from, date_to=date_to) }}" 
+                                           class="btn btn-sm btn-primary">
+                                            <i class="fas fa-eye ms-1"></i>عرض التفاصيل
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info text-center">
+                        <i class="fas fa-info-circle ms-2"></i>
+                        لا توجد سجلات حضور وغياب
+                    </div>
+                    {% endif %}
+                </div>
             </div>
-
-            {% if attendance_records.pages > 1 %}
-            <nav aria-label="Page navigation" class="mt-4">
-                <ul class="pagination justify-content-center">
-                    {% if attendance_records.has_prev %}
-                    <li class="page-item">
-                        <a class="page-link" href="{{ url_for('admin.attendance_list', page=attendance_records.prev_num, user_type=user_type, status=status, date_from=date_from, date_to=date_to) }}">السابق</a>
-                    </li>
-                    {% endif %}
-
-                    {% for page_num in attendance_records.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
-                        {% if page_num %}
-                            <li class="page-item {% if page_num == attendance_records.page %}active{% endif %}">
-                                <a class="page-link" href="{{ url_for('admin.attendance_list', page=page_num, user_type=user_type, status=status, date_from=date_from, date_to=date_to) }}">{{ page_num }}</a>
-                            </li>
-                        {% else %}
-                            <li class="page-item disabled"><span class="page-link">...</span></li>
-                        {% endif %}
-                    {% endfor %}
-
-                    {% if attendance_records.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="{{ url_for('admin.attendance_list', page=attendance_records.next_num, user_type=user_type, status=status, date_from=date_from, date_to=date_to) }}">التالي</a>
-                    </li>
-                    {% endif %}
-                </ul>
-            </nav>
-            {% endif %}
         </div>
     </div>
-    {% else %}
-    <div class="alert alert-info">
-        <i class="fas fa-info-circle ms-2"></i>
-        لا توجد سجلات حضور وغياب بالمعايير المحددة
+
+    {% if selected_date %}
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm border-primary">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list ms-2"></i>
+                        سجلات الحضور والغياب ليوم {{ selected_date }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if selected_date_records %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>الاسم</th>
+                                    <th>النوع</th>
+                                    <th>الحالة</th>
+                                    <th>الملاحظات</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in selected_date_records %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td>
+                                        <strong>{{ record.user.full_name }}</strong>
+                                        {% if record.user_type == 'student' and record.user.student %}
+                                        <br><small class="text-muted">رقم الطالب: {{ record.user.student.student_number or 'غير محدد' }}</small>
+                                        {% elif record.user_type == 'teacher' and record.user.teacher %}
+                                        <br><small class="text-muted">التخصص: {{ record.user.teacher.specialization or 'غير محدد' }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if record.user_type == 'student' %}
+                                        <span class="badge bg-primary">طالب</span>
+                                        {% else %}
+                                        <span class="badge bg-info">أستاذ</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if record.status == 'present' %}
+                                        <span class="badge bg-success">حضور</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">غياب</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ record.notes or '-' }}</td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('admin.edit_attendance', id=record.id) }}" 
+                                               class="btn btn-warning" title="تعديل">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <form method="POST" action="{{ url_for('admin.delete_attendance', id=record.id) }}" 
+                                                  style="display:inline;">
+                                                <button type="submit" class="btn btn-danger" 
+                                                        onclick="return confirm('هل أنت متأكد من حذف هذا السجل؟')" 
+                                                        title="حذف">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning text-center">
+                        لا توجد سجلات لهذا التاريخ
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
     </div>
     {% endif %}
 </div>

@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+
+{% block title %}تفاصيل الشعبة {{ section.name }} - معهد القاسم{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>
+                <i class="fas fa-users ms-2"></i>
+                تفاصيل الشعبة: {{ section.name }}
+            </h2>
+            <p class="text-muted">{{ section.class_grade.name }} - {{ section.description or 'لا يوجد وصف' }}</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('admin.edit_section', section_id=section.id) }}" class="btn btn-warning me-2">
+                <i class="fas fa-edit ms-2"></i>تعديل
+            </a>
+            <a href="{{ url_for('admin.grades') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right ms-2"></i>العودة
+            </a>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center bg-primary text-white shadow-sm">
+                <div class="card-body">
+                    <i class="fas fa-user-graduate fa-3x mb-3"></i>
+                    <h3>{{ stats.total_students }}</h3>
+                    <p class="mb-0">إجمالي الطلاب</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-success text-white shadow-sm">
+                <div class="card-body">
+                    <i class="fas fa-check-circle fa-3x mb-3"></i>
+                    <h3>{{ stats.active_students }}</h3>
+                    <p class="mb-0">طلاب نشطون</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center bg-info text-white shadow-sm">
+                <div class="card-body">
+                    <i class="fas fa-percentage fa-3x mb-3"></i>
+                    <h3>{{ "%.1f"|format(stats.average_attendance) }}%</h3>
+                    <p class="mb-0">متوسط الحضور</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center {% if stats.max_students and stats.total_students >= stats.max_students %}bg-warning{% else %}bg-secondary{% endif %} text-white shadow-sm">
+                <div class="card-body">
+                    <i class="fas fa-chair fa-3x mb-3"></i>
+                    <h3>
+                        {% if stats.max_students %}
+                        {{ stats.available_seats }}
+                        {% else %}
+                        ∞
+                        {% endif %}
+                    </h3>
+                    <p class="mb-0">مقاعد متاحة</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-money-bill-wave ms-2"></i>الأقساط المالية</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <strong>المبلغ المتوقع:</strong> 
+                        <span class="text-primary">{{ "{:,.0f}".format(stats.total_expected) }} ل.س</span>
+                    </div>
+                    <div class="mb-2">
+                        <strong>المبلغ المحصل:</strong> 
+                        <span class="text-success">{{ "{:,.0f}".format(stats.total_collected) }} ل.س</span>
+                    </div>
+                    <div class="mb-2">
+                        <strong>المبلغ المتبقي:</strong> 
+                        <span class="text-danger">{{ "{:,.0f}".format(stats.total_expected - stats.total_collected) }} ل.س</span>
+                    </div>
+                    {% if stats.total_expected > 0 %}
+                    <div class="progress mt-3" style="height: 25px;">
+                        {% set collection_rate = (stats.total_collected / stats.total_expected * 100) %}
+                        <div class="progress-bar {% if collection_rate >= 80 %}bg-success{% elif collection_rate >= 50 %}bg-warning{% else %}bg-danger{% endif %}" 
+                             role="progressbar" 
+                             style="width: {{ collection_rate }}%;" 
+                             aria-valuenow="{{ collection_rate }}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                            {{ "%.1f"|format(collection_rate) }}%
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="fas fa-info-circle ms-2"></i>معلومات الشعبة</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <strong>الصف:</strong> {{ section.class_grade.name }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>اسم الشعبة:</strong> {{ section.name }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>الحد الأقصى للطلاب:</strong> 
+                        {{ section.max_students or 'غير محدد' }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>تاريخ الإنشاء:</strong> 
+                        {{ section.created_at.strftime('%Y-%m-%d') if section.created_at else 'غير متوفر' }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('admin.view_section', section_id=section.id) }}" class="row g-3">
+                <div class="col-md-5">
+                    <label for="search" class="form-label">البحث عن طالب:</label>
+                    <input type="text" class="form-control" id="search" name="search" 
+                           value="{{ search }}" placeholder="ابحث بالاسم أو رقم الطالب...">
+                </div>
+                <div class="col-md-3">
+                    <label for="status" class="form-label">الحالة:</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="">الكل</option>
+                        <option value="active" {% if status == 'active' %}selected{% endif %}>نشط</option>
+                        <option value="inactive" {% if status == 'inactive' %}selected{% endif %}>غير نشط</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search ms-2"></i>بحث
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if students.items %}
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-list ms-2"></i>
+                قائمة الطلاب ({{ students.total }} طالب)
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>الاسم</th>
+                            <th>رقم الطالب</th>
+                            <th>البريد الإلكتروني</th>
+                            <th>الهاتف</th>
+                            <th>الحالة</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in students.items %}
+                        <tr>
+                            <td>{{ loop.index + (students.page - 1) * students.per_page }}</td>
+                            <td><strong>{{ student.user.full_name }}</strong></td>
+                            <td>
+                                {% if student.student_number %}
+                                <span class="badge bg-secondary">{{ student.student_number }}</span>
+                                {% else %}
+                                <span class="text-muted">غير محدد</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ student.user.email or 'غير محدد' }}</td>
+                            <td>{{ student.phone or 'غير محدد' }}</td>
+                            <td>
+                                {% if student.user.is_active %}
+                                <span class="badge bg-success">نشط</span>
+                                {% else %}
+                                <span class="badge bg-danger">غير نشط</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('admin.view_student', student_id=student.id) }}" 
+                                       class="btn btn-info" title="عرض التفاصيل">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('admin.edit_student', student_id=student.id) }}" 
+                                       class="btn btn-primary" title="تعديل">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if students.pages > 1 %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if students.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin.view_section', section_id=section.id, page=students.prev_num, search=search, status=status) }}">السابق</a>
+                    </li>
+                    {% endif %}
+
+                    {% for page_num in students.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                        {% if page_num %}
+                            <li class="page-item {% if page_num == students.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('admin.view_section', section_id=section.id, page=page_num, search=search, status=status) }}">{{ page_num }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if students.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin.view_section', section_id=section.id, page=students.next_num, search=search, status=status) }}">التالي</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info text-center">
+        <i class="fas fa-info-circle ms-2"></i>
+        لا يوجد طلاب في هذه الشعبة بالمعايير المحددة
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

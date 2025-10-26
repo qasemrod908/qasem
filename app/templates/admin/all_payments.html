@@ -18,32 +18,55 @@
         </div>
     </div>
 
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <form method="GET" action="{{ url_for('admin.all_payments') }}" class="row g-3">
-                        <div class="col-md-4">
-                            <label for="status" class="form-label">تصفية حسب الحالة:</label>
-                            <select class="form-select" id="status" name="status" onchange="this.form.submit()">
-                                <option value="all" {% if status_filter == 'all' %}selected{% endif %}>جميع الحالات</option>
-                                <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>معلقة</option>
-                                <option value="partial" {% if status_filter == 'partial' %}selected{% endif %}>دفع جزئي</option>
-                                <option value="paid" {% if status_filter == 'paid' %}selected{% endif %}>مدفوعة</option>
-                            </select>
-                        </div>
-                    </form>
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('admin.all_payments') }}" class="row g-3">
+                <div class="col-md-3">
+                    <label for="search" class="form-label">البحث:</label>
+                    <input type="text" class="form-control" id="search" name="search" 
+                           value="{{ search }}" placeholder="اسم الطالب أو العنوان...">
                 </div>
-            </div>
+                <div class="col-md-2">
+                    <label for="status" class="form-label">الحالة:</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="">الكل</option>
+                        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>معلقة</option>
+                        <option value="partial" {% if status_filter == 'partial' %}selected{% endif %}>دفع جزئي</option>
+                        <option value="paid" {% if status_filter == 'paid' %}selected{% endif %}>مدفوعة</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="date_from" class="form-label">من تاريخ:</label>
+                    <input type="date" class="form-control" id="date_from" name="date_from" value="{{ date_from }}">
+                </div>
+                <div class="col-md-2">
+                    <label for="date_to" class="form-label">إلى تاريخ:</label>
+                    <input type="date" class="form-control" id="date_to" name="date_to" value="{{ date_to }}">
+                </div>
+                <div class="col-md-2">
+                    <label for="sort_by" class="form-label">ترتيب حسب:</label>
+                    <select class="form-select" id="sort_by" name="sort_by">
+                        <option value="date" {% if sort_by == 'date' %}selected{% endif %}>التاريخ</option>
+                        <option value="amount" {% if sort_by == 'amount' %}selected{% endif %}>المبلغ</option>
+                        <option value="student" {% if sort_by == 'student' %}selected{% endif %}>اسم الطالب</option>
+                    </select>
+                </div>
+                <div class="col-md-1 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
+    {% if payments.items %}
     <div class="row mb-4">
         <div class="col-md-3">
             <div class="card text-center bg-info text-white">
                 <div class="card-body">
                     <i class="fas fa-file-invoice-dollar fa-3x mb-3"></i>
-                    <h3>{{ payments|length }}</h3>
+                    <h3>{{ payments.total }}</h3>
                     <p>إجمالي الأقساط</p>
                 </div>
             </div>
@@ -52,7 +75,7 @@
             <div class="card text-center bg-success text-white">
                 <div class="card-body">
                     <i class="fas fa-check-circle fa-3x mb-3"></i>
-                    <h3>{{ payments|selectattr('status', 'equalto', 'paid')|list|length }}</h3>
+                    <h3>{{ payments.items|selectattr('status', 'equalto', 'paid')|list|length }}</h3>
                     <p>مدفوعة بالكامل</p>
                 </div>
             </div>
@@ -61,7 +84,7 @@
             <div class="card text-center bg-warning text-white">
                 <div class="card-body">
                     <i class="fas fa-hourglass-half fa-3x mb-3"></i>
-                    <h3>{{ payments|selectattr('status', 'equalto', 'partial')|list|length }}</h3>
+                    <h3>{{ payments.items|selectattr('status', 'equalto', 'partial')|list|length }}</h3>
                     <p>دفع جزئي</p>
                 </div>
             </div>
@@ -70,7 +93,7 @@
             <div class="card text-center bg-danger text-white">
                 <div class="card-body">
                     <i class="fas fa-clock fa-3x mb-3"></i>
-                    <h3>{{ payments|selectattr('status', 'equalto', 'pending')|list|length }}</h3>
+                    <h3>{{ payments.items|selectattr('status', 'equalto', 'pending')|list|length }}</h3>
                     <p>معلقة</p>
                 </div>
             </div>
@@ -81,11 +104,10 @@
         <div class="card-header bg-primary text-white">
             <h5 class="mb-0">
                 <i class="fas fa-list ms-2"></i>
-                قائمة الأقساط
+                قائمة الأقساط ({{ payments.total }} قسط)
             </h5>
         </div>
         <div class="card-body">
-            {% if payments %}
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
                     <thead class="table-light">
@@ -102,9 +124,9 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for payment in payments %}
+                        {% for payment in payments.items %}
                         <tr>
-                            <td>{{ loop.index }}</td>
+                            <td>{{ loop.index + (payments.page - 1) * payments.per_page }}</td>
                             <td>
                                 <a href="{{ url_for('admin.view_student', student_id=payment.student_id) }}">
                                     {{ payment.student.user.full_name }}
@@ -136,29 +158,59 @@
                                 {% endif %}
                             </td>
                             <td class="text-center">
-                                <a href="{{ url_for('admin.view_payment', payment_id=payment.id) }}" 
-                                   class="btn btn-sm btn-outline-info" title="عرض التفاصيل">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                {% if payment.status != 'paid' %}
-                                <a href="{{ url_for('admin.add_installment', payment_id=payment.id) }}" 
-                                   class="btn btn-sm btn-outline-success" title="تسجيل دفعة">
-                                    <i class="fas fa-plus"></i>
-                                </a>
-                                {% endif %}
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('admin.view_payment', payment_id=payment.id) }}" 
+                                       class="btn btn-info" title="عرض التفاصيل">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if payment.status != 'paid' %}
+                                    <a href="{{ url_for('admin.add_installment', payment_id=payment.id) }}" 
+                                       class="btn btn-success" title="تسجيل دفعة">
+                                        <i class="fas fa-plus"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
-            {% else %}
-            <div class="alert alert-info mb-0">
-                <i class="fas fa-info-circle ms-2"></i>
-                لا توجد أقساط مسجلة بالمعايير المحددة
-            </div>
+
+            {% if payments.pages > 1 %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if payments.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin.all_payments', page=payments.prev_num, status=status_filter, search=search, date_from=date_from, date_to=date_to, sort_by=sort_by) }}">السابق</a>
+                    </li>
+                    {% endif %}
+
+                    {% for page_num in payments.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                        {% if page_num %}
+                            <li class="page-item {% if page_num == payments.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('admin.all_payments', page=page_num, status=status_filter, search=search, date_from=date_from, date_to=date_to, sort_by=sort_by) }}">{{ page_num }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if payments.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('admin.all_payments', page=payments.next_num, status=status_filter, search=search, date_from=date_from, date_to=date_to, sort_by=sort_by) }}">التالي</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
             {% endif %}
         </div>
     </div>
+    {% else %}
+    <div class="alert alert-info text-center">
+        <i class="fas fa-info-circle ms-2"></i>
+        لا توجد أقساط مسجلة بالمعايير المحددة
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
