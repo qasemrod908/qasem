@@ -4,7 +4,6 @@ import subprocess
 from datetime import datetime
 from flask import current_app
 import asyncio
-from telegram import Bot
 from app.utils.helpers import damascus_now
 import threading
 
@@ -150,6 +149,8 @@ class BackupManager:
     @staticmethod
     async def send_to_telegram(file_path, bot_token, chat_id):
         try:
+            from telegram import Bot
+            
             if not bot_token or not chat_id:
                 return False
             

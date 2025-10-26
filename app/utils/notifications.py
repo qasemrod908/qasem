@@ -1,7 +1,6 @@
 import asyncio
 import logging
 from flask import current_app
-from telegram import Bot
 from telegram.constants import ParseMode
 from app import db
 from app.models import (Notification, NotificationRecipient, User, Student, Teacher, 
@@ -12,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 async def send_telegram_notification_async(telegram_id: int, message: str, bot_token: str):
     try:
+        from telegram import Bot
         bot = Bot(token=bot_token)
         result = await bot.send_message(
             chat_id=telegram_id,

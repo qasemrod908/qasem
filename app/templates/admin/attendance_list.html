@@ -15,6 +15,10 @@
             <a href="{{ url_for('admin.add_attendance') }}" class="btn btn-success me-2">
                 <i class="fas fa-plus ms-2"></i>تسجيل حضور/غياب
             </a>
+            <a href="{{ url_for('admin.export_attendance', user_type=user_type, status=status, date_from=date_from, date_to=date_to) }}" 
+               class="btn btn-info me-2" title="تصدير إلى Excel">
+                <i class="fas fa-file-excel ms-2"></i>تصدير Excel
+            </a>
             <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">
                 <i class="fas fa-arrow-right ms-2"></i>العودة
             </a>

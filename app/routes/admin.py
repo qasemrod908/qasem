@@ -2096,3 +2096,187 @@ def delete_attendance(id):
     
     flash('تم حذف سجل الحضور بنجاح', 'success')
     return redirect(url_for('admin.attendance_list'))
+
+@bp.route('/export/attendance')
+@role_required('admin', 'assistant')
+def export_attendance():
+    from app.utils.excel_export import export_attendance_to_excel
+    from datetime import datetime
+    
+    user_type = request.args.get('user_type', '')
+    status = request.args.get('status', '')
+    date_from = request.args.get('date_from', '')
+    date_to = request.args.get('date_to', '')
+    user_id = request.args.get('user_id', type=int)
+    
+    query = Attendance.query
+    
+    if user_id:
+        query = query.filter_by(user_id=user_id)
+    elif user_type:
+        query = query.filter_by(user_type=user_type)
+    
+    if status:
+        query = query.filter_by(status=status)
+    
+    if date_from:
+        query = query.filter(Attendance.date >= date_from)
+    
+    if date_to:
+        query = query.filter(Attendance.date <= date_to)
+    
+    attendance_records = query.order_by(Attendance.date.desc()).all()
+    
+    excel_file = export_attendance_to_excel(attendance_records)
+    
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f'attendance_report_{timestamp}.xlsx'
+    
+    return send_file(
+        excel_file,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=filename
+    )
+
+@bp.route('/export/students')
+@role_required('admin', 'assistant')
+def export_students():
+    from app.utils.excel_export import export_students_to_excel
+    from datetime import datetime
+    
+    search = request.args.get('search', '')
+    grade_id = request.args.get('grade_id', type=int)
+    section_id = request.args.get('section_id', type=int)
+    status = request.args.get('status', '')
+    sort_by = request.args.get('sort_by', 'name')
+    
+    query = Student.query.join(User)
+    
+    if search:
+        query = query.filter(
+            db.or_(
+                User.full_name.contains(search),
+                Student.student_number.contains(search)
+            )
+        )
+    
+    if grade_id:
+        query = query.filter(Student.class_grade_id == grade_id)
+    
+    if section_id:
+        query = query.filter(Student.section_id == section_id)
+    
+    if status:
+        if status == 'active':
+            query = query.filter(User.is_active == True)
+        elif status == 'inactive':
+            query = query.filter(User.is_active == False)
+    
+    if sort_by == 'name':
+        query = query.order_by(User.full_name)
+    elif sort_by == 'student_number':
+        query = query.order_by(Student.student_number)
+    
+    students = query.all()
+    
+    excel_file = export_students_to_excel(students)
+    
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f'students_report_{timestamp}.xlsx'
+    
+    return send_file(
+        excel_file,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=filename
+    )
+
+@bp.route('/export/teachers')
+@role_required('admin', 'assistant')
+def export_teachers():
+    from app.utils.excel_export import export_teachers_to_excel
+    from datetime import datetime
+    
+    search = request.args.get('search', '')
+    specialization = request.args.get('specialization', '')
+    sort_by = request.args.get('sort_by', 'name')
+    
+    query = Teacher.query.join(User)
+    
+    if search:
+        query = query.filter(User.full_name.contains(search))
+    
+    if specialization:
+        query = query.filter(Teacher.specialization.contains(specialization))
+    
+    if sort_by == 'name':
+        query = query.order_by(User.full_name)
+    elif sort_by == 'experience':
+        query = query.order_by(Teacher.experience_years.desc())
+    
+    teachers = query.all()
+    
+    excel_file = export_teachers_to_excel(teachers)
+    
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f'teachers_report_{timestamp}.xlsx'
+    
+    return send_file(
+        excel_file,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=filename
+    )
+
+@bp.route('/export/payments')
+@role_required('admin', 'assistant')
+def export_payments():
+    from app.utils.excel_export import export_payments_to_excel
+    from datetime import datetime
+    
+    status_filter = request.args.get('status', '')
+    search = request.args.get('search', '')
+    date_from = request.args.get('date_from', '')
+    date_to = request.args.get('date_to', '')
+    sort_by = request.args.get('sort_by', 'date')
+    
+    query = Payment.query.join(Student).join(User)
+    
+    if status_filter:
+        query = query.filter(Payment.status == status_filter)
+    
+    if search:
+        query = query.filter(
+            db.or_(
+                User.full_name.contains(search),
+                Payment.title.contains(search)
+            )
+        )
+    
+    if date_from:
+        query = query.filter(Payment.due_date >= date_from)
+    
+    if date_to:
+        query = query.filter(Payment.due_date <= date_to)
+    
+    if sort_by == 'date':
+        query = query.order_by(Payment.due_date.desc())
+    elif sort_by == 'amount':
+        query = query.order_by(Payment.total_amount.desc())
+    elif sort_by == 'student':
+        query = query.order_by(User.full_name)
+    
+    payments = query.all()
+    
+    excel_file = export_payments_to_excel(payments)
+    
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f'payments_report_{timestamp}.xlsx'
+    
+    return send_file(
+        excel_file,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=filename
+    )

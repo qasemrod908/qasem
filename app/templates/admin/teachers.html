@@ -9,9 +9,15 @@
             <i class="fas fa-chalkboard-teacher ms-2"></i>
             إدارة المدرسين
         </h2>
-        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">
-            <i class="fas fa-arrow-right ms-2"></i>العودة
-        </a>
+        <div>
+            <a href="{{ url_for('admin.export_teachers', search=search, specialization=specialization, sort_by=sort_by) }}" 
+               class="btn btn-info me-2" title="تصدير إلى Excel">
+                <i class="fas fa-file-excel ms-2"></i>تصدير Excel
+            </a>
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-right ms-2"></i>العودة
+            </a>
+        </div>
     </div>
 
     <div class="card shadow-sm mb-4">
