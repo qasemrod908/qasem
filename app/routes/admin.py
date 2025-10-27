@@ -2280,3 +2280,148 @@ def export_payments():
         as_attachment=True,
         download_name=filename
     )
+
+@bp.route('/data-reset', methods=['GET', 'POST'])
+@role_required('admin')
+def data_reset():
+    if request.method == 'POST':
+        try:
+            reset_all = request.form.get('reset_all') == 'on'
+            reset_students = request.form.get('reset_students') == 'on' or reset_all
+            reset_teachers = request.form.get('reset_teachers') == 'on' or reset_all
+            reset_courses = request.form.get('reset_courses') == 'on' or reset_all
+            reset_lessons = request.form.get('reset_lessons') == 'on' or reset_all
+            reset_grades = request.form.get('reset_grades') == 'on' or reset_all
+            reset_payments = request.form.get('reset_payments') == 'on' or reset_all
+            reset_enrollments = request.form.get('reset_enrollments') == 'on' or reset_all
+            reset_grades_data = request.form.get('reset_grades_data') == 'on' or reset_all
+            reset_sections = request.form.get('reset_sections') == 'on' or reset_all
+            reset_news = request.form.get('reset_news') == 'on' or reset_all
+            reset_notifications = request.form.get('reset_notifications') == 'on' or reset_all
+            reset_attendance = request.form.get('reset_attendance') == 'on' or reset_all
+            reset_contacts = request.form.get('reset_contacts') == 'on' or reset_all
+            
+            if reset_grades_data:
+                reset_sections = True
+            
+            if reset_sections:
+                reset_enrollments = True
+            
+            if reset_enrollments:
+                reset_payments = True
+                reset_grades = True
+            
+            if reset_students:
+                reset_enrollments = True
+                reset_payments = True
+                reset_grades = True
+                reset_attendance = True
+            
+            if reset_teachers:
+                reset_lessons = True
+                reset_enrollments = True
+                reset_payments = True
+                reset_grades = True
+                reset_attendance = True
+            
+            if reset_courses:
+                reset_lessons = True
+                reset_enrollments = True
+                reset_payments = True
+                reset_grades = True
+            
+            deleted_items = []
+            
+            if reset_attendance:
+                count = Attendance.query.delete()
+                deleted_items.append(f'سجلات الحضور والغياب ({count})')
+            
+            if reset_notifications:
+                NotificationRecipient.query.delete()
+                count = Notification.query.delete()
+                deleted_items.append(f'الإشعارات ({count})')
+            
+            if reset_contacts:
+                count = Contact.query.delete()
+                deleted_items.append(f'رسائل اتصل بنا ({count})')
+            
+            if reset_news:
+                count = News.query.delete()
+                deleted_items.append(f'الأخبار ({count})')
+            
+            if reset_grades:
+                count = Grade.query.delete()
+                deleted_items.append(f'العلامات ({count})')
+            
+            if reset_lessons:
+                count = Lesson.query.delete()
+                deleted_items.append(f'الدروس ({count})')
+            
+            if reset_payments:
+                InstallmentPayment.query.delete()
+                count = Payment.query.delete()
+                deleted_items.append(f'الأقساط والدفعات ({count})')
+            
+            if reset_enrollments:
+                count = Enrollment.query.delete()
+                deleted_items.append(f'التسجيلات ({count})')
+            
+            if reset_courses:
+                count = Course.query.delete()
+                deleted_items.append(f'الدورات ({count})')
+            
+            if reset_students:
+                student_users = db.session.query(User).join(Student).filter(User.role == 'student').all()
+                count = len(student_users)
+                Student.query.delete()
+                for user in student_users:
+                    db.session.delete(user)
+                deleted_items.append(f'سجلات الطلاب ({count})')
+            
+            if reset_teachers:
+                teacher_users = db.session.query(User).join(Teacher).filter(User.role == 'teacher').all()
+                count = len(teacher_users)
+                Teacher.query.delete()
+                for user in teacher_users:
+                    db.session.delete(user)
+                deleted_items.append(f'سجلات الأساتذة ({count})')
+            
+            if reset_sections:
+                count = Section.query.delete()
+                deleted_items.append(f'الشعب ({count})')
+            
+            if reset_grades_data:
+                count = ClassGrade.query.delete()
+                deleted_items.append(f'الصفوف الدراسية ({count})')
+            
+            db.session.commit()
+            
+            if deleted_items:
+                flash(f'✅ تم حذف البيانات بنجاح: {", ".join(deleted_items)}', 'success')
+            else:
+                flash('⚠️ لم يتم اختيار أي عنصر للحذف', 'warning')
+            
+            return redirect(url_for('admin.data_reset'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'❌ حدث خطأ أثناء حذف البيانات: {str(e)}', 'danger')
+            return redirect(url_for('admin.data_reset'))
+    
+    stats = {
+        'students': Student.query.count(),
+        'teachers': Teacher.query.count(),
+        'courses': Course.query.count(),
+        'lessons': Lesson.query.count(),
+        'grades': Grade.query.count(),
+        'payments': Payment.query.count(),
+        'enrollments': Enrollment.query.count(),
+        'class_grades': ClassGrade.query.count(),
+        'sections': Section.query.count(),
+        'news': News.query.count(),
+        'notifications': Notification.query.count(),
+        'attendance': Attendance.query.count(),
+        'contacts': Contact.query.count()
+    }
+    
+    return render_template('admin/data_reset.html', stats=stats)
