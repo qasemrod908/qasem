@@ -89,7 +89,7 @@ def role_or_permission_required(roles=None, permissions=None):
             if current_user.is_super_admin():
                 return f(*args, **kwargs)
             
-            has_role = roles and current_user.role in roles and current_user.role != 'admin'
+            has_role = roles and current_user.role in roles
             has_permission = permissions and any(current_user.has_permission(perm) for perm in permissions)
             
             if not (has_role or has_permission):
