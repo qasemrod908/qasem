@@ -74,7 +74,11 @@ def all_permissions_required(*permissions):
 
 
 def role_or_permission_required(roles=None, permissions=None):
-    """يسمح بالوصول إذا كان المستخدم لديه أحد الأدوار أو أي من الصلاحيات المحددة"""
+    """يسمح بالوصول إذا كان المستخدم لديه أحد الأدوار أو أي من الصلاحيات المحددة
+    
+    ملاحظة: المدير الرئيسي (super admin) له صلاحيات كاملة.
+    المدراء العاديون يجب أن تكون لديهم الصلاحيات المحددة.
+    """
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
@@ -82,7 +86,10 @@ def role_or_permission_required(roles=None, permissions=None):
                 flash('يرجى تسجيل الدخول أولاً', 'warning')
                 return redirect(url_for('auth.login'))
             
-            has_role = roles and current_user.role in roles
+            if current_user.is_super_admin():
+                return f(*args, **kwargs)
+            
+            has_role = roles and current_user.role in roles and current_user.role != 'admin'
             has_permission = permissions and any(current_user.has_permission(perm) for perm in permissions)
             
             if not (has_role or has_permission):

@@ -27,7 +27,7 @@ class User(UserMixin, db.Model):
         return check_password_hash(self.password_hash, password)
     
     def has_permission(self, permission):
-        if self.role == 'admin':
+        if self.is_super_admin():
             return True
         return self.permissions.get(permission, False)
     
