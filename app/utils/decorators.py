@@ -92,3 +92,10 @@ def role_or_permission_required(roles=None, permissions=None):
             return f(*args, **kwargs)
         return decorated_function
     return decorator
+
+
+def check_permission(permission):
+    """يتحقق من صلاحية محددة للمستخدم الحالي"""
+    if not current_user.is_authenticated:
+        return False
+    return current_user.has_permission(permission)
