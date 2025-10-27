@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+
+{% block title %}تعديل صلاحيات {{ user.full_name }} - معهد القاسم{% endblock %}
+
+{% block extra_css %}
+<style>
+    .permission-category {
+        border-right: 4px solid #0d6efd;
+    }
+    .permission-item {
+        transition: background-color 0.2s;
+    }
+    .permission-item:hover {
+        background-color: #f8f9fa;
+    }
+    .select-all-btn {
+        font-size: 0.85rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="fas fa-user-shield text-primary ms-2"></i>
+            تعديل صلاحيات: {{ user.full_name }}
+        </h2>
+        <a href="{{ url_for('admin.manage_permissions') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-right ms-2"></i>
+            العودة
+        </a>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">
+                        <i class="fas fa-user ms-2"></i>
+                        معلومات المستخدم
+                    </h6>
+                    <p class="mb-1"><strong>الاسم:</strong> {{ user.full_name }}</p>
+                    <p class="mb-1"><strong>رقم الهاتف:</strong> <span dir="ltr">{{ user.phone_number }}</span></p>
+                    <p class="mb-0">
+                        <strong>الدور:</strong>
+                        {% if user.role == 'assistant' %}
+                            <span class="badge bg-info">معاون</span>
+                        {% elif user.role == 'teacher' %}
+                            <span class="badge bg-success">مدرس</span>
+                        {% elif user.role == 'student' %}
+                            <span class="badge bg-primary">طالب</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h6 class="text-muted mb-3">
+                        <i class="fas fa-tools ms-2"></i>
+                        أدوات سريعة
+                    </h6>
+                    <form method="POST" action="{{ url_for('admin.reset_user_permissions', user_id=user.id) }}" class="d-inline">
+                        <button type="submit" class="btn btn-warning btn-sm mb-2 w-100" 
+                                onclick="return confirm('هل أنت متأكد من إعادة تعيين الصلاحيات إلى الافتراضية؟')">
+                            <i class="fas fa-undo ms-1"></i>
+                            إعادة تعيين الصلاحيات الافتراضية
+                        </button>
+                    </form>
+                    <button type="button" class="btn btn-info btn-sm w-100" data-bs-toggle="modal" data-bs-target="#copyPermissionsModal">
+                        <i class="fas fa-copy ms-1"></i>
+                        نسخ صلاحيات من مستخدم آخر
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('admin.edit_user_permissions', user_id=user.id) }}">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-key ms-2"></i>
+                    الصلاحيات المتاحة
+                </h5>
+                <div>
+                    <button type="button" class="btn btn-light btn-sm select-all-btn" onclick="selectAll(true)">
+                        <i class="fas fa-check-square ms-1"></i>
+                        تحديد الكل
+                    </button>
+                    <button type="button" class="btn btn-light btn-sm select-all-btn" onclick="selectAll(false)">
+                        <i class="fas fa-square ms-1"></i>
+                        إلغاء الكل
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="accordion" id="permissionsAccordion">
+                    {% for category_key, category_data in permissions_structure.items() %}
+                    <div class="accordion-item mb-3 permission-category">
+                        <h2 class="accordion-header" id="heading-{{ category_key }}">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse" 
+                                    data-bs-target="#collapse-{{ category_key }}" aria-expanded="true">
+                                <i class="fas fa-folder-open text-primary ms-2"></i>
+                                <strong>{{ category_data.name }}</strong>
+                                <span class="badge bg-secondary me-2 ms-auto">
+                                    {{ category_data.permissions.keys()|list|length }} صلاحية
+                                </span>
+                            </button>
+                        </h2>
+                        <div id="collapse-{{ category_key }}" class="accordion-collapse collapse show" 
+                             aria-labelledby="heading-{{ category_key }}">
+                            <div class="accordion-body">
+                                <div class="mb-2 text-end">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" 
+                                            onclick="selectCategory('{{ category_key }}', true)">
+                                        <i class="fas fa-check ms-1"></i>
+                                        تحديد الكل
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" 
+                                            onclick="selectCategory('{{ category_key }}', false)">
+                                        <i class="fas fa-times ms-1"></i>
+                                        إلغاء الكل
+                                    </button>
+                                </div>
+                                {% for perm_key, perm_name in category_data.permissions.items() %}
+                                <div class="form-check permission-item p-3 border rounded mb-2">
+                                    <input class="form-check-input category-{{ category_key }}" 
+                                           type="checkbox" 
+                                           name="{{ perm_key }}" 
+                                           id="{{ perm_key }}"
+                                           {% if current_permissions.get(perm_key) %}checked{% endif %}>
+                                    <label class="form-check-label w-100" for="{{ perm_key }}">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>{{ perm_name }}</strong>
+                                                <br>
+                                                <small class="text-muted">
+                                                    <code>{{ perm_key }}</code>
+                                                </small>
+                                            </div>
+                                            <i class="fas fa-check-circle text-success" style="display: {% if current_permissions.get(perm_key) %}block{% else %}none{% endif %}"></i>
+                                        </div>
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="card-footer">
+                <button type="submit" class="btn btn-success btn-lg">
+                    <i class="fas fa-save ms-2"></i>
+                    حفظ الصلاحيات
+                </button>
+                <a href="{{ url_for('admin.manage_permissions') }}" class="btn btn-secondary btn-lg">
+                    <i class="fas fa-times ms-2"></i>
+                    إلغاء
+                </a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<div class="modal fade" id="copyPermissionsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('admin.copy_permissions', user_id=user.id) }}">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-copy ms-2"></i>
+                        نسخ صلاحيات
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>اختر المستخدم الذي تريد نسخ صلاحياته إلى <strong>{{ user.full_name }}</strong>:</p>
+                    <select name="source_user_id" class="form-select" required>
+                        <option value="">-- اختر مستخدم --</option>
+                        {% for u in User.query.filter(User.id != user.id, User.role != 'admin').all() %}
+                        <option value="{{ u.id }}">
+                            {{ u.full_name }} 
+                            ({% if u.role == 'assistant' %}معاون{% elif u.role == 'teacher' %}مدرس{% else %}طالب{% endif %})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-info">
+                        <i class="fas fa-copy ms-1"></i>
+                        نسخ الصلاحيات
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function selectAll(checked) {
+    document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+        checkbox.checked = checked;
+    });
+}
+
+function selectCategory(category, checked) {
+    document.querySelectorAll('.category-' + category).forEach(checkbox => {
+        checkbox.checked = checked;
+    });
+}
+
+document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+    checkbox.addEventListener('change', function() {
+        const icon = this.parentElement.querySelector('.fa-check-circle');
+        if (icon) {
+            icon.style.display = this.checked ? 'block' : 'none';
+        }
+    });
+});
+</script>
+{% endblock %}

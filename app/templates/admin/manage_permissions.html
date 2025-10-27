@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block title %}إدارة الصلاحيات - معهد القاسم{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="fas fa-user-shield text-primary ms-2"></i>
+            إدارة صلاحيات المستخدمين
+        </h2>
+        <a href="{{ url_for('admin.users') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-right ms-2"></i>
+            العودة إلى المستخدمين
+        </a>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-info text-white">
+            <i class="fas fa-info-circle ms-2"></i>
+            معلومات مهمة
+        </div>
+        <div class="card-body">
+            <p class="mb-2">
+                <i class="fas fa-check text-success ms-2"></i>
+                من هذه الصفحة يمكنك منح أو إلغاء صلاحيات محددة لكل مستخدم
+            </p>
+            <p class="mb-2">
+                <i class="fas fa-check text-success ms-2"></i>
+                المدير الرئيسي لديه جميع الصلاحيات تلقائياً ولا يمكن تعديلها
+            </p>
+            <p class="mb-0">
+                <i class="fas fa-check text-success ms-2"></i>
+                يمكنك تعيين صلاحيات افتراضية أو نسخ صلاحيات من مستخدم آخر
+            </p>
+        </div>
+    </div>
+
+    {% if users %}
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-users ms-2"></i>
+                    قائمة المستخدمين ({{ users|length }})
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>الاسم الكامل</th>
+                                <th>رقم الهاتف</th>
+                                <th>الدور</th>
+                                <th>عدد الصلاحيات</th>
+                                <th>الحالة</th>
+                                <th class="text-center">الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr>
+                                <td>
+                                    <i class="fas fa-user text-muted ms-2"></i>
+                                    {{ user.full_name }}
+                                </td>
+                                <td dir="ltr" class="text-end">{{ user.phone_number }}</td>
+                                <td>
+                                    {% if user.role == 'assistant' %}
+                                        <span class="badge bg-info">
+                                            <i class="fas fa-user-tie ms-1"></i> معاون
+                                        </span>
+                                    {% elif user.role == 'teacher' %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-chalkboard-teacher ms-1"></i> مدرس
+                                        </span>
+                                    {% elif user.role == 'student' %}
+                                        <span class="badge bg-primary">
+                                            <i class="fas fa-user-graduate ms-1"></i> طالب
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% set perm_count = user.permissions.keys()|list|length if user.permissions else 0 %}
+                                    <span class="badge bg-secondary">
+                                        <i class="fas fa-key ms-1"></i>
+                                        {{ perm_count }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if user.is_active %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check-circle ms-1"></i> نشط
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-times-circle ms-1"></i> معطل
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <a href="{{ url_for('admin.edit_user_permissions', user_id=user.id) }}" 
+                                       class="btn btn-sm btn-primary">
+                                        <i class="fas fa-edit ms-1"></i>
+                                        إدارة الصلاحيات
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="alert alert-info text-center">
+            <i class="fas fa-info-circle ms-2"></i>
+            لا يوجد مستخدمين في النظام حالياً
+        </div>
+    {% endif %}
+
+    <div class="card shadow-sm mt-4">
+        <div class="card-header bg-light">
+            <h6 class="mb-0">
+                <i class="fas fa-layer-group ms-2"></i>
+                فئات الصلاحيات المتاحة
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% for category_key, category_data in permissions_structure.items() %}
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100 border-start border-primary border-3">
+                        <div class="card-body">
+                            <h6 class="card-title text-primary">
+                                <i class="fas fa-folder-open ms-2"></i>
+                                {{ category_data.name }}
+                            </h6>
+                            <p class="card-text small text-muted">
+                                {{ category_data.permissions.values()|list|length }} صلاحية
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

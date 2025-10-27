@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 from flask_login import login_required, current_user
 from app import db
 from app.models import *
-from app.utils.decorators import role_required
+from app.utils.decorators import role_required, role_or_permission_required
 from app.utils.backup import BackupManager
 from werkzeug.utils import secure_filename
 import os
@@ -46,7 +46,7 @@ def dashboard():
                           recent_notifications=recent_notifications)
 
 @bp.route('/backup', methods=['GET', 'POST'])
-@role_required('admin')
+@role_or_permission_required(roles=['admin'], permissions=['backup.create', 'backup.view'])
 def backup():
     if request.method == 'POST':
         backup_type = request.form.get('backup_type')
@@ -243,6 +243,8 @@ def users():
 @role_required('admin')
 def add_user():
     if request.method == 'POST':
+        from app.utils.permissions_config import apply_default_permissions
+        
         user = User(
             phone_number=request.form.get('phone_number'),
             full_name=request.form.get('full_name'),
@@ -250,6 +252,9 @@ def add_user():
             is_active=True
         )
         user.set_password(request.form.get('password'))
+        
+        apply_default_permissions(user)
+        
         db.session.add(user)
         db.session.flush()
         
@@ -272,7 +277,7 @@ def add_user():
             db.session.add(student)
         
         db.session.commit()
-        flash('تم إضافة المستخدم بنجاح', 'success')
+        flash('تم إضافة المستخدم بنجاح مع الصلاحيات الافتراضية', 'success')
         return redirect(url_for('admin.users'))
     
     return render_template('admin/add_user.html')
@@ -332,13 +337,13 @@ def edit_user(user_id):
     return render_template('admin/edit_user.html', user=user)
 
 @bp.route('/courses')
-@role_required('admin', 'assistant')
+@role_or_permission_required(roles=['admin', 'assistant'], permissions=['courses.view'])
 def courses():
     all_courses = Course.query.all()
     return render_template('admin/courses.html', courses=all_courses)
 
 @bp.route('/courses/add', methods=['GET', 'POST'])
-@role_required('admin', 'assistant')
+@role_or_permission_required(roles=['admin', 'assistant'], permissions=['courses.add'])
 def add_course():
     if request.method == 'POST':
         from datetime import datetime as dt
@@ -582,7 +587,7 @@ def delete_news(news_id):
     return redirect(url_for('admin.news'))
 
 @bp.route('/teachers')
-@role_required('admin', 'assistant')
+@role_or_permission_required(roles=['admin', 'assistant'], permissions=['teachers.view'])
 def teachers():
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '')
@@ -626,7 +631,7 @@ def view_teacher(teacher_id):
                          attendance_records=attendance_records, stats=stats)
 
 @bp.route('/teachers/edit/<int:teacher_id>', methods=['GET', 'POST'])
-@role_required('admin', 'assistant')
+@role_or_permission_required(roles=['admin', 'assistant'], permissions=['teachers.edit'])
 def edit_teacher(teacher_id):
     teacher = Teacher.query.get_or_404(teacher_id)
     
@@ -699,7 +704,7 @@ def delete_user(user_id):
     return redirect(url_for('admin.users'))
 
 @bp.route('/students')
-@role_required('admin', 'assistant')
+@role_or_permission_required(roles=['admin', 'assistant'], permissions=['students.view'])
 def students():
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '')
@@ -755,7 +760,7 @@ def students():
                          sort_by=sort_by)
 
 @bp.route('/students/edit/<int:student_id>', methods=['GET', 'POST'])
-@role_required('admin', 'assistant')
+@role_or_permission_required(roles=['admin', 'assistant'], permissions=['students.edit'])
 def edit_student(student_id):
     student = Student.query.get_or_404(student_id)
     
@@ -919,7 +924,7 @@ def delete_student_grade(student_id, grade_id):
     return redirect(url_for('admin.view_student', student_id=student_id))
 
 @bp.route('/students/delete/<int:student_id>', methods=['POST'])
-@role_required('admin')
+@role_or_permission_required(roles=['admin'], permissions=['students.delete'])
 def delete_student(student_id):
     student = Student.query.get_or_404(student_id)
     user = User.query.get(student.user_id)
@@ -990,7 +995,7 @@ def grades():
     return render_template('admin/grades.html', grades=all_grades)
 
 @bp.route('/grades/add', methods=['GET', 'POST'])
-@role_required('admin', 'assistant')
+@role_or_permission_required(roles=['admin', 'assistant'], permissions=['grades.add'])
 def add_grade():
     if request.method == 'POST':
         name = request.form.get('name')
@@ -1015,7 +1020,7 @@ def add_grade():
     return render_template('admin/add_grade.html')
 
 @bp.route('/grades/edit/<int:grade_id>', methods=['GET', 'POST'])
-@role_required('admin', 'assistant')
+@role_or_permission_required(roles=['admin', 'assistant'], permissions=['grades.edit'])
 def edit_grade(grade_id):
     grade = ClassGrade.query.get_or_404(grade_id)
     
@@ -1040,7 +1045,7 @@ def edit_grade(grade_id):
     return render_template('admin/edit_grade.html', grade=grade)
 
 @bp.route('/grades/delete/<int:grade_id>', methods=['POST'])
-@role_required('admin')
+@role_or_permission_required(roles=['admin'], permissions=['grades.delete'])
 def delete_grade(grade_id):
     grade = ClassGrade.query.get_or_404(grade_id)
     
@@ -1200,13 +1205,13 @@ def delete_section(section_id):
     return redirect(url_for('admin.grades'))
 
 @bp.route('/lessons')
-@role_required('admin', 'assistant')
+@role_or_permission_required(roles=['admin', 'assistant'], permissions=['lessons.view'])
 def lessons():
     all_lessons = Lesson.query.order_by(Lesson.upload_date.desc()).all()
     return render_template('admin/lessons.html', lessons=all_lessons)
 
 @bp.route('/lessons/add', methods=['GET', 'POST'])
-@role_required('admin', 'assistant')
+@role_or_permission_required(roles=['admin', 'assistant'], permissions=['lessons.add'])
 def add_lesson():
     if request.method == 'POST':
         course_id = request.form.get('course_id')
@@ -1242,7 +1247,7 @@ def add_lesson():
     return render_template('admin/add_lesson.html', courses=courses, teachers=teachers)
 
 @bp.route('/lessons/edit/<int:lesson_id>', methods=['GET', 'POST'])
-@role_required('admin', 'assistant')
+@role_or_permission_required(roles=['admin', 'assistant'], permissions=['lessons.edit'])
 def edit_lesson(lesson_id):
     lesson = Lesson.query.get_or_404(lesson_id)
     
@@ -1272,7 +1277,7 @@ def edit_lesson(lesson_id):
     return render_template('admin/edit_lesson.html', lesson=lesson, courses=courses, teachers=teachers)
 
 @bp.route('/lessons/delete/<int:lesson_id>', methods=['POST'])
-@role_required('admin', 'assistant')
+@role_or_permission_required(roles=['admin'], permissions=['lessons.delete'])
 def delete_lesson(lesson_id):
     lesson = Lesson.query.get_or_404(lesson_id)
     db.session.delete(lesson)
@@ -1409,7 +1414,7 @@ def notifications():
                           filters=filters)
 
 @bp.route('/notifications/create', methods=['GET', 'POST'])
-@role_required('admin', 'assistant')
+@role_or_permission_required(roles=['admin', 'assistant'], permissions=['notifications.create'])
 def create_notification():
     if request.method == 'POST':
         title = request.form.get('title')
@@ -1471,7 +1476,7 @@ def toggle_notification(notification_id):
     return redirect(url_for('admin.notifications'))
 
 @bp.route('/notifications/delete/<int:notification_id>', methods=['POST'])
-@role_required('admin')
+@role_or_permission_required(roles=['admin'], permissions=['notifications.delete'])
 def delete_notification(notification_id):
     notification = Notification.query.get_or_404(notification_id)
     db.session.delete(notification)
@@ -1557,7 +1562,7 @@ def student_payments(student_id):
     return render_template('admin/student_payments.html', student=student, payments=payments)
 
 @bp.route('/students/<int:student_id>/payments/add', methods=['GET', 'POST'])
-@role_required('admin', 'assistant')
+@role_or_permission_required(roles=['admin', 'assistant'], permissions=['payments.add'])
 def add_payment(student_id):
     student = Student.query.get_or_404(student_id)
     
@@ -1648,7 +1653,7 @@ def view_payment(payment_id):
     return render_template('admin/view_payment.html', payment=payment, installments=installments)
 
 @bp.route('/payments/<int:payment_id>/edit', methods=['GET', 'POST'])
-@role_required('admin', 'assistant')
+@role_or_permission_required(roles=['admin', 'assistant'], permissions=['payments.edit'])
 def edit_payment(payment_id):
     payment = Payment.query.get_or_404(payment_id)
     
@@ -1677,7 +1682,7 @@ def edit_payment(payment_id):
     return render_template('admin/edit_payment.html', payment=payment)
 
 @bp.route('/payments/<int:payment_id>/delete', methods=['POST'])
-@role_required('admin')
+@role_or_permission_required(roles=['admin'], permissions=['payments.delete'])
 def delete_payment(payment_id):
     payment = Payment.query.get_or_404(payment_id)
     student_id = payment.student_id
@@ -1766,7 +1771,7 @@ def payment_reminder_settings():
     return render_template('admin/payment_reminder_settings.html', settings=settings)
 
 @bp.route('/payments/all')
-@role_required('admin', 'assistant')
+@role_or_permission_required(roles=['admin', 'assistant'], permissions=['payments.view_all'])
 def all_payments():
     page = request.args.get('page', 1, type=int)
     status_filter = request.args.get('status', '')
@@ -1883,7 +1888,7 @@ def payment_reports():
                          overdue_payments=overdue_payments)
 
 @bp.route('/attendance')
-@role_required('admin', 'assistant')
+@role_or_permission_required(roles=['admin', 'assistant'], permissions=['attendance.view'])
 def attendance_list():
     from datetime import date, timedelta
     from sqlalchemy import func
@@ -1947,7 +1952,7 @@ def attendance_list():
                          date_to=date_to)
 
 @bp.route('/attendance/add', methods=['GET', 'POST'])
-@role_required('admin', 'assistant')
+@role_or_permission_required(roles=['admin', 'assistant'], permissions=['attendance.add', 'attendance.bulk_add'])
 def add_attendance():
     from datetime import date
     from app.utils.notifications import send_notification
@@ -2039,7 +2044,7 @@ def add_attendance():
                          today=today)
 
 @bp.route('/attendance/edit/<int:id>', methods=['GET', 'POST'])
-@role_required('admin', 'assistant')
+@role_or_permission_required(roles=['admin', 'assistant'], permissions=['attendance.edit'])
 def edit_attendance(id):
     from app.utils.notifications import send_notification
     from sqlalchemy.exc import IntegrityError
@@ -2099,7 +2104,7 @@ def edit_attendance(id):
     return render_template('admin/edit_attendance.html', record=record)
 
 @bp.route('/attendance/delete/<int:id>', methods=['POST'])
-@role_required('admin', 'assistant')
+@role_or_permission_required(roles=['admin'], permissions=['attendance.delete'])
 def delete_attendance(id):
     record = Attendance.query.get_or_404(id)
     
@@ -2437,3 +2442,110 @@ def data_reset():
     }
     
     return render_template('admin/data_reset.html', stats=stats)
+
+
+@bp.route('/users/permissions')
+@role_required('admin')
+def manage_permissions():
+    from app.utils.permissions_config import get_permissions_by_category
+    
+    users = User.query.filter(User.role != 'admin').order_by(User.role, User.full_name).all()
+    permissions_structure = get_permissions_by_category()
+    
+    return render_template('admin/manage_permissions.html', 
+                          users=users, 
+                          permissions_structure=permissions_structure)
+
+
+@bp.route('/users/permissions/<int:user_id>', methods=['GET', 'POST'])
+@role_required('admin')
+def edit_user_permissions(user_id):
+    from app.utils.permissions_config import get_permissions_by_category, get_default_permissions_for_role
+    
+    user = User.query.get_or_404(user_id)
+    
+    if user.role == 'admin':
+        flash('لا يمكن تعديل صلاحيات المدير الرئيسي', 'warning')
+        return redirect(url_for('admin.manage_permissions'))
+    
+    if request.method == 'POST':
+        try:
+            if not user.permissions:
+                user.permissions = {}
+            
+            from app.utils.permissions_config import get_all_permission_keys
+            all_permission_keys = get_all_permission_keys()
+            
+            new_permissions = {}
+            for perm_key in all_permission_keys:
+                if request.form.get(perm_key) == 'on':
+                    new_permissions[perm_key] = True
+            
+            user.permissions = new_permissions
+            db.session.commit()
+            
+            flash(f'✅ تم تحديث صلاحيات المستخدم {user.full_name} بنجاح', 'success')
+            return redirect(url_for('admin.manage_permissions'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'❌ حدث خطأ أثناء تحديث الصلاحيات: {str(e)}', 'danger')
+    
+    permissions_structure = get_permissions_by_category()
+    current_permissions = user.permissions if user.permissions else {}
+    
+    return render_template('admin/edit_permissions.html', 
+                          user=user, 
+                          permissions_structure=permissions_structure,
+                          current_permissions=current_permissions)
+
+
+@bp.route('/users/permissions/<int:user_id>/reset', methods=['POST'])
+@role_required('admin')
+def reset_user_permissions(user_id):
+    from app.utils.permissions_config import apply_default_permissions
+    
+    user = User.query.get_or_404(user_id)
+    
+    if user.role == 'admin':
+        flash('لا يمكن تعديل صلاحيات المدير الرئيسي', 'warning')
+        return redirect(url_for('admin.manage_permissions'))
+    
+    try:
+        apply_default_permissions(user)
+        db.session.commit()
+        
+        flash(f'✅ تم إعادة تعيين صلاحيات المستخدم {user.full_name} إلى الصلاحيات الافتراضية', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ حدث خطأ: {str(e)}', 'danger')
+    
+    return redirect(url_for('admin.edit_user_permissions', user_id=user_id))
+
+
+@bp.route('/users/permissions/<int:user_id>/copy', methods=['POST'])
+@role_required('admin')
+def copy_permissions(user_id):
+    source_user_id = request.form.get('source_user_id')
+    
+    if not source_user_id:
+        flash('يرجى اختيار مستخدم للنسخ منه', 'warning')
+        return redirect(url_for('admin.edit_user_permissions', user_id=user_id))
+    
+    try:
+        target_user = User.query.get_or_404(user_id)
+        source_user = User.query.get_or_404(source_user_id)
+        
+        if target_user.role == 'admin' or source_user.role == 'admin':
+            flash('لا يمكن نسخ صلاحيات المدير الرئيسي', 'warning')
+            return redirect(url_for('admin.edit_user_permissions', user_id=user_id))
+        
+        target_user.permissions = source_user.permissions.copy() if source_user.permissions else {}
+        db.session.commit()
+        
+        flash(f'✅ تم نسخ صلاحيات {source_user.full_name} إلى {target_user.full_name} بنجاح', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'❌ حدث خطأ: {str(e)}', 'danger')
+    
+    return redirect(url_for('admin.edit_user_permissions', user_id=user_id))

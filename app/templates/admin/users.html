@@ -9,9 +9,14 @@
             <i class="fas fa-users ms-2"></i>
             إدارة المستخدمين
         </h2>
-        <a href="{{ url_for('admin.add_user') }}" class="btn btn-primary">
-            <i class="fas fa-plus ms-2"></i> إضافة مستخدم
-        </a>
+        <div>
+            <a href="{{ url_for('admin.manage_permissions') }}" class="btn btn-success ms-2">
+                <i class="fas fa-user-shield ms-2"></i> إدارة الصلاحيات
+            </a>
+            <a href="{{ url_for('admin.add_user') }}" class="btn btn-primary">
+                <i class="fas fa-plus ms-2"></i> إضافة مستخدم
+            </a>
+        </div>
     </div>
 
     <div class="card shadow-sm">
