@@ -253,10 +253,16 @@ def add_user():
     if request.method == 'POST':
         from app.utils.permissions_config import apply_default_permissions
         
+        new_role = request.form.get('role')
+        
+        if new_role == 'admin' and not current_user.is_super_admin():
+            flash('❌ فقط المدير الرئيسي يمكنه إنشاء مستخدمين بدور مدير', 'danger')
+            return redirect(url_for('admin.add_user'))
+        
         user = User(
             phone_number=request.form.get('phone_number'),
             full_name=request.form.get('full_name'),
-            role=request.form.get('role'),
+            role=new_role,
             is_active=True
         )
         user.set_password(request.form.get('password'))
@@ -294,13 +300,31 @@ def add_user():
 @role_or_permission_required(roles=['admin'], permissions=['users.edit'])
 def edit_user(user_id):
     user = User.query.get_or_404(user_id)
+    
+    if user.is_super_admin():
+        flash('❌ لا يمكن تعديل المدير الرئيسي', 'danger')
+        return redirect(url_for('admin.users'))
+    
     old_role = user.role
     old_is_active = user.is_active
     
     if request.method == 'POST':
+        new_role = request.form.get('role')
+        
+        if user.id == current_user.id:
+            flash('❌ لا يمكنك تعديل دورك الخاص', 'danger')
+            return redirect(url_for('admin.users'))
+        
+        if new_role == 'admin' and not current_user.is_super_admin():
+            flash('❌ فقط المدير الرئيسي يمكنه ترقية مستخدمين إلى دور مدير', 'danger')
+            return redirect(url_for('admin.edit_user', user_id=user_id))
+        
+        if old_role == 'admin' and not current_user.is_super_admin():
+            flash('❌ فقط المدير الرئيسي يمكنه تعديل دور المدراء الآخرين', 'danger')
+            return redirect(url_for('admin.users'))
+        
         user.phone_number = request.form.get('phone_number')
         user.full_name = request.form.get('full_name')
-        new_role = request.form.get('role')
         new_is_active = request.form.get('is_active') == 'on'
         
         if old_is_active and not new_is_active:

@@ -77,28 +77,28 @@ class BackupManager:
         shutil.copy('alqasim_institute.db', f'{backup_dir}/database.db')
         
         if os.path.exists('app/static/uploads'):
-            shutil.copytree('app/static/uploads', f'{backup_dir}/uploads')
+            shutil.copytree('app/static/uploads', f'{backup_dir}/uploads', dirs_exist_ok=True)
         
         if os.path.exists('app/templates'):
-            shutil.copytree('app/templates', f'{backup_dir}/templates')
+            shutil.copytree('app/templates', f'{backup_dir}/templates', dirs_exist_ok=True)
         
         if os.path.exists('app/static/css'):
-            shutil.copytree('app/static/css', f'{backup_dir}/css')
+            shutil.copytree('app/static/css', f'{backup_dir}/css', dirs_exist_ok=True)
         
         if os.path.exists('app/static/js'):
-            shutil.copytree('app/static/js', f'{backup_dir}/js')
+            shutil.copytree('app/static/js', f'{backup_dir}/js', dirs_exist_ok=True)
         
         if os.path.exists('app/static/images'):
-            shutil.copytree('app/static/images', f'{backup_dir}/images')
+            shutil.copytree('app/static/images', f'{backup_dir}/images', dirs_exist_ok=True)
         
         if os.path.exists('app/models'):
-            shutil.copytree('app/models', f'{backup_dir}/models')
+            shutil.copytree('app/models', f'{backup_dir}/models', dirs_exist_ok=True)
         
         if os.path.exists('app/routes'):
-            shutil.copytree('app/routes', f'{backup_dir}/routes')
+            shutil.copytree('app/routes', f'{backup_dir}/routes', dirs_exist_ok=True)
         
         if os.path.exists('app/utils'):
-            shutil.copytree('app/utils', f'{backup_dir}/utils')
+            shutil.copytree('app/utils', f'{backup_dir}/utils', dirs_exist_ok=True)
         
         important_files = ['run.py', 'requirements.txt', 'config.py', '.env']
         for file in important_files:
