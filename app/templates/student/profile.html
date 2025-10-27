@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}الملف الشخصي - معهد القاسم{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-user ms-2"></i>
+                        الملف الشخصي
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        {% if student.photo %}
+                            <img src="{{ url_for('static', filename=student.photo) }}" alt="صورة الطالب" class="rounded-circle" style="width: 150px; height: 150px; object-fit: cover;">
+                        {% else %}
+                            <div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center" style="width: 150px; height: 150px;">
+                                <i class="fas fa-user fa-4x text-white"></i>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">الاسم الكامل</h6>
+                            <p class="lead">{{ current_user.full_name }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">رقم الطالب</h6>
+                            <p class="lead">{{ student.student_number or 'غير محدد' }}</p>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">رقم الجوال</h6>
+                            <p class="lead">{{ current_user.phone_number }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">الدور</h6>
+                            <p class="lead">
+                                <span class="badge bg-info">طالب</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">الفصل الدراسي</h6>
+                            <p class="lead">{{ student.class_grade.name if student.class_grade else 'غير محدد' }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">الشعبة</h6>
+                            <p class="lead">{{ student.section.name if student.section else 'غير محدد' }}</p>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <h6 class="text-muted">العنوان</h6>
+                            <p class="lead">{{ student.address or 'غير محدد' }}</p>
+                        </div>
+                    </div>
+
+                    <div class="text-center mt-4">
+                        <a href="{{ url_for('student.edit_profile') }}" class="btn btn-primary">
+                            <i class="fas fa-edit ms-2"></i>
+                            تعديل الملف الشخصي
+                        </a>
+                        <a href="{{ url_for('student.dashboard') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-right ms-2"></i>
+                            العودة للوحة التحكم
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

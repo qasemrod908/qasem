@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, jsonify
-from flask_login import login_required, current_user
+from flask_login import login_required, current_user, logout_user
 from app import db
-from app.models import Teacher, Student, Course, Enrollment, Lesson, Grade, NotificationRecipient, Notification, Attendance
+from app.models import Teacher, Student, Course, Enrollment, Lesson, Grade, NotificationRecipient, Notification, Attendance, User
 from app.utils.decorators import role_required
 from app.utils.notifications import get_user_notifications, get_unread_count, mark_notification_as_read
 from werkzeug.utils import secure_filename
@@ -494,3 +494,65 @@ def attendance():
                          recent_stats=recent_stats,
                          date_from=date_from,
                          date_to=date_to)
+
+@bp.route('/profile')
+@role_required('teacher')
+def profile():
+    teacher = Teacher.query.filter_by(user_id=current_user.id).first()
+    if not teacher:
+        flash('الملف الشخصي للمعلم غير موجود', 'danger')
+        return redirect(url_for('public.index'))
+    
+    return render_template('teacher/profile.html', teacher=teacher)
+
+@bp.route('/profile/edit', methods=['GET', 'POST'])
+@role_required('teacher')
+def edit_profile():
+    teacher = Teacher.query.filter_by(user_id=current_user.id).first()
+    if not teacher:
+        flash('الملف الشخصي للمعلم غير موجود', 'danger')
+        return redirect(url_for('public.index'))
+    
+    if request.method == 'POST':
+        phone_number = request.form.get('phone_number')
+        old_password = request.form.get('old_password')
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
+        
+        existing_user = User.query.filter_by(phone_number=phone_number).first()
+        if existing_user and existing_user.id != current_user.id:
+            flash('رقم الجوال مستخدم بالفعل', 'danger')
+            return redirect(url_for('teacher.edit_profile'))
+        
+        current_user.phone_number = phone_number
+        
+        if new_password:
+            if not old_password or not current_user.check_password(old_password):
+                flash('كلمة المرور القديمة غير صحيحة', 'danger')
+                return redirect(url_for('teacher.edit_profile'))
+            
+            if new_password != confirm_password:
+                flash('كلمة المرور الجديدة غير متطابقة', 'danger')
+                return redirect(url_for('teacher.edit_profile'))
+            
+            current_user.set_password(new_password)
+            db.session.commit()
+            logout_user()
+            flash('تم تحديث كلمة المرور بنجاح. يرجى تسجيل الدخول مرة أخرى', 'success')
+            return redirect(url_for('auth.login'))
+        
+        if 'photo' in request.files:
+            file = request.files['photo']
+            if file and file.filename:
+                filename = secure_filename(file.filename)
+                unique_filename = f"{current_user.id}_{filename}"
+                file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'teachers', unique_filename)
+                os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                file.save(file_path)
+                teacher.photo = f'uploads/teachers/{unique_filename}'
+        
+        db.session.commit()
+        flash('تم تحديث الملف الشخصي بنجاح', 'success')
+        return redirect(url_for('teacher.profile'))
+    
+    return render_template('teacher/edit_profile.html', teacher=teacher)

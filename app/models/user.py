@@ -3,6 +3,7 @@ from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from app.utils.helpers import damascus_now
+import secrets
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
@@ -14,11 +15,13 @@ class User(UserMixin, db.Model):
     role = db.Column(db.String(20), nullable=False)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=damascus_now)
+    session_version = db.Column(db.String(64), default=lambda: secrets.token_hex(32))
     
     permissions = db.Column(db.JSON, default={})
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
+        self.invalidate_sessions()
     
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
@@ -34,6 +37,15 @@ class User(UserMixin, db.Model):
             user_id=self.id,
             is_read=False
         ).join(Notification).filter(Notification.is_active == True).count()
+    
+    def invalidate_sessions(self):
+        self.session_version = secrets.token_hex(32)
+    
+    def get_id(self):
+        if self.session_version is None:
+            self.session_version = secrets.token_hex(32)
+            db.session.commit()
+        return f"{self.id}:{self.session_version}"
     
     def __repr__(self):
         return f'<User {self.phone_number}>'

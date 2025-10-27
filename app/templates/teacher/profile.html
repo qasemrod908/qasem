@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}الملف الشخصي - معهد القاسم{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-user ms-2"></i>
+                        الملف الشخصي
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        {% if teacher.photo %}
+                            <img src="{{ url_for('static', filename=teacher.photo) }}" alt="صورة الأستاذ" class="rounded-circle" style="width: 150px; height: 150px; object-fit: cover;">
+                        {% else %}
+                            <div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center" style="width: 150px; height: 150px;">
+                                <i class="fas fa-chalkboard-teacher fa-4x text-white"></i>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">الاسم الكامل</h6>
+                            <p class="lead">{{ current_user.full_name }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">التخصص</h6>
+                            <p class="lead">{{ teacher.specialization or 'غير محدد' }}</p>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">رقم الجوال</h6>
+                            <p class="lead">{{ current_user.phone_number }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">الدور</h6>
+                            <p class="lead">
+                                <span class="badge bg-success">أستاذ</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">سنوات الخبرة</h6>
+                            <p class="lead">{{ teacher.experience_years or 'غير محدد' }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">رقم الهاتف</h6>
+                            <p class="lead">{{ teacher.phone or 'غير محدد' }}</p>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <h6 class="text-muted">المؤهلات</h6>
+                            <p class="lead">{{ teacher.qualifications or 'غير محدد' }}</p>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <h6 class="text-muted">نبذة تعريفية</h6>
+                            <p class="lead">{{ teacher.bio or 'غير محدد' }}</p>
+                        </div>
+                    </div>
+
+                    <div class="text-center mt-4">
+                        <a href="{{ url_for('teacher.edit_profile') }}" class="btn btn-primary">
+                            <i class="fas fa-edit ms-2"></i>
+                            تعديل الملف الشخصي
+                        </a>
+                        <a href="{{ url_for('teacher.dashboard') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-right ms-2"></i>
+                            العودة للوحة التحكم
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

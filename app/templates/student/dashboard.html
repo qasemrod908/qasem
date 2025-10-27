@@ -46,6 +46,9 @@
                     <h5 class="mb-0">القوائم</h5>
                 </div>
                 <div class="list-group list-group-flush">
+                    <a href="{{ url_for('student.profile') }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-user ms-2"></i> الملف الشخصي
+                    </a>
                     <a href="{{ url_for('student.courses') }}" class="list-group-item list-group-item-action">
                         <i class="fas fa-book ms-2"></i> دوراتي
                     </a>

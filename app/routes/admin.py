@@ -282,12 +282,18 @@ def add_user():
 def edit_user(user_id):
     user = User.query.get_or_404(user_id)
     old_role = user.role
+    old_is_active = user.is_active
     
     if request.method == 'POST':
         user.phone_number = request.form.get('phone_number')
         user.full_name = request.form.get('full_name')
         new_role = request.form.get('role')
-        user.is_active = request.form.get('is_active') == 'on'
+        new_is_active = request.form.get('is_active') == 'on'
+        
+        if old_is_active and not new_is_active:
+            user.invalidate_sessions()
+        
+        user.is_active = new_is_active
         
         if request.form.get('password'):
             user.set_password(request.form.get('password'))
@@ -661,6 +667,10 @@ def edit_teacher(teacher_id):
 def toggle_user_status(user_id):
     user = User.query.get_or_404(user_id)
     user.is_active = not user.is_active
+    
+    if not user.is_active:
+        user.invalidate_sessions()
+    
     db.session.commit()
     
     status = 'تفعيل' if user.is_active else 'تعطيل'
@@ -675,6 +685,8 @@ def delete_user(user_id):
         return redirect(url_for('admin.users'))
     
     user = User.query.get_or_404(user_id)
+    
+    user.invalidate_sessions()
     
     if user.role == 'teacher':
         Teacher.query.filter_by(user_id=user.id).delete()

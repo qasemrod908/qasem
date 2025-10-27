@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}تعديل الملف الشخصي - معهد القاسم{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-edit ms-2"></i>
+                        تعديل الملف الشخصي
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        <div class="text-center mb-4">
+                            {% if teacher.photo %}
+                                <img src="{{ url_for('static', filename=teacher.photo) }}" alt="صورة الأستاذ" class="rounded-circle mb-3" style="width: 150px; height: 150px; object-fit: cover;">
+                            {% else %}
+                                <div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center mb-3" style="width: 150px; height: 150px;">
+                                    <i class="fas fa-chalkboard-teacher fa-4x text-white"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="photo" class="form-label">
+                                <i class="fas fa-image ms-2"></i>
+                                الصورة الشخصية
+                            </label>
+                            <input type="file" class="form-control" id="photo" name="photo" accept="image/*">
+                            <small class="text-muted">اختر صورة جديدة لتغيير الصورة الحالية</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="phone_number" class="form-label">
+                                <i class="fas fa-phone ms-2"></i>
+                                رقم الجوال
+                            </label>
+                            <input type="text" class="form-control" id="phone_number" name="phone_number" value="{{ current_user.phone_number }}" required>
+                        </div>
+
+                        <hr class="my-4">
+                        <h5 class="mb-3">تغيير كلمة المرور</h5>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            إذا كنت ترغب في تغيير كلمة المرور، املأ الحقول التالية. وإلا اتركها فارغة.
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="old_password" class="form-label">
+                                <i class="fas fa-lock ms-2"></i>
+                                كلمة المرور الحالية
+                            </label>
+                            <input type="password" class="form-control" id="old_password" name="old_password">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="new_password" class="form-label">
+                                <i class="fas fa-key ms-2"></i>
+                                كلمة المرور الجديدة
+                            </label>
+                            <input type="password" class="form-control" id="new_password" name="new_password">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="confirm_password" class="form-label">
+                                <i class="fas fa-key ms-2"></i>
+                                تأكيد كلمة المرور الجديدة
+                            </label>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password">
+                        </div>
+
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            عند تغيير كلمة المرور، سيتم تسجيل خروجك تلقائياً وستحتاج لتسجيل الدخول مرة أخرى.
+                        </div>
+
+                        <div class="text-center mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save ms-2"></i>
+                                حفظ التغييرات
+                            </button>
+                            <a href="{{ url_for('teacher.profile') }}" class="btn btn-secondary">
+                                <i class="fas fa-times ms-2"></i>
+                                إلغاء
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
