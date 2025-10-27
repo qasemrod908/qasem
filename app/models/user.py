@@ -42,9 +42,6 @@ class User(UserMixin, db.Model):
         self.session_version = secrets.token_hex(32)
     
     def get_id(self):
-        if self.session_version is None:
-            self.session_version = secrets.token_hex(32)
-            db.session.commit()
         return f"{self.id}:{self.session_version}"
     
     def __repr__(self):

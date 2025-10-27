@@ -91,19 +91,15 @@ def create_app(config_class=Config):
     @login_manager.user_loader
     def load_user(user_id):
         try:
-            if ':' in str(user_id):
-                uid, session_version = str(user_id).split(':', 1)
-                loaded_user = user.User.query.get(int(uid))
-                if loaded_user and loaded_user.session_version == session_version and loaded_user.is_active:
-                    return loaded_user
+            if ':' not in str(user_id):
                 return None
-            else:
-                loaded_user = user.User.query.get(int(user_id))
-                if loaded_user and loaded_user.is_active:
-                    return loaded_user
-                return None
+            uid, session_version = str(user_id).split(':', 1)
+            loaded_user = user.User.query.get(int(uid))
+            if loaded_user and loaded_user.session_version == session_version and loaded_user.is_active:
+                return loaded_user
         except:
-            return None
+            pass
+        return None
     
     from app.routes import auth, admin, public, teacher, student
     
