@@ -31,6 +31,9 @@ class User(UserMixin, db.Model):
             return True
         return self.permissions.get(permission, False)
     
+    def is_super_admin(self):
+        return self.role == 'admin' and self.phone_number == '0938074766'
+    
     def get_unread_notifications_count(self):
         from app.models.notification import NotificationRecipient, Notification
         return NotificationRecipient.query.filter_by(

@@ -181,10 +181,10 @@
                     <p>اختر المستخدم الذي تريد نسخ صلاحياته إلى <strong>{{ user.full_name }}</strong>:</p>
                     <select name="source_user_id" class="form-select" required>
                         <option value="">-- اختر مستخدم --</option>
-                        {% for u in User.query.filter(User.id != user.id, User.role != 'admin').all() %}
+                        {% for u in other_users %}
                         <option value="{{ u.id }}">
                             {{ u.full_name }} 
-                            ({% if u.role == 'assistant' %}معاون{% elif u.role == 'teacher' %}مدرس{% else %}طالب{% endif %})
+                            ({% if u.role == 'assistant' %}معاون{% elif u.role == 'teacher' %}مدرس{% elif u.role == 'admin' %}مدير{% else %}طالب{% endif %})
                         </option>
                         {% endfor %}
                     </select>

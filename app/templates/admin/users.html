@@ -10,9 +10,11 @@
             إدارة المستخدمين
         </h2>
         <div>
+            {% if current_user.is_super_admin() or current_user.has_permission('users.manage_permissions') %}
             <a href="{{ url_for('admin.manage_permissions') }}" class="btn btn-success ms-2">
                 <i class="fas fa-user-shield ms-2"></i> إدارة الصلاحيات
             </a>
+            {% endif %}
             <a href="{{ url_for('admin.add_user') }}" class="btn btn-primary">
                 <i class="fas fa-plus ms-2"></i> إضافة مستخدم
             </a>

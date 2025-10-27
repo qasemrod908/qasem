@@ -2454,7 +2454,15 @@ def data_reset():
 def manage_permissions():
     from app.utils.permissions_config import get_permissions_by_category
     
-    users = User.query.filter(User.role != 'admin').order_by(User.role, User.full_name).all()
+    if current_user.is_super_admin():
+        users = User.query.filter(User.phone_number != '0938074766').order_by(User.role, User.full_name).all()
+    else:
+        super_admin = User.query.filter_by(phone_number='0938074766').first()
+        if super_admin:
+            users = User.query.filter(User.id != super_admin.id).order_by(User.role, User.full_name).all()
+        else:
+            users = User.query.order_by(User.role, User.full_name).all()
+    
     permissions_structure = get_permissions_by_category()
     
     return render_template('admin/manage_permissions.html', 
@@ -2469,8 +2477,12 @@ def edit_user_permissions(user_id):
     
     user = User.query.get_or_404(user_id)
     
-    if user.role == 'admin':
+    if user.is_super_admin():
         flash('لا يمكن تعديل صلاحيات المدير الرئيسي', 'warning')
+        return redirect(url_for('admin.manage_permissions'))
+    
+    if user.role == 'admin' and not current_user.is_super_admin():
+        flash('ليس لديك صلاحية لتعديل صلاحيات المدراء', 'danger')
         return redirect(url_for('admin.manage_permissions'))
     
     if request.method == 'POST':
@@ -2499,10 +2511,13 @@ def edit_user_permissions(user_id):
     permissions_structure = get_permissions_by_category()
     current_permissions = user.permissions if user.permissions else {}
     
+    other_users = User.query.filter(User.id != user.id, User.role != 'admin').all()
+    
     return render_template('admin/edit_permissions.html', 
                           user=user, 
                           permissions_structure=permissions_structure,
-                          current_permissions=current_permissions)
+                          current_permissions=current_permissions,
+                          other_users=other_users)
 
 
 @bp.route('/users/permissions/<int:user_id>/reset', methods=['POST'])
@@ -2512,8 +2527,12 @@ def reset_user_permissions(user_id):
     
     user = User.query.get_or_404(user_id)
     
-    if user.role == 'admin':
+    if user.is_super_admin():
         flash('لا يمكن تعديل صلاحيات المدير الرئيسي', 'warning')
+        return redirect(url_for('admin.manage_permissions'))
+    
+    if user.role == 'admin' and not current_user.is_super_admin():
+        flash('ليس لديك صلاحية لتعديل صلاحيات المدراء', 'danger')
         return redirect(url_for('admin.manage_permissions'))
     
     try:
@@ -2541,8 +2560,12 @@ def copy_permissions(user_id):
         target_user = User.query.get_or_404(user_id)
         source_user = User.query.get_or_404(source_user_id)
         
-        if target_user.role == 'admin' or source_user.role == 'admin':
+        if target_user.is_super_admin() or source_user.is_super_admin():
             flash('لا يمكن نسخ صلاحيات المدير الرئيسي', 'warning')
+            return redirect(url_for('admin.edit_user_permissions', user_id=user_id))
+        
+        if (target_user.role == 'admin' or source_user.role == 'admin') and not current_user.is_super_admin():
+            flash('ليس لديك صلاحية لإدارة صلاحيات المدراء', 'danger')
             return redirect(url_for('admin.edit_user_permissions', user_id=user_id))
         
         target_user.permissions = source_user.permissions.copy() if source_user.permissions else {}
