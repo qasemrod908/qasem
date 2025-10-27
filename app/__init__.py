@@ -109,6 +109,15 @@ def create_app(config_class=Config):
     app.register_blueprint(teacher.bp)
     app.register_blueprint(student.bp)
     
+    @app.context_processor
+    def utility_processor():
+        from flask_login import current_user
+        def check_permission(permission):
+            if not current_user.is_authenticated:
+                return False
+            return current_user.has_permission(permission)
+        return dict(check_permission=check_permission)
+    
     with app.app_context():
         db.create_all()
         from app.utils import init_db
